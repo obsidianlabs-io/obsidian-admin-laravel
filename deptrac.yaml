@@ -1,0 +1,113 @@
+deptrac:
+  paths:
+    - ./app
+  exclude_files:
+    - '#.*Test.*#'
+
+  layers:
+    - name: Auth
+      collectors:
+        - type: classLike
+          value: App\\Domains\\Auth\\.*
+
+    - name: Access
+      collectors:
+        - type: classLike
+          value: App\\Domains\\Access\\.*
+
+    - name: TenantPublic
+      collectors:
+        - type: bool
+          must:
+            - type: classLike
+              value: App\\Domains\\Tenant\\.*
+          must_not:
+            - type: classLike
+              value: App\\Domains\\Tenant\\Models\\.*
+
+    - name: TenantModels
+      collectors:
+        - type: classLike
+          value: App\\Domains\\Tenant\\Models\\.*
+
+    - name: System
+      collectors:
+        - type: classLike
+          value: App\\Domains\\System\\.*
+
+    - name: Shared
+      collectors:
+        - type: classLike
+          value: App\\Domains\\Shared\\.*
+
+    - name: AppCore
+      collectors:
+        - type: classLike
+          value: App\\(Console|DTOs|Http|Jobs|Policies|Providers|Support)\\.*
+
+    - name: Framework
+      collectors:
+        - type: classLike
+          value: (Illuminate|Laravel|Symfony|Psr|Carbon|Dedoc|PragmaRX|Mockery|PHPUnit|Ramsey|Nette)\\.*
+
+  ruleset:
+    Auth:
+      - Auth
+      - Access
+      - TenantPublic
+      - Shared
+      - System
+      - AppCore
+      - Framework
+
+    Access:
+      - Auth
+      - Access
+      - TenantPublic
+      - TenantModels
+      - Shared
+      - System
+      - AppCore
+      - Framework
+
+    TenantPublic:
+      - Access
+      - TenantPublic
+      - TenantModels
+      - Shared
+      - System
+      - AppCore
+      - Framework
+
+    TenantModels:
+      - Access
+      - TenantModels
+      - Shared
+      - AppCore
+      - Framework
+
+    System:
+      - Access
+      - TenantPublic
+      - TenantModels
+      - Shared
+      - System
+      - AppCore
+      - Framework
+
+    Shared:
+      - Access
+      - Shared
+      - System
+      - AppCore
+      - Framework
+
+    AppCore:
+      - Auth
+      - Access
+      - TenantPublic
+      - TenantModels
+      - Shared
+      - System
+      - AppCore
+      - Framework

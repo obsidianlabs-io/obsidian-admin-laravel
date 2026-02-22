@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Framework optimize smoke check
+        env:
+          CACHE_STORE: array
+        run: |
+          php artisan optimize
+          php artisan optimize:clear
+
+      - name: OpenAPI lint gate
+        run: php artisan openapi:lint
+
+      - name: Security baseline gate
+        run: php artisan security:baseline
+
+      - name: Proxy trust configuration gate
+        run: php artisan http:proxy-trust-check --strict
+
+      - name: API contract snapshot gate
+        run: php artisan api:contract-snapshot
+
+      - name: OpenAPI contract route gate
+        run: php artisan test tests/Feature/OpenApiContractTest.php --filter=test_openapi_documented_operations_are_registered_for_root_and_v1_api_routes
+
+      - name: Lint (Pint)
+        run: vendor/bin/pint --test
+
+      - name: Static analysis (Larastan/PHPStan)
+        run: vendor/bin/phpstan analyse --memory-limit=1G
+
+      - name: Architecture tests (Pest)
+        run: vendor/bin/pest tests/Architecture --colors=always
+
+      - name: Domain boundary gate (Deptrac)
+        run: vendor/bin/deptrac --config-file=deptrac.yaml --no-interaction
+
+  tests-sqlite:
+    runs-on: ubuntu-latest
+    needs: quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare SQLite environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch /tmp/soybean-testing.sqlite
+          {
+            echo 'DB_CONNECTION=sqlite'
+            echo 'DB_DATABASE=/tmp/soybean-testing.sqlite'
+          } >> .env
+
+      - name: Fresh migration and seed (SQLite)
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Run tests (SQLite)
+        run: php artisan test
+
+  tests-mysql:
+    runs-on: ubuntu-latest
+    needs: quality
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: obsidian_testing
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 -uroot -proot --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare MySQL environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          {
+            echo 'DB_CONNECTION=mysql'
+            echo 'DB_HOST=127.0.0.1'
+            echo 'DB_PORT=3306'
+            echo 'DB_DATABASE=obsidian_testing'
+            echo 'DB_USERNAME=root'
+            echo 'DB_PASSWORD=root'
+          } >> .env
+
+      - name: Fresh migration and seed (MySQL)
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Run tests (MySQL)
+        run: vendor/bin/pest --configuration=phpunit.mysql.xml

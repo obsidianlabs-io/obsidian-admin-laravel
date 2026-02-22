@@ -1,0 +1,33 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="obsidianGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1e24" />
+      <stop offset="100%" stop-color="#0f0f13" />
+    </linearGradient>
+    <linearGradient id="obsidianHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#4338ca" stop-opacity="0.2" />
+    </linearGradient>
+  </defs>
+  <!-- Background Shape -->
+  <rect width="200" height="200" rx="40" fill="url(#obsidianGlow)" />
+  
+  <g transform="translate(100, 100)">
+    <!-- Top Face -->
+    <polygon points="0,-60 40,-20 0,0 -40,-20" fill="#2d2d3d" />
+    <!-- Bottom Right Face -->
+    <polygon points="0,0 40,-20 0,70" fill="#181822" />
+    <!-- Bottom Left Face -->
+    <polygon points="0,0 -40,-20 0,70" fill="#222230" />
+    
+    <!-- Highlights -->
+    <polygon points="0,-60 -20,-30 0,0" fill="url(#obsidianHighlight)" />
+    <polygon points="0,0 -20,-30 0,40" fill="url(#obsidianHighlight)" opacity="0.5" />
+    <polygon points="0,0 20,-30 0,40" fill="url(#obsidianHighlight)" opacity="0.3" />
+    
+    <!-- Edges -->
+    <polyline points="-40,-20 0,0 40,-20" fill="none" stroke="#4338ca" stroke-width="1.5" stroke-linejoin="round" />
+    <line x1="0" y1="-60" x2="0" y2="70" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round" />
+    <polyline points="0,-60 -40,-20 0,70 40,-20 0,-60" fill="none" stroke="#3b3b4f" stroke-width="2" stroke-linejoin="round" />
+  </g>
+</svg>

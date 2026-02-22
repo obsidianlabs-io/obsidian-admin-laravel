@@ -1,0 +1,931 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Parameter \#1 \$callback of function array_map expects \(callable\(string\|null\)\: mixed\)\|null, Closure\(string\)\: string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Console/Commands/FeatureRolloutCommand.php
+
+		-
+			message: '#^Access to an undefined property App\\Domains\\Access\\Models\\User\:\:\$role_tenant_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/RbacDoctorCommand.php
+
+		-
+			message: '#^Access to an undefined property App\\Domains\\Access\\Models\\User\:\:\$user_email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/RbacDoctorCommand.php
+
+		-
+			message: '#^Access to an undefined property App\\Domains\\Access\\Models\\User\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/RbacDoctorCommand.php
+
+		-
+			message: '#^Access to an undefined property App\\Domains\\Access\\Models\\User\:\:\$user_role_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/RbacDoctorCommand.php
+
+		-
+			message: '#^Access to an undefined property App\\Domains\\Access\\Models\\User\:\:\$user_tenant_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/RbacDoctorCommand.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\RbacDoctorCommand\:\:findUserRoleTenantScopeIssues\(\) should return list\<string\> but returns array\<int, non\-falsy\-string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Console/Commands/RbacDoctorCommand.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 4
+			path: app/Domains/Access/Http/Controllers/PermissionController.php
+
+		-
+			message: '#^Parameter \#2 \$default of method Illuminate\\Http\\Request\:\:header\(\) expects array\<string, string\>\|string\|null, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domains/Access/Http/Controllers/PermissionController.php
+
+		-
+			message: '#^Unable to resolve the template type TDefault in call to method Illuminate\\Http\\Request\:\:header\(\)$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Domains/Access/Http/Controllers/PermissionController.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Http\\Controllers\\RoleController\:\:applyRoleVisibilityScope\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Http/Controllers/RoleController.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Http\\Controllers\\RoleController\:\:buildAssignablePermissionQuery\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Http/Controllers/RoleController.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Http\\Controllers\\RoleController\:\:resolveAssignablePermissionIds\(\) should return array\{ok\: bool, code\: string, msg\: string, ids\?\: list\<int\>\} but returns array\{ok\: true, code\: ''0000'', msg\: ''ok'', ids\: array\<int\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/Access/Http/Controllers/RoleController.php
+
+		-
+			message: '#^Offset ''ids'' might not exist on array\{ok\: true, code\: string, msg\: string, ids\?\: list\<int\>\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 5
+			path: app/Domains/Access/Http/Controllers/RoleController.php
+
+		-
+			message: '#^Offset ''tenantId'' might not exist on array\{ok\: true, code\: string, msg\: string, tenantId\?\: int\|null, isSuper\?\: bool\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/Access/Http/Controllers/RoleController.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 7
+			path: app/Domains/Access/Http/Controllers/RoleController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int, permissionCode\: string, permissionName\: string, group\: string\}, Closure\(App\\Domains\\Access\\Models\\Permission\)\: array\{id\: int, permissionCode\: string, permissionName\: string, group\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domains/Access/Http/Controllers/RoleController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$code\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domains/Access/Http/Controllers/UserManagementController.php
+
+		-
+			message: '#^Offset ''actorLevel'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, actorLevel\?\: int, tenantId\?\: int\|null\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 5
+			path: app/Domains/Access/Http/Controllers/UserManagementController.php
+
+		-
+			message: '#^Offset ''role'' might not exist on array\{ok\: true, msg\: string, role\?\: App\\Domains\\Access\\Models\\Role\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 3
+			path: app/Domains/Access/Http/Controllers/UserManagementController.php
+
+		-
+			message: '#^Offset ''tenantId'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, actorLevel\?\: int, tenantId\?\: int\|null\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 5
+			path: app/Domains/Access/Http/Controllers/UserManagementController.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, actorLevel\?\: int, tenantId\?\: int\|null\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 5
+			path: app/Domains/Access/Http/Controllers/UserManagementController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Domains/Access/Http/Controllers/UserManagementController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domains/Access/Http/Resources/RoleListResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domains/Access/Http/Resources/RoleListResource.php
+
+		-
+			message: '#^Class App\\Domains\\Access\\Models\\Permission uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/Permission.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Models\\Permission\:\:roles\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany does not specify its types\: TRelatedModel, TDeclaringModel, TPivotModel, TAccessor \(2\-4 required\)$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/Permission.php
+
+		-
+			message: '#^Class App\\Domains\\Access\\Models\\Role uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/Role.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Models\\Role\:\:permissions\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany does not specify its types\: TRelatedModel, TDeclaringModel, TPivotModel, TAccessor \(2\-4 required\)$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/Role.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Models\\Role\:\:tenant\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/Role.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Models\\Role\:\:users\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/Role.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$permissions\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domains/Access/Models/User.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domains/Access/Models/User.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Models\\User\:\:permissionCodes\(\) should return list\<string\> but returns array\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/Access/Models/User.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Models\\User\:\:preference\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasOne does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/User.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Models\\User\:\:role\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/User.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Models\\User\:\:tenant\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/User.php
+
+		-
+			message: '#^Class App\\Domains\\Access\\Models\\UserPreference uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/UserPreference.php
+
+		-
+			message: '#^Method App\\Domains\\Access\\Models\\UserPreference\:\:user\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Access/Models/UserPreference.php
+
+		-
+			message: '#^Method App\\Domains\\Auth\\Http\\Controllers\\AbstractUserController\:\:resolveUserManagementContext\(\) has parameter \$permissionCode with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Domains/Auth/Http/Controllers/AbstractUserController.php
+
+		-
+			message: '#^Offset ''tenantId'' might not exist on array\{ok\: true, code\: string, msg\: string, tenantId\?\: int\|null, tenantName\?\: string, tenants\?\: list\<array\{tenantId\: string, tenantName\: string\}\>\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/Auth/Http/Controllers/AbstractUserController.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/Auth/Http/Controllers/AbstractUserController.php
+
+		-
+			message: '#^Parameter \#3 \$permissionCodes of method App\\Domains\\Shared\\Http\\Controllers\\ApiController\:\:authenticateAndAuthorizeAny\(\) expects list\<string\>, array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domains/Auth/Http/Controllers/AbstractUserController.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 4
+			path: app/Domains/Auth/Http/Controllers/AuthSecurityController.php
+
+		-
+			message: '#^Parameter \#1 \$dateTime of static method App\\Support\\ApiDateTime\:\:format\(\) expects Carbon\\CarbonInterface\|null, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domains/Auth/Http/Controllers/AuthSecurityController.php
+
+		-
+			message: '#^Offset ''role'' might not exist on array\{ok\: true, msg\: string, role\?\: App\\Domains\\Access\\Models\\Role\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/Auth/Http/Controllers/AuthSessionController.php
+
+		-
+			message: '#^Parameter \#1 \$dto of method App\\Domains\\Access\\Services\\UserService\:\:create\(\) expects App\\DTOs\\User\\CreateUserDTO, array\<string, int\|string\|null\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domains/Auth/Http/Controllers/AuthSessionController.php
+
+		-
+			message: '#^Offset ''tenantId'' might not exist on array\{ok\: true, code\: string, msg\: string, tenantId\?\: int\|null, tenantName\?\: string, tenants\?\: list\<array\{tenantId\: string, tenantName\: string\}\>\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 3
+			path: app/Domains/Auth/Http/Controllers/UserProfileController.php
+
+		-
+			message: '#^Offset ''tenantName'' might not exist on array\{ok\: true, code\: string, msg\: string, tenantId\?\: int\|null, tenantName\?\: string, tenants\?\: list\<array\{tenantId\: string, tenantName\: string\}\>\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/Auth/Http/Controllers/UserProfileController.php
+
+		-
+			message: '#^Offset ''tenants'' might not exist on array\{ok\: true, code\: string, msg\: string, tenantId\?\: int\|null, tenantName\?\: string, tenants\?\: list\<array\{tenantId\: string, tenantName\: string\}\>\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/Auth/Http/Controllers/UserProfileController.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 6
+			path: app/Domains/Auth/Http/Controllers/UserProfileController.php
+
+		-
+			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
+			identifier: larastan.noEnvCallsOutsideOfConfig
+			count: 4
+			path: app/Domains/Auth/Services/AuthTokenService.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<string, mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Domains/Auth/Services/MenuMetadataService.php
+
+		-
+			message: '#^Method App\\Domains\\Auth\\Services\\MenuMetadataService\:\:menuItems\(\) should return list\<array\<string, mixed\>\> but returns array\<mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/Auth/Services/MenuMetadataService.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<array\{key\: string, routeKey\: string, routePath\: string, label\: string, i18nKey\: string\|null, icon\: string\|null, order\: int, scope\: string, \.\.\.\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Domains/Auth/Services/MenuMetadataService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domains/Shared/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Method App\\Domains\\Shared\\Http\\Controllers\\ApiController\:\:parseOptimisticLockToken\(\) should return int\|null but returns float\|int\|string\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/Shared/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Domains/Shared/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domains/Shared/Http/Controllers/ApiController.php
+
+		-
+			message: '#^Parameter \#2 \$data of function hash expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domains/Shared/Services/IdempotencyService.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<array\{key\: non\-empty\-string, enabled\: bool, percentage\: int, platform_only\: bool, tenant_only\: bool, role_codes\: list\<non\-empty\-string\>, global_override\: bool\|null\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Domains/System/Actions/FeatureFlag/ListFeatureFlagsAction.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Http\\Controllers\\AuditLogController\:\:applyAuditVisibilityScope\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Http/Controllers/AuditLogController.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/System/Http/Controllers/AuditLogController.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Domains/System/Http/Controllers/AuditPolicyController.php
+
+		-
+			message: '#^Access to an undefined property App\\Domains\\System\\Models\\LanguageTranslation\:\:\$max_updated_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domains/System/Http/Controllers/LanguageController.php
+
+		-
+			message: '#^Access to an undefined property App\\Domains\\System\\Models\\LanguageTranslation\:\:\$total_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domains/System/Http/Controllers/LanguageController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$code\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domains/System/Http/Controllers/LanguageController.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Http\\Controllers\\LanguageController\:\:resolveRuntimeLocales\(\) should return list\<array\{id\: int, locale\: string, localeName\: string, isDefault\: bool\}\> but returns array\<int, array\{id\: int, locale\: string, localeName\: string, isDefault\: bool\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Http/Controllers/LanguageController.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 4
+			path: app/Domains/System/Http/Controllers/LanguageController.php
+
+		-
+			message: '#^Parameter \#2 \$default of method Illuminate\\Http\\Request\:\:header\(\) expects array\<string, string\>\|string\|null, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domains/System/Http/Controllers/LanguageController.php
+
+		-
+			message: '#^Unable to resolve the template type TDefault in call to method Illuminate\\Http\\Request\:\:header\(\)$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Domains/System/Http/Controllers/LanguageController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domains/System/Http/Controllers/LanguageController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>timestamp" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domains/System/Http/Controllers/LanguageController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>total_count" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domains/System/Http/Controllers/LanguageController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$theme_schema\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Domains/System/Http/Controllers/ThemeConfigController.php
+
+		-
+			message: '#^Offset ''scopeId'' might not exist on array\{ok\: true, code\: string, msg\: string, scopeType\?\: ''platform'', scopeId\?\: null, scopeName\?\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 5
+			path: app/Domains/System/Http/Controllers/ThemeConfigController.php
+
+		-
+			message: '#^Offset ''scopeName'' might not exist on array\{ok\: true, code\: string, msg\: string, scopeType\?\: ''platform'', scopeId\?\: null, scopeName\?\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 5
+			path: app/Domains/System/Http/Controllers/ThemeConfigController.php
+
+		-
+			message: '#^Offset ''scopeType'' might not exist on array\{ok\: true, code\: string, msg\: string, scopeType\?\: ''platform'', scopeId\?\: null, scopeName\?\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 5
+			path: app/Domains/System/Http/Controllers/ThemeConfigController.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 3
+			path: app/Domains/System/Http/Controllers/ThemeConfigController.php
+
+		-
+			message: '#^Parameter \#2 \$default of method Illuminate\\Http\\Request\:\:header\(\) expects array\<string, string\>\|string\|null, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domains/System/Http/Controllers/ThemeConfigController.php
+
+		-
+			message: '#^Unable to resolve the template type TDefault in call to method Illuminate\\Http\\Request\:\:header\(\)$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Domains/System/Http/Controllers/ThemeConfigController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>theme_schema" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Domains/System/Http/Controllers/ThemeConfigController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domains/System/Http/Resources/AuditLogListResource.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 2
+			path: app/Domains/System/Http/Resources/AuditLogListResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Domains/System/Http/Resources/AuditLogListResource.php
+
+		-
+			message: '#^Class App\\Domains\\System\\Models\\AuditLog uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/AuditLog.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Models\\AuditLog\:\:tenant\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/AuditLog.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Models\\AuditLog\:\:user\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/AuditLog.php
+
+		-
+			message: '#^Class App\\Domains\\System\\Models\\AuditPolicy uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/AuditPolicy.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Models\\AuditPolicy\:\:tenant\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/AuditPolicy.php
+
+		-
+			message: '#^Class App\\Domains\\System\\Models\\AuditPolicyRevision uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/AuditPolicyRevision.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Models\\AuditPolicyRevision\:\:changedByUser\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/AuditPolicyRevision.php
+
+		-
+			message: '#^Class App\\Domains\\System\\Models\\Language uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/Language.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Models\\Language\:\:translations\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/Language.php
+
+		-
+			message: '#^Class App\\Domains\\System\\Models\\LanguageTranslation uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/LanguageTranslation.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Models\\LanguageTranslation\:\:language\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/LanguageTranslation.php
+
+		-
+			message: '#^Class App\\Domains\\System\\Models\\ThemeProfile uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/ThemeProfile.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Models\\ThemeProfile\:\:tenant\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/ThemeProfile.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Models\\ThemeProfile\:\:updatedByUser\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Models/ThemeProfile.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domains/System/Services/AuditPolicyService.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domains/System/Services/AuditPolicyService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\AuditPolicyService\:\:listRevisionHistory\(\) should return array\{current\: int, size\: int, total\: int, records\: list\<array\{id\: string, scope\: string, changedByUserId\: string, changedByUserName\: string, changeReason\: string, changedCount\: int, changedActions\: list\<string\>, createdAt\: string\}\>\} but returns array\{current\: int\<1, max\>, size\: int\<1, 100\>, total\: int\<0, max\>, records\: array\<int, array\{id\: string, scope\: string, changedByUserId\: string, changedByUserName\: string, changeReason\: string, changedCount\: int, changedActions\: array\{\}, createdAt\: string\}\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Services/AuditPolicyService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\AuditPolicyService\:\:listScopes\(\) should return list\<array\{scopeType\: ''platform''\|''tenant'', tenantId\: string, tenantName\: string\}\> but returns non\-empty\-list\<array\{scopeType\: string, tenantId\: string, tenantName\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Services/AuditPolicyService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\AuditPolicyService\:\:runPruneQuery\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/System/Services/AuditPolicyService.php
+
+		-
+			message: '#^Offset ''action'' on array\{action\: string, old\: array\{enabled\: bool, samplingRate\: float, retentionDays\: int\}, new\: array\{enabled\: bool, samplingRate\: float, retentionDays\: int\}\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domains/System/Services/AuditPolicyService.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{\}\) to function array_values is empty, call has no effect\.$#'
+			identifier: arrayValues.empty
+			count: 1
+			path: app/Domains/System/Services/AuditPolicyService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between \*NEVER\* and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Domains/System/Services/AuditPolicyService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domains/System/Services/AuditPolicyService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\FeatureFlagService\:\:normalizeIntList\(\) should return list\<int\> but returns array\<int, int\<1, max\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Services/FeatureFlagService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\FeatureFlagService\:\:normalizeStringList\(\) should return list\<string\> but returns array\<int, non\-empty\-string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Services/FeatureFlagService.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 3
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\ThemeConfigService\:\:defaultConfig\(\) should return array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\} but returns array\{themeScheme\: string, themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, siderCollapsedWidth\: int, layoutMode\: string, scrollMode\: string, \.\.\.\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\ThemeConfigService\:\:describeScopeConfig\(\) should return array\{scopeType\: ''platform''\|''tenant'', scopeId\: int\|null, scopeName\: string, config\: array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}, version\: int\} but returns array\{scopeType\: string, scopeId\: int\|null, scopeName\: string, config\: array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}, version\: int\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\ThemeConfigService\:\:resetScopeConfig\(\) should return array\{scopeType\: ''platform''\|''tenant'', scopeId\: int\|null, scopeName\: string, config\: array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}, version\: int\} but returns array\{scopeType\: string, scopeId\: int\|null, scopeName\: string, config\: array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}, version\: int\<0, max\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\ThemeConfigService\:\:resolveEffectiveConfig\(\) should return array\{config\: array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}, profileVersion\: int\} but returns array\{config\: array\{themeScheme\: string, themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}, profileVersion\: int\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\ThemeConfigService\:\:sanitizeConfig\(\) should return array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\} but returns array\{themeScheme\: string, themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, siderCollapsedWidth\: int, layoutMode\: string, scrollMode\: mixed, \.\.\.\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Method App\\Domains\\System\\Services\\ThemeConfigService\:\:updateScopeConfig\(\) should return array\{scopeType\: ''platform''\|''tenant'', scopeId\: int\|null, scopeName\: string, config\: array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}, version\: int\} but returns array\{scopeType\: string, scopeId\: int\|null, scopeName\: string, config\: array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}, version\: int\<0, max\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''fixedHeaderAndTab'' does not exist on array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''footerHeight'' does not exist on array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''footerVisible'' does not exist on array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''headerFullscreenVisible'' does not exist on array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''pageAnimate'' does not exist on array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''pageAnimateMode'' does not exist on array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''scrollMode'' does not exist on array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''siderCollapsedWidth'' does not exist on array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''tabFullscreenVisible'' does not exist on array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''themeSchemaVisible'' does not exist on array\{themeScheme\: ''auto''\|''dark''\|''light'', themeColor\: string, themeRadius\: int, headerHeight\: int, siderWidth\: int, layoutMode\: string, darkSider\: bool, tabVisible\: bool, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domains/System/Services/ThemeConfigService.php
+
+		-
+			message: '#^Offset ''user'' might not exist on array\{ok\: true, code\: string, msg\: string, user\?\: App\\Domains\\Access\\Models\\User, token\?\: Laravel\\Sanctum\\PersonalAccessToken\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 4
+			path: app/Domains/Tenant/Http/Controllers/TenantController.php
+
+		-
+			message: '#^Class App\\Domains\\Tenant\\Models\\Tenant uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types\: TFactory$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Tenant/Models/Tenant.php
+
+		-
+			message: '#^Method App\\Domains\\Tenant\\Models\\Tenant\:\:roles\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Tenant/Models/Tenant.php
+
+		-
+			message: '#^Method App\\Domains\\Tenant\\Models\\Tenant\:\:users\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Domains/Tenant/Models/Tenant.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domains/Tenant/Services/TenantContextService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domains/Tenant/Services/TenantContextService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domains/Tenant/Services/TenantContextService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domains/Tenant/Services/TenantContextService.php
+
+		-
+			message: '#^Method App\\Domains\\Tenant\\Services\\TenantContextService\:\:resolveTenantContext\(\) should return array\{ok\: bool, code\: string, msg\: string, tenantId\?\: int\|null, tenantName\?\: string, tenants\?\: list\<array\{tenantId\: string, tenantName\: string\}\>\} but returns array\{ok\: true, code\: ''0000'', msg\: ''ok'', tenantId\: int\|null, tenantName\: string, tenants\: array\<int, array\{tenantId\: string, tenantName\: string\}\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domains/Tenant/Services/TenantContextService.php
+
+		-
+			message: '#^Parameter \#2 \$default of method Illuminate\\Http\\Request\:\:header\(\) expects array\<string, string\>\|string\|null, int given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Domains/Tenant/Services/TenantContextService.php
+
+		-
+			message: '#^Unable to resolve the template type TDefault in call to method Illuminate\\Http\\Request\:\:header\(\)$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Domains/Tenant/Services/TenantContextService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domains/Tenant/Services/TenantContextService.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Middleware/SetRequestLocale.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Api\\Auth\\LoginRequest\:\:rules\(\) should return array\<string, list\<string\>\> but returns array\{userName\: array\{''nullable'', ''string'', ''required_without…''\}, email\: array\{''nullable'', ''email'', ''required_without…''\}, password\: array\{''required'', ''string''\}, rememberMe\: array\{''sometimes'', ''boolean''\}, otpCode\: array\{''nullable'', ''string'', ''max\:10''\}, locale\: array\{''sometimes'', ''string'', Illuminate\\Validation\\Rules\\Exists\}\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Api/Auth/LoginRequest.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/PermissionPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Policies/PermissionPolicy.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/TenantPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Policies/TenantPolicy.php
+
+		-
+			message: '#^Cannot access offset ''events'' on Illuminate\\Contracts\\Foundation\\Application\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$timezone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/ApiDateTime.php
+
+		-
+			message: '#^Offset ''label'' on array\{timezone\: string, offset\: non\-falsy\-string, label\: non\-falsy\-string, offsetMinutes\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/ApiDateTime.php
+
+		-
+			message: '#^Offset ''offset'' on array\{timezone\: string, offset\: non\-falsy\-string, label\: non\-falsy\-string, offsetMinutes\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/ApiDateTime.php
+
+		-
+			message: '#^Offset ''offsetMinutes'' on array\{timezone\: string, offset\: non\-falsy\-string, label\: non\-falsy\-string, offsetMinutes\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Support/ApiDateTime.php
+
+		-
+			message: '#^Offset ''timezone'' on array\{timezone\: string, offset\: non\-falsy\-string, label\: non\-falsy\-string, offsetMinutes\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 3
+			path: app/Support/ApiDateTime.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<array\{timezone\: string, offset\: non\-falsy\-string, label\: non\-falsy\-string\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Support/ApiDateTime.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>timezone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/ApiDateTime.php
+
+		-
+			message: '#^Method App\\Support\\OpenApiSpecInspector\:\:inspect\(\) should return array\{openapiVersion\: string, infoTitle\: string, infoVersion\: string, serverUrls\: list\<string\>, operations\: list\<array\{path\: string, method\: string, summary\: string, has2xxResponse\: bool\}\>\} but returns array\{openapiVersion\: string, infoTitle\: string, infoVersion\: string, serverUrls\: list\<non\-empty\-string\>, operations\: list\<array\{has2xxResponse\: true\}\|array\{path\: string, method\: string, summary\: string, has2xxResponse\: bool\}\|array\{summary\: string\}\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Support/OpenApiSpecInspector.php

@@ -1,0 +1,130 @@
+openapi: 3.0.3
+info:
+  title: Obsidian Admin Laravel API
+  version: 1.0.0
+  description: |
+    Obsidian Admin Laravel API contract.
+    All endpoints return a wrapper payload: `code`, `msg`, `data`, `requestId`, `traceId`.
+    See error code catalog in `docs/api-error-catalog.md`.
+servers:
+  - url: http://localhost:9527/proxy-default/v1
+    description: Canonical versioned API
+  - url: http://localhost:9527/proxy-default
+    description: Legacy unversioned compatibility (can be disabled)
+x-error-catalog:
+  '0000': Success
+  '1001': Login/credential validation failed
+  '1002': Parameter or validation error
+  '1003': Forbidden (permission denied)
+  '1009': Optimistic lock conflict
+  '4050': Method not allowed
+  '4040': Resource or route not found
+  '4290': Too many requests (throttled)
+  '5000': Server error
+  '8888': Unauthorized
+  '9999': Token expired
+paths:
+  /auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userName: { type: string }
+                email: { type: string, format: email }
+                password: { type: string }
+                rememberMe: { type: boolean }
+                otpCode: { type: string }
+      responses:
+        '200':
+          description: Obsidian response wrapper
+  /auth/getUserInfo:
+    get:
+      summary: Current user info
+      responses:
+        '200': { description: OK }
+  /user/list:
+    get:
+      summary: User listing
+      parameters:
+        - in: header
+          name: X-Tenant-Id
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /role/list:
+    get:
+      summary: Role listing
+      responses:
+        '200': { description: OK }
+  /permission/list:
+    get:
+      summary: Permission listing
+      responses:
+        '200': { description: OK }
+  /tenant/list:
+    get:
+      summary: Tenant listing
+      responses:
+        '200': { description: OK }
+  /auth/forgot-password:
+    post:
+      summary: Send password reset link
+      responses:
+        '200': { description: OK }
+  /auth/reset-password:
+    post:
+      summary: Reset password with token
+      responses:
+        '200': { description: OK }
+  /auth/2fa/setup:
+    post:
+      summary: Generate TOTP secret
+      responses:
+        '200': { description: OK }
+  /auth/2fa/enable:
+    post:
+      summary: Enable TOTP
+      responses:
+        '200': { description: OK }
+  /auth/2fa/disable:
+    post:
+      summary: Disable TOTP
+      responses:
+        '200': { description: OK }
+components:
+  schemas:
+    ApiResponse:
+      type: object
+      required:
+        - code
+        - msg
+        - data
+      properties:
+        code:
+          type: string
+          description: Business status code. See x-error-catalog and docs/api-error-catalog.md.
+        msg:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        requestId:
+          type: string
+          nullable: true
+        traceId:
+          type: string
+          nullable: true
+    ApiErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+      example:
+        code: '1003'
+        msg: Forbidden
+        data: {}
+        requestId: 177f2e17-c4ad-4976-b681-fd3230884f15
+        traceId: 44ad0b87d4a14bf19f9be41ce53bff7a
