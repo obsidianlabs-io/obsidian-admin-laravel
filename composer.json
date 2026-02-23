@@ -22,7 +22,7 @@
         "pragmarx/google2fa": "^9.0"
     },
     "require-dev": {
-        "deptrac/deptrac": "^2.0",
+        "deptrac/deptrac": "^4.6",
         "fakerphp/faker": "^1.23",
         "larastan/larastan": "^3.9",
         "laravel/pail": "^1.2.2",
