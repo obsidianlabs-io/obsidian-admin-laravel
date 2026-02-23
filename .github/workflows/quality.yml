@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout backend
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: obsidian-admin-laravel
 
@@ -61,13 +61,13 @@ jobs:
 
     steps:
       - name: Checkout backend
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: obsidian-admin-laravel
 
       - name: Checkout frontend repository (with token)
         if: ${{ secrets.FRONTEND_REPO_TOKEN != '' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ vars.FRONTEND_REPO || 'obsidianlabs-io/obsidian-admin-vue' }}
           token: ${{ secrets.FRONTEND_REPO_TOKEN }}
@@ -77,7 +77,7 @@ jobs:
 
       - name: Checkout frontend repository (public)
         if: ${{ secrets.FRONTEND_REPO_TOKEN == '' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ vars.FRONTEND_REPO || 'obsidianlabs-io/obsidian-admin-vue' }}
           path: obsidian-admin-vue
