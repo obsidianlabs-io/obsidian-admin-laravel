@@ -91,6 +91,10 @@ jobs:
           } >> .env
 
       - name: Fresh migration and seed (SQLite)
+        env:
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          AUDIT_QUEUE_CONNECTION: sync
         run: php artisan migrate:fresh --seed --force
 
       - name: Run tests (SQLite)
@@ -141,6 +145,10 @@ jobs:
           } >> .env
 
       - name: Fresh migration and seed (MySQL)
+        env:
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          AUDIT_QUEUE_CONNECTION: sync
         run: php artisan migrate:fresh --seed --force
 
       - name: Run tests (MySQL)

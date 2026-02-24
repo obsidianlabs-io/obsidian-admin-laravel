@@ -8,6 +8,7 @@ use App\Domains\System\Models\ThemeProfile;
 use Database\Seeders\Support\SeedCatalog;
 use Database\Seeders\Support\VersionedSeeder;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 class ThemeProfileSeeder extends VersionedSeeder
 {
@@ -89,10 +90,16 @@ class ThemeProfileSeeder extends VersionedSeeder
      */
     private function invalidateThemeCache(array $tenantScopeIds): void
     {
-        Cache::forget('theme.profile.platform.0');
+        // Cache invalidation is best-effort during seeding. CI/local bootstrap
+        // may intentionally run without Redis even when .env.example defaults to it.
+        try {
+            Cache::forget('theme.profile.platform.0');
 
-        foreach ($tenantScopeIds as $scopeId) {
-            Cache::forget(sprintf('theme.profile.tenant.%d', $scopeId));
+            foreach ($tenantScopeIds as $scopeId) {
+                Cache::forget(sprintf('theme.profile.tenant.%d', $scopeId));
+            }
+        } catch (Throwable) {
+            // Ignore cache backend connectivity issues during seeding.
         }
     }
 }
