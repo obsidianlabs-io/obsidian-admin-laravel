@@ -11,6 +11,68 @@
 > [!NOTE]
 > `Obsidian Admin Laravel` is a robust, production-ready enterprise backend boilerplate tailored specifically to act as the API foundation for standard Vue3/React admin dashboards (like Obsidian Admin Vue). 
 
+## Quick Start (Start Here)
+
+If you just want to get the API running quickly, choose one of the following:
+
+### Option A: Docker (Recommended, least setup friction)
+
+Best for first-time setup, team-standardized environments, or when you want the full `MySQL + Redis + Horizon + Reverb` stack out of the box.
+
+> [!TIP]
+> If you are on **native Windows**, prefer Docker Desktop (or WSL2). `Laravel Horizon` depends on `pcntl/posix`, which is typically unavailable in native Windows PHP environments.
+
+```bash
+git clone https://github.com/obsidianlabs-io/obsidian-admin-laravel.git
+cd obsidian-admin-laravel
+cp .env.example .env
+
+docker compose -f docker-compose.production.yml up -d --build
+docker exec obsidian-admin-laravel-app-1 php artisan key:generate
+docker exec obsidian-admin-laravel-app-1 php artisan migrate --force --seed
+```
+
+Health check:
+
+```bash
+curl http://localhost:8080/api/health
+```
+
+### Option B: Native PHP Development (Local)
+
+Best for day-to-day debugging and iterative development. You can use local `MySQL + Redis`, or switch `.env` to `sqlite` for a lightweight local setup.
+
+> [!WARNING]
+> **Native Windows PHP** typically cannot run `Laravel Horizon` (missing `pcntl/posix`). If you are not using Docker/WSL2, use `php artisan queue:work` as the local queue worker instead of `php artisan horizon`.
+
+```bash
+git clone https://github.com/obsidianlabs-io/obsidian-admin-laravel.git
+cd obsidian-admin-laravel
+cp .env.example .env
+
+composer install
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+```
+
+Run tests:
+
+```bash
+composer run test
+```
+
+> [!TIP]
+> `.env.example` is Docker-first (`MySQL + Redis`) by default. If you want native local development without those services, adjust `.env` first (for example, switch to `sqlite`).
+>
+> Suggested Windows-native local override:
+> ```env
+> # Simplest local option for audit logging during development
+> AUDIT_QUEUE_CONNECTION=sync
+> # Or keep queues enabled and run queue:work instead of horizon
+> # QUEUE_CONNECTION=database
+> ```
+
 ## Introduction
 
 [`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) is a highly structured, scalable, and secure backend template built on **Laravel 12**. Unlike standard monolithic applications with fat controllers, this project enforces strict **Clean Architecture** patterns, pushing business logic into specialized Services and using **Data Transfer Objects (DTOs)** for strict type safety. It features native true multi-tenancy, enterprise Role-Based Access Control (RBAC), built-in audit logging, and utilizes **Laravel Octane (via RoadRunner)** for ultra-high-performance execution.
@@ -29,15 +91,61 @@ Obsidian continues to evolve — rooted in resilience and order, marching steadf
 
 ## Features
 
-- **Modern Technology Stack**: Powered by PHP 8.2+, Laravel 12, PostgreSQL, and Redis.
-- **High Performance**: Pre-configured to run on **Laravel Octane (RoadRunner)**, providing enterprise-grade speed and asynchronous capabilities.
-- **Clean Architecture**: Adheres strictly to `Controller -> DTO -> Service -> Model` design. Say goodbye to messy "fat controllers".
-- **Strict Data Transfer Objects (DTO)**: Built-in `DTO` pattern to enforce rigid typing between HTTP requests and business services.
-- **True Multi-Tenancy**: Built-in support for global platforms and isolated tenant boundaries with seamless cross-tenant switching.
-- **Enterprise RBAC**: Rock-solid Role-Based Access Control out of the box. Fully integrated with backend guards and frontend dynamic route resolution.
-- **Centralized Exception Handling**: Beautiful, predictable JSON error responses handled globally. No unhandled HTML exception pages on API endpoints.
-- **Comprehensive Audit Logging**: Scalable audit logging implementation tracking user actions across platform and tenant scopes.
-- **Extensive Test Coverage**: Fully functional Pest/PHPUnit test suite ensuring architectural integrity and security.
+### Architecture & Domain Design
+
+- **Laravel 12 + PHP 8.2+** with support for `MySQL / PostgreSQL / SQLite` and `Redis` for cache/queues.
+- **Modular Monolith structure** organized by `app/Domains/*` (e.g. `Auth / Access / Tenant / System / Shared`).
+- **Layered design** following `Controller -> DTO -> Service -> Model` to reduce fat controllers.
+- **DTO-driven write flows** for safer, more maintainable request-to-domain boundaries.
+- **Dynamic CRUD Schema API** to power schema-driven frontend pages (forms/tables/search schemas).
+
+### Multi-Tenancy & Access Control
+
+- **Platform + Tenant dual scope** (`No Tenant` platform scope and tenant-selected scope).
+- **Tenant context resolution** with centralized `X-Tenant-Id` handling and super admin tenant switching rules.
+- **Tenant safety boundaries** enforced through backend scope checks, database constraints, and cross-tenant tests.
+- **RBAC (single user, single role)** with backend permission guards and frontend route/menu integration.
+- **Role Level governance** to prevent same-level and higher-level management operations.
+- **Permission grouping support** derived from permission code prefixes (e.g. `permission.view` -> `permission`).
+
+### Authentication & Security
+
+- **Sanctum dual-token sessions** (access + refresh tokens) with remember-me TTL support.
+- **Multi-device session management** (session list, device alias, session revoke).
+- **Single-device login policy toggle** configurable per project.
+- **TOTP-based 2FA** with **replay protection** for one-time code reuse prevention.
+- **Login rate limiting and password policy** with configurable thresholds.
+- **Unified API error wrapper** (including `requestId` and `traceId`) for predictable client behavior.
+- **Security baseline checks** via `security:baseline` (CI-friendly policy gate).
+
+### Auditing, Config, and Platform Governance
+
+- **Audit Logs** for platform- and tenant-scoped action tracking.
+- **Audit Policy** with per-action enable/disable, sampling rate, retention days, and change history.
+- **Queued audit writes** for lower API latency under load (`Redis/Horizon` friendly).
+- **Feature Flags** with rollout percentages for gradual menu/feature rollout.
+- **Language management** for runtime translation content administration.
+- **Theme Config APIs** for platform-level frontend theme configuration.
+- **Project Profiles** to apply baseline env defaults and audit policy presets for different deployment styles.
+
+### Realtime, Performance & Observability
+
+- **Octane / RoadRunner compatibility** (including request-state leak safeguards).
+- **Laravel Reverb / WebSocket** foundation for realtime notifications and UI refresh.
+- **Horizon / Pulse integration** for queue and runtime observability (deployment-dependent).
+- **Health endpoints**: `/api/health`, `/api/health/live`, `/api/health/ready`.
+- **Tracing identifiers** with `traceparent` propagation and response `traceId`.
+- **Idempotency and optimistic-lock support** for safer write APIs.
+- **Trusted proxy configuration + validation command** for correct client IP handling behind reverse proxies.
+
+### Engineering & Quality Gates
+
+- **Pest / PHPUnit** coverage across feature, regression, command, and architecture tests.
+- **Larastan / PHPStan** static analysis for stronger typing and safer refactors.
+- **Laravel Pint** code style enforcement.
+- **Deptrac** domain boundary enforcement for modular monolith discipline.
+- **OpenAPI generation and linting** via `dedoc/scramble`, plus contract snapshot checks.
+- **CI quality gates** for tests, static analysis, style checks, proxy trust validation, and security baseline checks.
 
 ## Ecosystem
 
@@ -56,7 +164,7 @@ This backend is designed to pair perfectly with the following frontend:
 Make sure your environment meets the following requirements:
 - **PHP**: >= 8.2
 - **Composer**: >= 2.x
-- **Database**: PostgreSQL 14+
+- **Database**: MySQL 8+ / PostgreSQL 14+ / SQLite (local-only is fine)
 - **Cache**: Redis 6+
 
 **Clone Project**
@@ -65,26 +173,29 @@ Make sure your environment meets the following requirements:
 git clone https://github.com/obsidianlabs-io/obsidian-admin-laravel.git
 ```
 
-**Run and Deploy (Two Options)**
+**Run and Deploy (Two Options, pick one)**
 
 You can launch the backend using the traditional PHP Artisan environment for active development, or utilize the fully provisioned Docker Compose stack for a production-ready setup.
 
 ### Option 1: Native PHP Development (Local)
 
-If you have `php` and `composer` installed locally, you can use traditional Artisan commands:
+If you have `php` and `composer` installed locally, you can use traditional Artisan commands.
+
+> [!TIP]
+> `.env.example` is Docker-friendly by default (`MySQL + Redis`). If those services are not available locally, update `.env` before running migrations.
 
 ```bash
-# 1. Copy the environment variables
+# 1. Enter the project directory and copy the environment file
+cd obsidian-admin-laravel
 cp .env.example .env
 
 # 2. Install Composer dependencies
-cd obsidian-admin-laravel
 composer install
 
 # 3. Generate the application key
 php artisan key:generate
 
-# 4. Run migrations and seeders (Ensure local MySQL and Redis are running)
+# 4. Run migrations and seeders (ensure your configured database is available)
 php artisan migrate --seed
 
 # 5. Start the development server
@@ -162,6 +273,36 @@ docker compose -f docker-compose.production.yml down -v
 | `scheduler` | Laravel task scheduler | - |
 | `pulse-worker` | Laravel Pulse monitoring worker | - |
 | `reverb` | Laravel Reverb WebSocket server | 6001 |
+
+## Common Commands
+
+```bash
+# Run tests (Pest)
+composer run test
+
+# Code style check
+vendor/bin/pint --test
+
+# Static analysis
+vendor/bin/phpstan analyse --memory-limit=1G
+
+# Security baseline check (strict)
+php artisan security:baseline --strict
+
+# Trusted proxy config validation (strict)
+php artisan http:proxy-trust-check --strict
+
+# OpenAPI / contract checks
+php artisan openapi:lint
+php artisan api:contract-snapshot --check
+```
+
+## Common Endpoints / Consoles
+
+- Health check: `GET /api/health`
+- OpenAPI docs: `/docs/api` (depends on `API_DOCS_ENABLED`)
+- Horizon: `/horizon` (depends on deployment and auth config)
+- Pulse: `/ops/pulse` (depends on deployment and auth config)
 
 ## Acknowledgements
 
