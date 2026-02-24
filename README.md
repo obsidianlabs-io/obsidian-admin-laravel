@@ -15,9 +15,9 @@
 
 如果你只是想先把 API 跑起来，先选下面一种方式即可：
 
-### 方式 A：Docker（推荐，最省环境配置）
+### 方式 A：Docker 开发环境（推荐，最省环境配置）
 
-适合第一次运行项目、团队统一环境、或你想直接使用 `MySQL + Redis + Horizon + Reverb` 完整栈。
+适合第一次运行项目、团队统一环境、或你想直接使用 `MySQL + Redis + Horizon + Reverb` 完整栈进行本地开发。
 
 > [!TIP]
 > 如果你是 **Windows 原生环境**，推荐优先使用 Docker Desktop（或 WSL2）运行本项目。`Laravel Horizon` 依赖 `pcntl/posix`，Windows 原生 PHP 环境通常无法安装/运行。
@@ -27,7 +27,11 @@ git clone https://github.com/obsidianlabs-io/obsidian-admin-laravel.git
 cd obsidian-admin-laravel
 cp .env.example .env
 
-docker compose -f docker-compose.production.yml up -d --build
+# 1) 先准备 vendor（开发 compose 会挂载源码；vendor 使用独立 volume）
+docker compose -f docker-compose.dev.yml run --rm composer
+
+# 2) 启动开发环境完整栈
+docker compose -f docker-compose.dev.yml up -d --build
 docker exec obsidian-admin-laravel-app-1 php artisan key:generate
 docker exec obsidian-admin-laravel-app-1 php artisan migrate --force --seed
 ```
@@ -213,9 +217,9 @@ composer run test
 
 ### 方式二：Docker 容器化生产级部署
 
-项目内置了极为完整的 Docker Compose 配置，包含 `PHP-FPM`、`Nginx`、`MySQL`、`Redis`、`Horizon` 队列监听器等所有生产级高可用服务。
+项目内置了生产 Compose 配置，采用镜像化部署方式（不挂载宿主机源码目录），包含 `PHP-FPM`、`Nginx`、`MySQL`、`Redis`、`Horizon` 队列监听器等服务。
 
-**1. 一键启动所有服务**
+**1. 一键启动所有服务（生产镜像化部署）**
 
 ```bash
 docker compose -f docker-compose.production.yml up -d --build

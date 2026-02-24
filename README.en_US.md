@@ -15,9 +15,9 @@
 
 If you just want to get the API running quickly, choose one of the following:
 
-### Option A: Docker (Recommended, least setup friction)
+### Option A: Docker Development (Recommended, least setup friction)
 
-Best for first-time setup, team-standardized environments, or when you want the full `MySQL + Redis + Horizon + Reverb` stack out of the box.
+Best for first-time setup, team-standardized environments, or when you want the full `MySQL + Redis + Horizon + Reverb` stack for local development.
 
 > [!TIP]
 > If you are on **native Windows**, prefer Docker Desktop (or WSL2). `Laravel Horizon` depends on `pcntl/posix`, which is typically unavailable in native Windows PHP environments.
@@ -27,7 +27,11 @@ git clone https://github.com/obsidianlabs-io/obsidian-admin-laravel.git
 cd obsidian-admin-laravel
 cp .env.example .env
 
-docker compose -f docker-compose.production.yml up -d --build
+# 1) Prepare vendor first (dev compose bind-mounts source code; vendor is a dedicated volume)
+docker compose -f docker-compose.dev.yml run --rm composer
+
+# 2) Start the full development stack
+docker compose -f docker-compose.dev.yml up -d --build
 docker exec obsidian-admin-laravel-app-1 php artisan key:generate
 docker exec obsidian-admin-laravel-app-1 php artisan migrate --force --seed
 ```
@@ -213,9 +217,9 @@ composer run test
 
 ### Option 2: Docker Containerized Deployment (Production)
 
-The project ships with an extremely comprehensive Docker Compose stack including `PHP-FPM`, `Nginx`, `MySQL`, `Redis`, and `Horizon` queue listeners for instant high-availability deployments.
+The project ships with a production Compose configuration using an image-based deployment model (no host source bind mount), including `PHP-FPM`, `Nginx`, `MySQL`, `Redis`, and `Horizon` queue listeners.
 
-**1. Start all services**
+**1. Start all services (production image-based deployment)**
 
 ```bash
 docker compose -f docker-compose.production.yml up -d --build

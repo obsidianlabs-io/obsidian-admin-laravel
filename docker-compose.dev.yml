@@ -1,4 +1,12 @@
 services:
+  composer:
+    image: composer:2
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - vendor-data:/app/vendor
+    command: composer install --ignore-platform-reqs
+
   app:
     build:
       context: .
@@ -12,17 +20,20 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ./:/var/www/html
+      - vendor-data:/var/www/html/vendor
 
   nginx:
-    build:
-      context: .
-      dockerfile: docker/nginx/Dockerfile
-    image: obsidian-admin-laravel-nginx:latest
+    image: nginx:1.27-alpine
     restart: unless-stopped
     depends_on:
       - app
     ports:
       - "8080:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
 
   horizon:
     image: obsidian-admin-laravel:latest
@@ -32,6 +43,9 @@ services:
     depends_on:
       - app
     command: php artisan horizon
+    volumes:
+      - ./:/var/www/html
+      - vendor-data:/var/www/html/vendor
 
   scheduler:
     image: obsidian-admin-laravel:latest
@@ -41,6 +55,9 @@ services:
     depends_on:
       - app
     command: php artisan schedule:work
+    volumes:
+      - ./:/var/www/html
+      - vendor-data:/var/www/html/vendor
 
   pulse-worker:
     image: obsidian-admin-laravel:latest
@@ -50,6 +67,9 @@ services:
     depends_on:
       - app
     command: php artisan pulse:work
+    volumes:
+      - ./:/var/www/html
+      - vendor-data:/var/www/html/vendor
 
   reverb:
     image: obsidian-admin-laravel:latest
@@ -62,6 +82,9 @@ services:
     command: php artisan reverb:start --host="0.0.0.0" --port=8080
     ports:
       - "6001:8080"
+    volumes:
+      - ./:/var/www/html
+      - vendor-data:/var/www/html/vendor
 
   mysql:
     image: mysql:8.0
@@ -98,3 +121,4 @@ services:
 volumes:
   mysql-data:
   redis-data:
+  vendor-data:
