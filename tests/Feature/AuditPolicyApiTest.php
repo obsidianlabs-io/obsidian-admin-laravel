@@ -122,6 +122,10 @@ class AuditPolicyApiTest extends TestCase
         $updateResponse->assertOk()
             ->assertJsonPath('code', '0000');
 
+        // Force direct writes for this assertion path to avoid queue fakes/config
+        // leakage from other tests swallowing the locale audit job.
+        config()->set('audit.queue.enabled', false);
+
         $adminToken = $this->loginAndGetToken('Admin');
         $adminTargetLocale = $this->alternateLocaleForToken($adminToken);
 
