@@ -32,8 +32,8 @@ docker compose -f docker-compose.dev.yml run --rm composer
 
 # 2) 启动开发环境完整栈
 docker compose -f docker-compose.dev.yml up -d --build
-docker exec obsidian-admin-laravel-app-1 php artisan key:generate
-docker exec obsidian-admin-laravel-app-1 php artisan migrate --force --seed
+docker compose -f docker-compose.dev.yml exec app php artisan key:generate
+docker compose -f docker-compose.dev.yml exec app php artisan migrate --force --seed
 ```
 
 健康检查：
@@ -41,6 +41,19 @@ docker exec obsidian-admin-laravel-app-1 php artisan migrate --force --seed
 ```bash
 curl http://localhost:8080/api/health
 ```
+
+> [!NOTE]
+> 为了避免 Windows 下 `storage/logs/laravel.log` 偶发权限问题，开发环境已做两点处理：
+> 1) 容器日志默认输出到 `stderr`（使用 `docker logs` 查看）
+> 2) `storage` 与 `bootstrap/cache` 使用独立 Docker volume（不直接落在 Windows 挂载目录）
+>
+> 如果你之前已启动过旧容器并遇到日志权限报错，可重建开发栈（会清空本地开发数据）：
+> ```bash
+> docker compose -f docker-compose.dev.yml down -v
+> docker compose -f docker-compose.dev.yml run --rm composer
+> docker compose -f docker-compose.dev.yml up -d --build
+> docker compose -f docker-compose.dev.yml exec app php artisan migrate --force --seed
+> ```
 
 ### 方式 B：本地 PHP 原生开发（已有 PHP/Composer 环境）
 

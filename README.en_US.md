@@ -32,8 +32,8 @@ docker compose -f docker-compose.dev.yml run --rm composer
 
 # 2) Start the full development stack
 docker compose -f docker-compose.dev.yml up -d --build
-docker exec obsidian-admin-laravel-app-1 php artisan key:generate
-docker exec obsidian-admin-laravel-app-1 php artisan migrate --force --seed
+docker compose -f docker-compose.dev.yml exec app php artisan key:generate
+docker compose -f docker-compose.dev.yml exec app php artisan migrate --force --seed
 ```
 
 Health check:
@@ -41,6 +41,19 @@ Health check:
 ```bash
 curl http://localhost:8080/api/health
 ```
+
+> [!NOTE]
+> To avoid intermittent `storage/logs/laravel.log` permission errors on Windows, the dev stack now applies two defaults:
+> 1) container logs go to `stderr` (`docker logs`), and
+> 2) `storage` and `bootstrap/cache` use dedicated Docker volumes (not direct Windows bind-mounted folders).
+>
+> If you previously ran an older stack and hit log permission errors, rebuild the dev stack (this resets local dev data):
+> ```bash
+> docker compose -f docker-compose.dev.yml down -v
+> docker compose -f docker-compose.dev.yml run --rm composer
+> docker compose -f docker-compose.dev.yml up -d --build
+> docker compose -f docker-compose.dev.yml exec app php artisan migrate --force --seed
+> ```
 
 ### Option B: Native PHP Development (Local)
 

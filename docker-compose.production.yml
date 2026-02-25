@@ -7,6 +7,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      LOG_CHANNEL: stderr
+      LOG_STACK: stderr
     depends_on:
       mysql:
         condition: service_healthy
@@ -29,6 +32,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      LOG_CHANNEL: stderr
+      LOG_STACK: stderr
     depends_on:
       - app
     command: php artisan horizon
@@ -38,6 +44,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      LOG_CHANNEL: stderr
+      LOG_STACK: stderr
     depends_on:
       - app
     command: php artisan schedule:work
@@ -47,6 +56,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      LOG_CHANNEL: stderr
+      LOG_STACK: stderr
     depends_on:
       - app
     command: php artisan pulse:work
@@ -56,6 +68,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      LOG_CHANNEL: stderr
+      LOG_STACK: stderr
     depends_on:
       - app
       - redis

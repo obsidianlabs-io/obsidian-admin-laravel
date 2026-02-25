@@ -20,9 +20,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    environment:
+      LOG_CHANNEL: stderr
+      LOG_STACK: stderr
     volumes:
       - ./:/var/www/html
       - vendor-data:/var/www/html/vendor
+      - storage-data:/var/www/html/storage
+      - bootstrap-cache-data:/var/www/html/bootstrap/cache
 
   nginx:
     image: nginx:1.27-alpine
@@ -40,42 +45,60 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      LOG_CHANNEL: stderr
+      LOG_STACK: stderr
     depends_on:
       - app
     command: php artisan horizon
     volumes:
       - ./:/var/www/html
       - vendor-data:/var/www/html/vendor
+      - storage-data:/var/www/html/storage
+      - bootstrap-cache-data:/var/www/html/bootstrap/cache
 
   scheduler:
     image: obsidian-admin-laravel:latest
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      LOG_CHANNEL: stderr
+      LOG_STACK: stderr
     depends_on:
       - app
     command: php artisan schedule:work
     volumes:
       - ./:/var/www/html
       - vendor-data:/var/www/html/vendor
+      - storage-data:/var/www/html/storage
+      - bootstrap-cache-data:/var/www/html/bootstrap/cache
 
   pulse-worker:
     image: obsidian-admin-laravel:latest
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      LOG_CHANNEL: stderr
+      LOG_STACK: stderr
     depends_on:
       - app
     command: php artisan pulse:work
     volumes:
       - ./:/var/www/html
       - vendor-data:/var/www/html/vendor
+      - storage-data:/var/www/html/storage
+      - bootstrap-cache-data:/var/www/html/bootstrap/cache
 
   reverb:
     image: obsidian-admin-laravel:latest
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      LOG_CHANNEL: stderr
+      LOG_STACK: stderr
     depends_on:
       - app
       - redis
@@ -85,6 +108,8 @@ services:
     volumes:
       - ./:/var/www/html
       - vendor-data:/var/www/html/vendor
+      - storage-data:/var/www/html/storage
+      - bootstrap-cache-data:/var/www/html/bootstrap/cache
 
   mysql:
     image: mysql:8.0
@@ -122,3 +147,5 @@ volumes:
   mysql-data:
   redis-data:
   vendor-data:
+  storage-data:
+  bootstrap-cache-data:
