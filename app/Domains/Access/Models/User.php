@@ -117,6 +117,9 @@ class User extends Authenticatable
         return $this->belongsTo(Team::class);
     }
 
+    /**
+     * @return HasOne<UserPreference, $this>
+     */
     public function preference(): HasOne
     {
         return $this->hasOne(UserPreference::class);

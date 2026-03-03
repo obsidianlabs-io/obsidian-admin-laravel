@@ -21,6 +21,13 @@ return [
 
     'user_profile_cache_ttl_seconds' => (int) env('API_USER_PROFILE_CACHE_TTL_SECONDS', 180),
 
+    'auth_tokens' => [
+        'access_ttl_minutes' => (int) env('API_ACCESS_TOKEN_TTL_MINUTES', 120),
+        'remember_access_ttl_minutes' => (int) env('API_REMEMBER_ACCESS_TOKEN_TTL_MINUTES', 240),
+        'refresh_ttl_days' => (int) env('API_REFRESH_TOKEN_TTL_DAYS', 7),
+        'remember_refresh_ttl_days' => (int) env('API_REMEMBER_REFRESH_TOKEN_TTL_DAYS', 30),
+    ],
+
     'docs' => [
         'cache_enabled' => (bool) env('API_DOCS_CACHE_ENABLED', true),
         'cache_ttl_seconds' => (int) env('API_DOCS_CACHE_TTL_SECONDS', 600),

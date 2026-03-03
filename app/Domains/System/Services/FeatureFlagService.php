@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domains\System\Services;
 
 use App\Domains\Shared\Services\ApiCacheService;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Laravel\Pennant\Feature;
 
@@ -286,12 +285,18 @@ class FeatureFlagService
             return [];
         }
 
-        return Collection::make($values)
-            ->map(static fn (mixed $value): int => max(0, (int) $value))
-            ->filter(static fn (int $value): bool => $value > 0)
-            ->unique()
-            ->values()
-            ->all();
+        $normalized = [];
+
+        foreach ($values as $value) {
+            $normalizedValue = max(0, (int) $value);
+            if ($normalizedValue <= 0) {
+                continue;
+            }
+
+            $normalized[$normalizedValue] = $normalizedValue;
+        }
+
+        return array_values($normalized);
     }
 
     /**
@@ -303,11 +308,17 @@ class FeatureFlagService
             return [];
         }
 
-        return Collection::make($values)
-            ->map(static fn (mixed $value): string => trim((string) $value))
-            ->filter(static fn (string $value): bool => $value !== '')
-            ->unique()
-            ->values()
-            ->all();
+        $normalized = [];
+
+        foreach ($values as $value) {
+            $normalizedValue = trim((string) $value);
+            if ($normalizedValue === '') {
+                continue;
+            }
+
+            $normalized[$normalizedValue] = $normalizedValue;
+        }
+
+        return array_values($normalized);
     }
 }

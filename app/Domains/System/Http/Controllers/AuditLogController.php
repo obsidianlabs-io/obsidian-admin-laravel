@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\System\Http\Controllers;
 
+use App\Domains\Access\Models\User;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Support\TenantVisibility;
 use App\Domains\System\Http\Resources\AuditLogListResource;
@@ -27,8 +28,10 @@ class AuditLogController extends ApiController
             return $this->error($authResult['code'], $authResult['msg']);
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        }
 
         if (! Gate::forUser($user)->allows('viewAny', AuditLog::class)) {
             return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
@@ -145,6 +148,9 @@ class AuditLogController extends ApiController
         ]);
     }
 
+    /**
+     * @param  Builder<AuditLog>  $query
+     */
     private function applyAuditVisibilityScope(Builder $query, ?int $tenantId, bool $isSuper): void
     {
         TenantVisibility::applyScope($query, $tenantId, $isSuper);

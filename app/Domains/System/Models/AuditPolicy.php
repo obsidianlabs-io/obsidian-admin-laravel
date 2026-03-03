@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AuditPolicy extends Model
 {
+    /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<self>> */
     use HasFactory;
 
     public const PLATFORM_SCOPE_ID = 0;
@@ -50,6 +51,9 @@ class AuditPolicy extends Model
         });
     }
 
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

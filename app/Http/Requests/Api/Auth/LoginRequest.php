@@ -33,7 +33,7 @@ class LoginRequest extends BaseApiRequest
     }
 
     /**
-     * @return array<string, list<string>>
+     * @return array<string, list<\Illuminate\Validation\Rules\Exists|string>>
      */
     public function rules(): array
     {

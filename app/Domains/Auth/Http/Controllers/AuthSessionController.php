@@ -13,14 +13,15 @@ use App\Domains\Auth\Http\Controllers\Concerns\HasStrongPasswordRule;
 use App\Domains\Auth\Http\Controllers\Concerns\ResolvesRoleScope;
 use App\Domains\Auth\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Domains\Auth\Http\Controllers\Concerns\VerifiesTotpCode;
+use App\Domains\Auth\Services\AuthSessionContextService;
 use App\Domains\Auth\Services\AuthTokenService;
 use App\Domains\Auth\Services\TotpService;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Contracts\ActiveTenantResolver;
+use App\DTOs\User\CreateUserDTO;
 use App\Http\Requests\Api\Auth\LoginRequest;
 use App\Http\Requests\Api\Auth\RegisterRequest;
-use App\Support\ApiDateTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -37,6 +38,7 @@ class AuthSessionController extends ApiController
     public function __construct(
         private readonly UserService $userService,
         private readonly AuthTokenService $authTokenService,
+        private readonly AuthSessionContextService $authSessionContextService,
         private readonly AuditLogService $auditLogService,
         protected readonly TotpService $totpService,
         private readonly ResolveUserContextAction $resolveUserContext,
@@ -55,22 +57,26 @@ class AuthSessionController extends ApiController
 
         $defaultTenantId = $this->activeTenantResolver->findActiveTenantIdByCode('TENANT_MAIN');
         $defaultRole = $this->findActiveRoleByCode('R_USER', $defaultTenantId);
-
-        if (! $defaultRole['ok'] || ! $this->isRoleInTenantScope($defaultRole['role'] ?? null, $defaultTenantId)) {
+        if (! $defaultRole['ok']) {
             return $this->error(self::PARAM_ERROR_CODE, 'Default tenant role is not configured');
         }
 
-        $defaultRoleId = (int) $defaultRole['role']->id;
+        $defaultRoleModel = $defaultRole['role'];
+        if (! $this->isRoleInTenantScope($defaultRoleModel, $defaultTenantId)) {
+            return $this->error(self::PARAM_ERROR_CODE, 'Default tenant role is not configured');
+        }
+
+        $defaultRoleId = (int) $defaultRoleModel->id;
 
         return $this->withIdempotency($request, null, function () use ($validated, $defaultRoleId, $defaultTenantId, $request): JsonResponse {
-            $user = $this->userService->create([
-                'name' => (string) $validated['name'],
-                'email' => (string) $validated['email'],
-                'password' => (string) $validated['password'],
-                'status' => '1',
-                'role_id' => $defaultRoleId,
-                'tenant_id' => $defaultTenantId,
-            ]);
+            $user = $this->userService->create(new CreateUserDTO(
+                name: (string) $validated['name'],
+                email: (string) $validated['email'],
+                password: (string) $validated['password'],
+                status: '1',
+                roleId: $defaultRoleId,
+                tenantId: $defaultTenantId
+            ));
 
             $tokens = $this->issueTokenPair($user, false, null, $request);
 
@@ -205,41 +211,18 @@ class AuthSessionController extends ApiController
 
     public function sessions(Request $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
-        }
-        if (! isset($authResult['token'], $authResult['user'])) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        $sessionContext = $this->resolveSessionContext($request);
+        if (! $sessionContext['ok']) {
+            return $this->error($sessionContext['code'], $sessionContext['msg']);
         }
 
-        $accessToken = $authResult['token'];
-        $user = $authResult['user'];
+        $accessToken = $sessionContext['token'];
+        $user = $sessionContext['user'];
 
-        $records = array_map(function (array $record) use ($request): array {
-            return [
-                'sessionId' => (string) $record['sessionId'],
-                'current' => (bool) $record['current'],
-                'legacy' => (bool) $record['legacy'],
-                'rememberMe' => (bool) $record['rememberMe'],
-                'hasAccessToken' => (bool) $record['hasAccessToken'],
-                'hasRefreshToken' => (bool) $record['hasRefreshToken'],
-                'tokenCount' => (int) $record['tokenCount'],
-                'createdAt' => ApiDateTime::formatForRequest($record['createdAt'] ?? null, $request),
-                'lastUsedAt' => ApiDateTime::formatForRequest($record['lastUsedAt'] ?? null, $request),
-                'lastAccessUsedAt' => ApiDateTime::formatForRequest($record['lastAccessUsedAt'] ?? null, $request),
-                'lastRefreshUsedAt' => ApiDateTime::formatForRequest($record['lastRefreshUsedAt'] ?? null, $request),
-                'accessTokenExpiresAt' => ApiDateTime::formatForRequest($record['accessTokenExpiresAt'] ?? null, $request),
-                'refreshTokenExpiresAt' => ApiDateTime::formatForRequest($record['refreshTokenExpiresAt'] ?? null, $request),
-                'deviceAlias' => (string) ($record['deviceAlias'] ?? ''),
-                'deviceName' => (string) ($record['deviceName'] ?? ''),
-                'browser' => (string) ($record['browser'] ?? ''),
-                'os' => (string) ($record['os'] ?? ''),
-                'deviceType' => (string) ($record['deviceType'] ?? ''),
-                'ipAddress' => (string) ($record['ipAddress'] ?? ''),
-            ];
-        }, $this->authTokenService->listSessions($user, $accessToken));
+        $records = $this->authSessionContextService->mapSessionRecordsForResponse(
+            $this->authTokenService->listSessions($user, $accessToken),
+            $request
+        );
 
         return $this->success([
             'singleDeviceLogin' => (bool) config('security.auth_tokens.single_device_login', true),
@@ -249,13 +232,9 @@ class AuthSessionController extends ApiController
 
     public function updateSessionAlias(Request $request, string $sessionId): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
-        }
-        if (! isset($authResult['token'], $authResult['user'])) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        $sessionContext = $this->resolveSessionContext($request);
+        if (! $sessionContext['ok']) {
+            return $this->error($sessionContext['code'], $sessionContext['msg']);
         }
 
         $validator = Validator::make(
@@ -273,8 +252,8 @@ class AuthSessionController extends ApiController
             return $this->error(self::PARAM_ERROR_CODE, $validator->errors()->first());
         }
 
-        $accessToken = $authResult['token'];
-        $user = $authResult['user'];
+        $accessToken = $sessionContext['token'];
+        $user = $sessionContext['user'];
         $validated = $validator->validated();
 
         $result = $this->authTokenService->updateSessionAlias(
@@ -298,13 +277,9 @@ class AuthSessionController extends ApiController
 
     public function revokeSession(Request $request, string $sessionId): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
-        }
-        if (! isset($authResult['token'], $authResult['user'])) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        $sessionContext = $this->resolveSessionContext($request);
+        if (! $sessionContext['ok']) {
+            return $this->error($sessionContext['code'], $sessionContext['msg']);
         }
 
         $validator = Validator::make(['sessionId' => $sessionId], [
@@ -314,8 +289,8 @@ class AuthSessionController extends ApiController
             return $this->error(self::PARAM_ERROR_CODE, $validator->errors()->first());
         }
 
-        $accessToken = $authResult['token'];
-        $user = $authResult['user'];
+        $accessToken = $sessionContext['token'];
+        $user = $sessionContext['user'];
 
         $result = $this->authTokenService->revokeSession($user, $sessionId, $accessToken);
 
@@ -336,17 +311,13 @@ class AuthSessionController extends ApiController
 
     public function logout(Request $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
-        }
-        if (! isset($authResult['token'], $authResult['user'])) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        $sessionContext = $this->resolveSessionContext($request);
+        if (! $sessionContext['ok']) {
+            return $this->error($sessionContext['code'], $sessionContext['msg']);
         }
 
-        $accessToken = $authResult['token'];
-        $user = $authResult['user'];
+        $accessToken = $sessionContext['token'];
+        $user = $sessionContext['user'];
 
         $sessionId = $this->authTokenService->resolveSessionId($accessToken);
 
@@ -381,14 +352,12 @@ class AuthSessionController extends ApiController
             return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
         }
 
-        $authResult = $this->authenticate($request, 'access-api');
+        $authResult = $this->resolveAuthenticatedUser($request);
         if (! $authResult['ok']) {
             return $this->error($authResult['code'], $authResult['msg']);
         }
-        if (! isset($authResult['user'])) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
-        }
 
+        /** @var \App\Domains\Access\Models\User $user */
         $user = $authResult['user'];
         if (! $this->isSuperAdmin($user)) {
             return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
@@ -426,5 +395,51 @@ class AuthSessionController extends ApiController
         $sessionClientContext = array_merge($baseSessionClientContext, $requestSessionClientContext);
 
         return $this->authTokenService->issueTokenPair($user, $rememberMe, $sessionId, $sessionClientContext);
+    }
+
+    /**
+     * @return array{ok: false, code: string, msg: string}|array{
+     *   ok: true,
+     *   user: \App\Domains\Access\Models\User,
+     *   token: PersonalAccessToken
+     * }
+     */
+    private function resolveSessionContext(Request $request): array
+    {
+        return $this->authSessionContextService->requireAuthenticatedSession(
+            $this->authenticate($request, 'access-api')
+        );
+    }
+
+    /**
+     * @return array{ok: false, code: string, msg: string}|array{
+     *   ok: true,
+     *   user: \App\Domains\Access\Models\User
+     * }
+     */
+    private function resolveAuthenticatedUser(Request $request): array
+    {
+        $authResult = $this->authenticate($request, 'access-api');
+        if (! $authResult['ok']) {
+            return [
+                'ok' => false,
+                'code' => $authResult['code'],
+                'msg' => $authResult['msg'],
+            ];
+        }
+
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return [
+                'ok' => false,
+                'code' => self::UNAUTHORIZED_CODE,
+                'msg' => 'Unauthorized',
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'user' => $user,
+        ];
     }
 }

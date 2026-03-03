@@ -9,6 +9,41 @@ use App\Domains\System\Models\ThemeProfile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @phpstan-type ThemeScope 'platform'|'tenant'
+ * @phpstan-type ThemeScheme 'light'|'dark'|'auto'
+ * @phpstan-type ThemeConfig array{
+ *   themeScheme: ThemeScheme,
+ *   themeColor: string,
+ *   themeRadius: int,
+ *   headerHeight: int,
+ *   siderWidth: int,
+ *   siderCollapsedWidth: int,
+ *   layoutMode: string,
+ *   scrollMode: string,
+ *   darkSider: bool,
+ *   themeSchemaVisible: bool,
+ *   headerFullscreenVisible: bool,
+ *   tabVisible: bool,
+ *   tabFullscreenVisible: bool,
+ *   breadcrumbVisible: bool,
+ *   footerVisible: bool,
+ *   footerHeight: int,
+ *   multilingualVisible: bool,
+ *   globalSearchVisible: bool,
+ *   themeConfigVisible: bool,
+ *   pageAnimate: bool,
+ *   pageAnimateMode: string,
+ *   fixedHeaderAndTab: bool
+ * }
+ * @phpstan-type ThemeScopeConfig array{
+ *   scopeType: ThemeScope,
+ *   scopeId: int|null,
+ *   scopeName: string,
+ *   config: ThemeConfig,
+ *   version: int
+ * }
+ */
 class ThemeConfigService
 {
     /**
@@ -27,23 +62,7 @@ class ThemeConfigService
     }
 
     /**
-     * @return array{
-     *   config: array{
-     *     themeScheme: 'light'|'dark'|'auto',
-     *     themeColor: string,
-     *     themeRadius: int,
-     *     headerHeight: int,
-     *     siderWidth: int,
-     *     layoutMode: string,
-     *     darkSider: bool,
-     *     tabVisible: bool,
-     *     breadcrumbVisible: bool,
-     *     multilingualVisible: bool,
-     *     globalSearchVisible: bool,
-     *     themeConfigVisible: bool
-     *   },
-     *   profileVersion: int
-     * }
+     * @return array{config: ThemeConfig, profileVersion: int}
      */
     public function resolveEffectiveConfig(?int $tenantId, ?string $userThemeSchema = null): array
     {
@@ -56,7 +75,7 @@ class ThemeConfigService
 
         $themeSchema = trim((string) ($userThemeSchema ?? ''));
         if (in_array($themeSchema, $this->allowedSchemes(), true)) {
-            $sanitized['themeScheme'] = $themeSchema;
+            $sanitized['themeScheme'] = $this->normalizeThemeScheme($themeSchema, $sanitized['themeScheme']);
         }
 
         return [
@@ -66,29 +85,11 @@ class ThemeConfigService
     }
 
     /**
-     * @return array{
-     *   scopeType: 'platform'|'tenant',
-     *   scopeId: int|null,
-     *   scopeName: string,
-     *   config: array{
-     *     themeScheme: 'light'|'dark'|'auto',
-     *     themeColor: string,
-     *     themeRadius: int,
-     *     headerHeight: int,
-     *     siderWidth: int,
-     *     layoutMode: string,
-     *     darkSider: bool,
-     *     tabVisible: bool,
-     *     breadcrumbVisible: bool,
-     *     multilingualVisible: bool,
-     *     globalSearchVisible: bool,
-     *     themeConfigVisible: bool
-     *   },
-     *   version: int
-     * }
+     * @return ThemeScopeConfig
      */
     public function describeScopeConfig(string $scopeType, ?int $scopeId, string $scopeName): array
     {
+        $scopeType = $this->normalizeScopeType($scopeType);
         $payload = $this->scopePayload($scopeType, $scopeId);
 
         return [
@@ -102,26 +103,7 @@ class ThemeConfigService
 
     /**
      * @param  array<string, mixed>  $changes
-     * @return array{
-     *   scopeType: 'platform'|'tenant',
-     *   scopeId: int|null,
-     *   scopeName: string,
-     *   config: array{
-     *     themeScheme: 'light'|'dark'|'auto',
-     *     themeColor: string,
-     *     themeRadius: int,
-     *     headerHeight: int,
-     *     siderWidth: int,
-     *     layoutMode: string,
-     *     darkSider: bool,
-     *     tabVisible: bool,
-     *     breadcrumbVisible: bool,
-     *     multilingualVisible: bool,
-     *     globalSearchVisible: bool,
-     *     themeConfigVisible: bool
-     *   },
-     *   version: int
-     * }
+     * @return ThemeScopeConfig
      */
     public function updateScopeConfig(
         string $scopeType,
@@ -130,6 +112,7 @@ class ThemeConfigService
         array $changes,
         int $actorUserId
     ): array {
+        $scopeType = $this->normalizeScopeType($scopeType);
         $scopeKey = ThemeProfile::scopeKey($scopeType, $scopeId);
         $normalizedChanges = $this->extractEditableConfig($changes);
 
@@ -139,7 +122,9 @@ class ThemeConfigService
                 ->lockForUpdate()
                 ->first();
 
-            $currentConfig = is_array($existing?->config) ? $existing->config : [];
+            $currentConfig = $existing instanceof ThemeProfile
+                ? $this->normalizeStoredConfig($existing->getAttribute('config'))
+                : [];
             $nextConfig = $this->sanitizeConfig(array_replace($currentConfig, $normalizedChanges));
             $storedConfig = $this->diffFromDefault($nextConfig);
 
@@ -181,35 +166,17 @@ class ThemeConfigService
             'scopeType' => $scopeType,
             'scopeId' => $scopeId,
             'scopeName' => $scopeName,
-            'config' => $this->sanitizeConfig(is_array($profile->config) ? $profile->config : []),
+            'config' => $this->sanitizeConfig($this->normalizeStoredConfig($profile->getAttribute('config'))),
             'version' => (int) $profile->version,
         ];
     }
 
     /**
-     * @return array{
-     *   scopeType: 'platform'|'tenant',
-     *   scopeId: int|null,
-     *   scopeName: string,
-     *   config: array{
-     *     themeScheme: 'light'|'dark'|'auto',
-     *     themeColor: string,
-     *     themeRadius: int,
-     *     headerHeight: int,
-     *     siderWidth: int,
-     *     layoutMode: string,
-     *     darkSider: bool,
-     *     tabVisible: bool,
-     *     breadcrumbVisible: bool,
-     *     multilingualVisible: bool,
-     *     globalSearchVisible: bool,
-     *     themeConfigVisible: bool
-     *   },
-     *   version: int
-     * }
+     * @return ThemeScopeConfig
      */
     public function resetScopeConfig(string $scopeType, ?int $scopeId, string $scopeName, int $actorUserId): array
     {
+        $scopeType = $this->normalizeScopeType($scopeType);
         $scopeKey = ThemeProfile::scopeKey($scopeType, $scopeId);
 
         $profile = DB::transaction(function () use ($scopeType, $scopeId, $scopeName, $scopeKey, $actorUserId): ThemeProfile {
@@ -256,32 +223,15 @@ class ThemeConfigService
 
     /**
      * @param  array<string, mixed>  $config
-     * @return array{
-     *   themeScheme: 'light'|'dark'|'auto',
-     *   themeColor: string,
-     *   themeRadius: int,
-     *   headerHeight: int,
-     *   siderWidth: int,
-     *   layoutMode: string,
-     *   darkSider: bool,
-     *   tabVisible: bool,
-     *   breadcrumbVisible: bool,
-     *   multilingualVisible: bool,
-     *   globalSearchVisible: bool,
-     *   themeConfigVisible: bool
-     * }
+     * @return ThemeConfig
      */
     public function sanitizeConfig(array $config): array
     {
         $defaults = $this->defaultConfig();
         $limits = $this->limits();
-        $allowedSchemes = $this->allowedSchemes();
         $allowedLayoutModes = $this->allowedLayoutModes();
 
-        $themeScheme = trim((string) ($config['themeScheme'] ?? ''));
-        if (! in_array($themeScheme, $allowedSchemes, true)) {
-            $themeScheme = $defaults['themeScheme'];
-        }
+        $themeScheme = $this->normalizeThemeScheme($config['themeScheme'] ?? null, $defaults['themeScheme']);
 
         $themeColor = trim((string) ($config['themeColor'] ?? ''));
         if (! preg_match('/^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $themeColor)) {
@@ -376,24 +326,11 @@ class ThemeConfigService
     }
 
     /**
-     * @return array{
-     *   themeScheme: 'light'|'dark'|'auto',
-     *   themeColor: string,
-     *   themeRadius: int,
-     *   headerHeight: int,
-     *   siderWidth: int,
-     *   layoutMode: string,
-     *   darkSider: bool,
-     *   tabVisible: bool,
-     *   breadcrumbVisible: bool,
-     *   multilingualVisible: bool,
-     *   globalSearchVisible: bool,
-     *   themeConfigVisible: bool
-     * }
+     * @return ThemeConfig
      */
     private function defaultConfig(): array
     {
-        $configuredDefaults = config('theme.defaults', []);
+        $configuredDefaults = (array) config('theme.defaults', []);
         $baseDefaults = [
             'themeScheme' => 'light',
             'themeColor' => '#646cff',
@@ -419,15 +356,11 @@ class ThemeConfigService
             'fixedHeaderAndTab' => true,
         ];
 
-        $defaults = array_replace($baseDefaults, is_array($configuredDefaults) ? $configuredDefaults : []);
+        $defaults = array_replace($baseDefaults, $configuredDefaults);
         $limits = $this->limits();
-        $allowedSchemes = $this->allowedSchemes();
         $allowedLayoutModes = $this->allowedLayoutModes();
 
-        $themeScheme = trim((string) ($defaults['themeScheme'] ?? ''));
-        if (! in_array($themeScheme, $allowedSchemes, true)) {
-            $themeScheme = $baseDefaults['themeScheme'];
-        }
+        $themeScheme = $this->normalizeThemeScheme($defaults['themeScheme'] ?? null, 'light');
 
         $themeColor = trim((string) ($defaults['themeColor'] ?? ''));
         if (! preg_match('/^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $themeColor)) {
@@ -542,8 +475,8 @@ class ThemeConfigService
      */
     private function allowedSchemes(): array
     {
-        $schemes = config('theme.allowed_schemes', ['light', 'dark', 'auto']);
-        if (! is_array($schemes) || $schemes === []) {
+        $schemes = (array) config('theme.allowed_schemes', ['light', 'dark', 'auto']);
+        if ($schemes === []) {
             return ['light', 'dark', 'auto'];
         }
 
@@ -558,7 +491,7 @@ class ThemeConfigService
      */
     private function allowedLayoutModes(): array
     {
-        $modes = config('theme.allowed_layout_modes', [
+        $modes = (array) config('theme.allowed_layout_modes', [
             'vertical',
             'horizontal',
             'vertical-mix',
@@ -567,7 +500,7 @@ class ThemeConfigService
             'top-hybrid-header-first',
         ]);
 
-        if (! is_array($modes) || $modes === []) {
+        if ($modes === []) {
             return ['vertical'];
         }
 
@@ -582,8 +515,8 @@ class ThemeConfigService
      */
     private function allowedScrollModes(): array
     {
-        $modes = config('theme.allowed_scroll_modes', ['wrapper', 'content']);
-        if (! is_array($modes) || $modes === []) {
+        $modes = (array) config('theme.allowed_scroll_modes', ['wrapper', 'content']);
+        if ($modes === []) {
             return ['content'];
         }
 
@@ -598,7 +531,7 @@ class ThemeConfigService
      */
     private function allowedPageAnimateModes(): array
     {
-        $modes = config('theme.allowed_page_animate_modes', [
+        $modes = (array) config('theme.allowed_page_animate_modes', [
             'fade',
             'fade-slide',
             'fade-bottom',
@@ -607,7 +540,7 @@ class ThemeConfigService
             'zoom-out',
             'none',
         ]);
-        if (! is_array($modes) || $modes === []) {
+        if ($modes === []) {
             return ['fade-slide'];
         }
 
@@ -624,15 +557,20 @@ class ThemeConfigService
     {
         $cacheKey = $this->scopeCacheKey($scopeType, $scopeId);
 
-        return Cache::remember($cacheKey, now()->addMinutes(10), static function () use ($scopeType, $scopeId): array {
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($scopeType, $scopeId): array {
             $profile = ThemeProfile::query()
                 ->where('scope_key', ThemeProfile::scopeKey($scopeType, $scopeId))
                 ->where('status', '1')
                 ->first();
 
+            $config = $profile instanceof ThemeProfile
+                ? $this->normalizeStoredConfig($profile->getAttribute('config'))
+                : [];
+            $version = $profile instanceof ThemeProfile ? (int) $profile->version : 0;
+
             return [
-                'config' => is_array($profile?->config) ? $profile->config : [],
-                'version' => (int) ($profile?->version ?? 0),
+                'config' => $config,
+                'version' => $version,
             ];
         });
     }
@@ -710,5 +648,37 @@ class ThemeConfigService
         $normalizedScopeId = $scopeId ?? 0;
 
         return sprintf('theme.profile.%s.%d', $scopeType, $normalizedScopeId);
+    }
+
+    /**
+     * @return ThemeScope
+     */
+    private function normalizeScopeType(string $scopeType): string
+    {
+        return $scopeType === ThemeProfile::SCOPE_TENANT
+            ? ThemeProfile::SCOPE_TENANT
+            : ThemeProfile::SCOPE_PLATFORM;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalizeStoredConfig(mixed $value): array
+    {
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * @param  ThemeScheme  $fallback
+     * @return ThemeScheme
+     */
+    private function normalizeThemeScheme(mixed $value, string $fallback): string
+    {
+        return match (trim((string) $value)) {
+            'light' => 'light',
+            'dark' => 'dark',
+            'auto' => 'auto',
+            default => $fallback,
+        };
     }
 }

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserPreference extends Model
 {
+    /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<self>> */
     use HasFactory;
 
     /**
@@ -37,6 +38,9 @@ class UserPreference extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

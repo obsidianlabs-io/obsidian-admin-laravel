@@ -104,9 +104,7 @@ class MenuMetadataService
      */
     private function menuItems(): array
     {
-        $items = config('menu.items', []);
-
-        return is_array($items) ? $items : [];
+        return $this->normalizeItemList(config('menu.items', []));
     }
 
     /**
@@ -120,10 +118,6 @@ class MenuMetadataService
         $filtered = [];
 
         foreach ($items as $item) {
-            if (! is_array($item)) {
-                continue;
-            }
-
             $children = $this->filterMenuItems(
                 $this->normalizeChildren($item['children'] ?? []),
                 $tenantId,
@@ -160,7 +154,7 @@ class MenuMetadataService
 
         usort($filtered, static fn (array $a, array $b): int => ((int) $a['order']) <=> ((int) $b['order']));
 
-        return array_values($filtered);
+        return $filtered;
     }
 
     /**
@@ -224,10 +218,6 @@ class MenuMetadataService
     private function fillRouteRules(array &$rules, array $items, ?int $tenantId, array $roleCodes): void
     {
         foreach ($items as $item) {
-            if (! is_array($item)) {
-                continue;
-            }
-
             $routeKey = trim((string) ($item['routeKey'] ?? ''));
             $scope = (string) ($item['scope'] ?? 'both');
             $requiredPermissions = $this->normalizePermissionList($item['permission'] ?? []);
@@ -251,14 +241,22 @@ class MenuMetadataService
      */
     private function normalizeChildren(mixed $value): array
     {
+        return $this->normalizeItemList($value);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeItemList(mixed $value): array
+    {
         if (! is_array($value)) {
             return [];
         }
 
-        /** @var list<array<string, mixed>> $children */
-        $children = array_values(array_filter($value, static fn (mixed $item): bool => is_array($item)));
+        /** @var list<array<string, mixed>> $items */
+        $items = array_values(array_filter($value, static fn (mixed $item): bool => is_array($item)));
 
-        return $children;
+        return $items;
     }
 
     /**

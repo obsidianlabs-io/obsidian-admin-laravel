@@ -80,7 +80,7 @@ readonly class ListFeatureFlagsAction
 
         $total = count($flags);
         $offset = ($dto->current - 1) * $dto->size;
-        $records = array_values(array_slice($flags, $offset, $dto->size));
+        $records = array_slice($flags, $offset, $dto->size);
 
         return [
             'current' => $dto->current,

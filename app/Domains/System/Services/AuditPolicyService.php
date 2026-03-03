@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\System\Services;
 
+use App\Domains\Access\Models\User;
 use App\Domains\System\Models\AuditLog;
 use App\Domains\System\Models\AuditPolicy;
 use App\Domains\System\Models\AuditPolicyRevision;
@@ -42,6 +43,7 @@ class AuditPolicyService
      */
     public function listScopes(): array
     {
+        /** @var list<array{scopeType: 'platform'|'tenant', tenantId: string, tenantName: string}> $scopes */
         $scopes = [
             [
                 'scopeType' => 'platform',
@@ -50,6 +52,7 @@ class AuditPolicyService
             ],
         ];
 
+        /** @var list<array{scopeType: 'tenant', tenantId: string, tenantName: string}> $tenantScopes */
         $tenantScopes = Tenant::query()
             ->where('status', '1')
             ->orderBy('id')
@@ -153,29 +156,38 @@ class AuditPolicyService
 
         $total = $query->count();
 
-        $records = $query->orderByDesc('id')
-            ->forPage($current, $size)
-            ->get()
-            ->map(static function (AuditPolicyRevision $revision) use ($resolvedTimezone): array {
-                $rawActions = is_array($revision->changed_actions) ? $revision->changed_actions : [];
-                $changedActions = array_values(array_filter(
-                    array_map(static fn (mixed $action): string => trim((string) $action), $rawActions),
-                    static fn (string $action): bool => $action !== ''
-                ));
+        /** @var list<array{
+         *   id: string,
+         *   scope: string,
+         *   changedByUserId: string,
+         *   changedByUserName: string,
+         *   changeReason: string,
+         *   changedCount: int,
+         *   changedActions: list<string>,
+         *   createdAt: string
+         * }> $records
+         */
+        $records = [];
 
-                return [
-                    'id' => (string) $revision->id,
-                    'scope' => (string) $revision->scope,
-                    'changedByUserId' => $revision->changed_by_user_id ? (string) $revision->changed_by_user_id : '',
-                    'changedByUserName' => (string) ($revision->changedByUser?->name ?? 'System'),
-                    'changeReason' => (string) $revision->change_reason,
-                    'changedCount' => (int) $revision->changed_count,
-                    'changedActions' => $changedActions,
-                    'createdAt' => ApiDateTime::iso($revision->created_at, $resolvedTimezone),
-                ];
-            })
-            ->values()
-            ->all();
+        $revisions = $query->orderByDesc('id')
+            ->forPage($current, $size)
+            ->get();
+
+        foreach ($revisions as $revision) {
+            $changedByUser = $revision->getRelationValue('changedByUser');
+            $changedByUserName = $changedByUser instanceof User ? (string) $changedByUser->name : 'System';
+
+            $records[] = [
+                'id' => (string) $revision->id,
+                'scope' => (string) $revision->scope,
+                'changedByUserId' => $revision->changed_by_user_id ? (string) $revision->changed_by_user_id : '',
+                'changedByUserName' => $changedByUserName,
+                'changeReason' => (string) $revision->change_reason,
+                'changedCount' => (int) $revision->changed_count,
+                'changedActions' => $this->normalizeActionList($revision->changed_actions),
+                'createdAt' => ApiDateTime::iso($revision->created_at, $resolvedTimezone),
+            ];
+        }
 
         return [
             'current' => $current,
@@ -332,10 +344,10 @@ class AuditPolicyService
         return DB::transaction(function () use ($records, $changedByUserId, $normalizedReason): array {
             $result = $this->updatePolicies(null, $records);
 
-            $actions = array_values(array_unique(array_filter(
-                array_map(static fn (array $change): string => trim((string) ($change['action'] ?? '')), $result['changes']),
-                static fn (string $action): bool => $action !== ''
-            )));
+            $actions = array_unique(array_map(
+                static fn (array $change): string => trim($change['action']),
+                $result['changes']
+            ));
 
             $clearedTenantOverrides = 0;
             if ($actions !== []) {
@@ -354,10 +366,10 @@ class AuditPolicyService
                     throw new InvalidArgumentException('Change reason is required when updating audit policy');
                 }
 
-                $changedActions = array_values(array_unique(array_map(
+                $changedActions = array_unique(array_map(
                     static fn (array $change): string => (string) $change['action'],
                     $result['changes']
-                )));
+                ));
 
                 $revision = AuditPolicyRevision::query()->create([
                     'scope' => 'global',
@@ -618,6 +630,9 @@ class AuditPolicyService
         $this->scopePoliciesCache = [];
     }
 
+    /**
+     * @param  Builder<AuditLog>  $query
+     */
     private function runPruneQuery(Builder $query, bool $dryRun): int
     {
         if ($dryRun) {
@@ -665,5 +680,27 @@ class AuditPolicyService
     private function optionalDefaultSamplingRate(): float
     {
         return $this->normalizeSamplingRate(config('audit.sampling.default_optional_rate', 1.0));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeActionList(mixed $actions): array
+    {
+        if (! is_array($actions)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($actions as $action) {
+            $actionName = trim((string) $action);
+            if ($actionName === '') {
+                continue;
+            }
+
+            $normalized[] = $actionName;
+        }
+
+        return $normalized;
     }
 }

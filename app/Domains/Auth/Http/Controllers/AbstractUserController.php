@@ -83,26 +83,46 @@ abstract class AbstractUserController extends ApiController
     }
 
     /**
+     * @param  string|list<string>  $permissionCode
      * @return array{
-     *   ok: bool,
+     *   ok: false,
+     *   code: string,
+     *   msg: string
+     * }|array{
+     *   ok: true,
      *   code: string,
      *   msg: string,
-     *   user?: \App\Domains\Access\Models\User,
-     *   actorLevel?: int,
-     *   tenantId?: int|null
+     *   user: \App\Domains\Access\Models\User,
+     *   actorLevel: int,
+     *   tenantId: int|null
      * }
      */
     protected function resolveUserManagementContext(Request $request, string|array $permissionCode): array
     {
-        $authResult = is_array($permissionCode)
-            ? $this->authenticateAndAuthorizeAny($request, 'access-api', $permissionCode)
-            : $this->authenticateAndAuthorize($request, 'access-api', $permissionCode);
-        if (! $authResult['ok']) {
-            return $authResult;
+        if (is_array($permissionCode)) {
+            $permissionCodes = array_map(static fn (string $code): string => (string) $code, $permissionCode);
+            $authResult = $this->authenticateAndAuthorizeAny($request, 'access-api', $permissionCodes);
+        } else {
+            $authResult = $this->authenticateAndAuthorize($request, 'access-api', $permissionCode);
         }
 
-        /** @var \App\Domains\Access\Models\User $authUser */
-        $authUser = $authResult['user'];
+        if (! $authResult['ok']) {
+            return [
+                'ok' => false,
+                'code' => $authResult['code'],
+                'msg' => $authResult['msg'],
+            ];
+        }
+
+        $authUser = $authResult['user'] ?? null;
+        if (! $authUser instanceof User) {
+            return [
+                'ok' => false,
+                'code' => self::UNAUTHORIZED_CODE,
+                'msg' => 'Unauthorized',
+            ];
+        }
+
         $actorLevel = $this->resolveUserRoleLevel($authUser);
         if ($actorLevel <= 0) {
             return [
@@ -127,7 +147,7 @@ abstract class AbstractUserController extends ApiController
             'msg' => 'ok',
             'user' => $authUser,
             'actorLevel' => $actorLevel,
-            'tenantId' => $tenantContext['tenantId'],
+            'tenantId' => $tenantContext['tenantId'] ?? null,
         ];
     }
 
@@ -144,5 +164,37 @@ abstract class AbstractUserController extends ApiController
     protected function resolveTenantContext(Request $request, User $user): array
     {
         return $this->tenantContextService->resolveTenantContext($request, $user);
+    }
+
+    /**
+     * @return array{ok: false, code: string, msg: string}|array{
+     *   ok: true,
+     *   user: \App\Domains\Access\Models\User
+     * }
+     */
+    protected function resolveAuthenticatedUser(Request $request): array
+    {
+        $authResult = $this->authenticate($request, 'access-api');
+        if (! $authResult['ok']) {
+            return [
+                'ok' => false,
+                'code' => $authResult['code'],
+                'msg' => $authResult['msg'],
+            ];
+        }
+
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return [
+                'ok' => false,
+                'code' => self::UNAUTHORIZED_CODE,
+                'msg' => 'Unauthorized',
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'user' => $user,
+        ];
     }
 }

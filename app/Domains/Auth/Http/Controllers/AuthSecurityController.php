@@ -9,6 +9,7 @@ use App\Http\Requests\Api\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Api\Auth\ResetPasswordRequest;
 use App\Http\Requests\Api\Auth\TwoFactorCodeRequest;
 use App\Support\ApiDateTime;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -67,26 +68,28 @@ class AuthSecurityController extends AbstractUserController
 
     public function verifyEmail(Request $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authenticated['user'];
         if ($user->email_verified_at !== null) {
             return $this->success([], 'Email already verified');
         }
 
         $user->forceFill(['email_verified_at' => now()])->save();
+        $verifiedAt = $user->getAttribute('email_verified_at');
         $this->auditLogService->record(
             action: 'user.verify_email',
             auditable: $user,
             actor: $user,
             request: $request,
             newValues: [
-                'email_verified_at' => ApiDateTime::format($user->email_verified_at, $this->resolveTimezone($user)),
+                'email_verified_at' => ApiDateTime::format(
+                    $verifiedAt instanceof CarbonInterface ? $verifiedAt : null,
+                    $this->resolveTimezone($user)
+                ),
             ]
         );
 
@@ -95,14 +98,12 @@ class AuthSecurityController extends AbstractUserController
 
     public function setupTwoFactor(Request $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authenticated['user'];
         $secret = $this->totpService->generateSecret();
         $user->forceFill([
             'two_factor_secret' => Crypt::encryptString($secret),
@@ -121,27 +122,24 @@ class AuthSecurityController extends AbstractUserController
 
     public function enableTwoFactor(TwoFactorCodeRequest $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authenticated['user'];
         $otpCode = (string) $request->validated()['otpCode'];
 
         if (! $this->verifyUserTotpCode($user, $otpCode)) {
             return $this->error(self::PARAM_ERROR_CODE, 'Two-factor code is invalid');
         }
 
-        $user->forceFill(['two_factor_enabled' => true])->save();
-        $this->auditLogService->record(
-            action: 'user.2fa.enable',
-            auditable: $user,
-            actor: $user,
+        $this->applyTwoFactorState(
+            user: $user,
             request: $request,
-            newValues: ['two_factor_enabled' => true]
+            enabled: true,
+            clearSecret: false,
+            action: 'user.2fa.enable'
         );
 
         return $this->success(['enabled' => true], 'Two-factor enabled');
@@ -149,32 +147,67 @@ class AuthSecurityController extends AbstractUserController
 
     public function disableTwoFactor(TwoFactorCodeRequest $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authenticated['user'];
         $otpCode = (string) $request->validated()['otpCode'];
 
         if (! $this->verifyUserTotpCode($user, $otpCode)) {
             return $this->error(self::PARAM_ERROR_CODE, 'Two-factor code is invalid');
         }
 
-        $user->forceFill([
-            'two_factor_enabled' => false,
-            'two_factor_secret' => null,
-        ])->save();
-        $this->auditLogService->record(
-            action: 'user.2fa.disable',
-            auditable: $user,
-            actor: $user,
+        $this->applyTwoFactorState(
+            user: $user,
             request: $request,
-            newValues: ['two_factor_enabled' => false]
+            enabled: false,
+            clearSecret: true,
+            action: 'user.2fa.disable'
         );
 
         return $this->success(['enabled' => false], 'Two-factor disabled');
+    }
+
+    /**
+     * @return array{ok: false, response: JsonResponse}|array{ok: true, user: User}
+     */
+    private function resolveAuthenticatedUserResponse(Request $request): array
+    {
+        $authResult = $this->resolveAuthenticatedUser($request);
+        if (! $authResult['ok']) {
+            return [
+                'ok' => false,
+                'response' => $this->error($authResult['code'], $authResult['msg']),
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'user' => $authResult['user'],
+        ];
+    }
+
+    private function applyTwoFactorState(
+        User $user,
+        Request $request,
+        bool $enabled,
+        bool $clearSecret,
+        string $action
+    ): void {
+        $payload = ['two_factor_enabled' => $enabled];
+        if ($clearSecret) {
+            $payload['two_factor_secret'] = null;
+        }
+
+        $user->forceFill($payload)->save();
+        $this->auditLogService->record(
+            action: $action,
+            auditable: $user,
+            actor: $user,
+            request: $request,
+            newValues: ['two_factor_enabled' => $enabled]
+        );
     }
 }

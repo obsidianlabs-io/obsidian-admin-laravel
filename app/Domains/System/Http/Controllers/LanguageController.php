@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\System\Http\Controllers;
 
+use App\Domains\Access\Models\User;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Http\Resources\LanguageTranslationListResource;
@@ -17,6 +18,7 @@ use App\Http\Requests\Api\Language\UpdateLanguageTranslationRequest;
 use App\Support\LocaleDefaults;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class LanguageController extends ApiController
 {
@@ -164,17 +166,23 @@ class LanguageController extends ApiController
             'languages',
             'messages|locale:'.$language->code,
             function () use ($language): array {
+                /** @var object{total_count?: int|string, max_updated_at?: string|null}|null $meta */
                 $meta = LanguageTranslation::query()
                     ->where('language_id', $language->id)
                     ->selectRaw('COUNT(*) as total_count, MAX(updated_at) as max_updated_at')
+                    ->toBase()
                     ->first();
 
-                $maxUpdatedAt = $meta?->max_updated_at ? (string) $meta->max_updated_at : '';
-                $count = (int) ($meta?->total_count ?? 0);
+                $maxUpdatedAt = '';
+                if ($meta !== null && isset($meta->max_updated_at)) {
+                    $maxUpdatedAt = $meta->max_updated_at;
+                }
+                $count = $meta !== null && isset($meta->total_count) ? (int) $meta->total_count : 0;
+                $updatedTimestamp = $language->updated_at !== null ? (int) $language->updated_at->timestamp : 0;
 
                 $version = sha1(implode('|', [
                     (string) $language->id,
-                    $language->updated_at?->timestamp ?? 0,
+                    $updatedTimestamp,
                     $count,
                     $maxUpdatedAt,
                 ]));
@@ -223,7 +231,6 @@ class LanguageController extends ApiController
             return $this->error($authResult['code'], $authResult['msg']);
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
         $user = $authResult['user'];
         $validated = $request->validated();
         $language = Language::query()->where('code', (string) $validated['locale'])->first();
@@ -275,7 +282,6 @@ class LanguageController extends ApiController
             return $optimisticLockError;
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
         $user = $authResult['user'];
         $validated = $request->validated();
 
@@ -285,7 +291,7 @@ class LanguageController extends ApiController
         }
 
         $oldValues = [
-            'locale' => $translation->language?->code,
+            'locale' => $this->resolveTranslationLocale($translation),
             'translationKey' => $translation->translation_key,
             'translationValue' => $translation->translation_value,
             'status' => (string) $translation->status,
@@ -330,10 +336,9 @@ class LanguageController extends ApiController
             return $this->error(self::PARAM_ERROR_CODE, 'Language translation not found');
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
         $user = $authResult['user'];
         $oldValues = [
-            'locale' => (string) ($translation->language?->code ?? ''),
+            'locale' => $this->resolveTranslationLocale($translation),
             'translationKey' => (string) $translation->translation_key,
             'translationValue' => (string) $translation->translation_value,
             'status' => (string) $translation->status,
@@ -352,7 +357,13 @@ class LanguageController extends ApiController
     }
 
     /**
-     * @return array{ok: bool, code: string, msg: string, user?: \App\Domains\Access\Models\User, token?: \Laravel\Sanctum\PersonalAccessToken}
+     * @return array{ok:false, code:string, msg:string}|array{
+     *   ok:true,
+     *   code:string,
+     *   msg:string,
+     *   user:\App\Domains\Access\Models\User,
+     *   token?: \Laravel\Sanctum\PersonalAccessToken
+     * }
      */
     private function authorizeLanguageConsole(Request $request, string $permissionCode): array
     {
@@ -361,8 +372,15 @@ class LanguageController extends ApiController
             return $authResult;
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return [
+                'ok' => false,
+                'code' => self::UNAUTHORIZED_CODE,
+                'msg' => 'Unauthorized',
+            ];
+        }
+
         if (! $this->isSuperAdmin($user)) {
             return [
                 'ok' => false,
@@ -371,7 +389,8 @@ class LanguageController extends ApiController
             ];
         }
 
-        $selectedTenantId = (int) $request->header('X-Tenant-Id', 0);
+        $selectedTenantHeader = $request->header('X-Tenant-Id');
+        $selectedTenantId = is_numeric($selectedTenantHeader) ? (int) $selectedTenantHeader : 0;
         if ($selectedTenantId > 0) {
             return [
                 'ok' => false,
@@ -380,7 +399,19 @@ class LanguageController extends ApiController
             ];
         }
 
-        return $authResult;
+        $result = [
+            'ok' => true,
+            'code' => $authResult['code'],
+            'msg' => $authResult['msg'],
+            'user' => $user,
+        ];
+
+        $token = $authResult['token'] ?? null;
+        if ($token instanceof PersonalAccessToken) {
+            $result['token'] = $token;
+        }
+
+        return $result;
     }
 
     private function resolveRuntimeLanguage(string $requestedLocale): ?Language
@@ -419,7 +450,8 @@ class LanguageController extends ApiController
      */
     private function resolveRuntimeLocales(): array
     {
-        return $this->apiCacheService->remember(
+        /** @var list<array{id: int, locale: string, localeName: string, isDefault: bool}> $locales */
+        $locales = $this->apiCacheService->remember(
             'languages',
             'locales',
             static function (): array {
@@ -441,10 +473,19 @@ class LanguageController extends ApiController
                     ->all();
             }
         );
+
+        return $locales;
     }
 
     private function resolveDefaultLocaleCode(): string
     {
         return LocaleDefaults::resolve();
+    }
+
+    private function resolveTranslationLocale(LanguageTranslation $translation): string
+    {
+        $language = $translation->language;
+
+        return $language instanceof Language ? (string) $language->code : '';
     }
 }

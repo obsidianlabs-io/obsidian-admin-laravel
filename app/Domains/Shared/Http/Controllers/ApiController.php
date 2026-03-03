@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Shared\Http\Controllers;
 
+use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Services\IdempotencyService;
 use App\Http\Controllers\Controller;
@@ -198,7 +199,7 @@ abstract class ApiController extends Controller
         try {
             $timezone = ApiDateTime::requestTimezone($request);
 
-            return CarbonImmutable::parse($value, $timezone)
+            return (int) CarbonImmutable::parse($value, $timezone)
                 ->setTimezone('UTC')
                 ->timestamp;
         } catch (Throwable) {
@@ -375,8 +376,14 @@ abstract class ApiController extends Controller
             return $authResult;
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return [
+                'ok' => false,
+                'code' => self::UNAUTHORIZED_CODE,
+                'msg' => 'Unauthorized',
+            ];
+        }
 
         if (! Gate::forUser($user)->allows('access-permission', $permissionCode)) {
             return [
@@ -407,8 +414,14 @@ abstract class ApiController extends Controller
             return $authResult;
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return [
+                'ok' => false,
+                'code' => self::UNAUTHORIZED_CODE,
+                'msg' => 'Unauthorized',
+            ];
+        }
 
         foreach ($permissionCodes as $permissionCode) {
             if (Gate::forUser($user)->allows('access-permission', $permissionCode)) {
@@ -427,7 +440,10 @@ abstract class ApiController extends Controller
     {
         $user->loadMissing('role:id,code,level,status');
 
-        $roleCode = (string) ($user->role?->code ?? '');
+        $roleCode = '';
+        if ($user->role instanceof Role) {
+            $roleCode = (string) $user->role->code;
+        }
 
         return $roleCode === 'R_SUPER';
     }

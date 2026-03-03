@@ -149,6 +149,9 @@ class OpenApiSpecInspector
             }
 
             $operationKey = $this->operationKey($currentPath, $currentMethod);
+            if (! isset($operations[$operationKey])) {
+                continue;
+            }
 
             if (preg_match('/^\s{6}summary:\s*(.*)\s*$/', $line, $matches) === 1) {
                 $operations[$operationKey]['summary'] = $this->normalizeScalar($matches[1]);

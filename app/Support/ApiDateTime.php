@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Domains\Access\Models\User;
+use App\Domains\Access\Models\UserPreference;
 use Carbon\CarbonInterface;
 use DateTimeZone;
 use Illuminate\Http\Request;
@@ -22,7 +23,10 @@ final class ApiDateTime
     {
         $user->loadMissing('preference');
 
-        return self::normalizeTimezone((string) ($user->preference?->timezone ?? ''));
+        $preference = $user->getRelationValue('preference');
+        $timezone = $preference instanceof UserPreference ? (string) $preference->timezone : '';
+
+        return self::normalizeTimezone($timezone);
     }
 
     public static function assignRequestTimezone(Request $request, ?string $timezone): string
@@ -93,6 +97,15 @@ final class ApiDateTime
     public static function listTimezoneOptions(): array
     {
         $nowUtc = now('UTC');
+
+        /**
+         * @var list<array{
+         *   timezone: string,
+         *   offset: string,
+         *   label: string,
+         *   offsetMinutes: int
+         * }> $records
+         */
         $records = [];
 
         foreach (timezone_identifiers_list() as $timezone) {
@@ -114,23 +127,23 @@ final class ApiDateTime
         }
 
         usort($records, static function (array $left, array $right): int {
-            $leftOffset = (int) ($left['offsetMinutes'] ?? 0);
-            $rightOffset = (int) ($right['offsetMinutes'] ?? 0);
+            $leftOffset = $left['offsetMinutes'];
+            $rightOffset = $right['offsetMinutes'];
 
             if ($leftOffset !== $rightOffset) {
                 return $leftOffset <=> $rightOffset;
             }
 
-            return strcmp((string) ($left['timezone'] ?? ''), (string) ($right['timezone'] ?? ''));
+            return strcmp($left['timezone'], $right['timezone']);
         });
 
-        return array_values(array_map(static function (array $record): array {
+        return array_map(static function (array $record): array {
             return [
-                'timezone' => (string) ($record['timezone'] ?? ''),
-                'offset' => (string) ($record['offset'] ?? '+00:00'),
-                'label' => (string) ($record['label'] ?? ''),
+                'timezone' => $record['timezone'],
+                'offset' => $record['offset'],
+                'label' => $record['label'],
             ];
-        }, $records));
+        }, $records);
     }
 
     /**

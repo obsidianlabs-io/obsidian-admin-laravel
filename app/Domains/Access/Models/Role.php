@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Role extends Model
 {
+    /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<self>> */
     use HasFactory, SoftDeletes;
 
     /**
@@ -49,16 +50,25 @@ class Role extends Model
         });
     }
 
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
     }
 
+    /**
+     * @return HasMany<User, $this>
+     */
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
     }
 
+    /**
+     * @return BelongsToMany<Permission, $this>
+     */
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'role_permission')

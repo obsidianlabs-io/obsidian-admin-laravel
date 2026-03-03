@@ -58,11 +58,11 @@ class AuthTokenService
         }
 
         $accessTokenTtl = $rememberMe
-            ? (int) env('API_REMEMBER_ACCESS_TOKEN_TTL_MINUTES', 240)
-            : (int) env('API_ACCESS_TOKEN_TTL_MINUTES', 120);
+            ? (int) config('api.auth_tokens.remember_access_ttl_minutes', 240)
+            : (int) config('api.auth_tokens.access_ttl_minutes', 120);
         $refreshTokenTtl = $rememberMe
-            ? (int) env('API_REMEMBER_REFRESH_TOKEN_TTL_DAYS', 30)
-            : (int) env('API_REFRESH_TOKEN_TTL_DAYS', 7);
+            ? (int) config('api.auth_tokens.remember_refresh_ttl_days', 30)
+            : (int) config('api.auth_tokens.refresh_ttl_days', 7);
 
         $clientContextAbilities = $this->buildSessionClientContextAbilities($sessionClientContext);
 

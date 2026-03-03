@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LanguageTranslation extends Model
 {
+    /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<self>> */
     use HasFactory;
 
     /**
@@ -34,6 +35,9 @@ class LanguageTranslation extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Language, $this>
+     */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);

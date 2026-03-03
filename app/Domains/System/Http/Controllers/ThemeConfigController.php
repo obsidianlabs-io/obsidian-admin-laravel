@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\System\Http\Controllers;
 
 use App\Domains\Access\Models\User;
+use App\Domains\Access\Models\UserPreference;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Models\ThemeProfile;
 use App\Domains\System\Services\AuditLogService;
@@ -27,18 +28,17 @@ class ThemeConfigController extends ApiController
             return $this->error($authResult['code'], $authResult['msg']);
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        }
+
         $accessError = $this->resolveThemeConfigAccessError($request, $user);
         if ($accessError !== null) {
             return $this->error($accessError['code'], $accessError['msg']);
         }
 
         $scope = $this->resolveScope($user);
-        if (! $scope['ok']) {
-            return $this->error($scope['code'], $scope['msg']);
-        }
-
         $scopeConfig = $this->themeConfigService->describeScopeConfig(
             $scope['scopeType'],
             $scope['scopeId'],
@@ -46,7 +46,7 @@ class ThemeConfigController extends ApiController
         );
         $effective = $this->themeConfigService->resolveEffectiveConfig(
             null,
-            (string) ($user->preference?->theme_schema ?? '')
+            $this->resolveUserThemeSchema($user)
         );
 
         return $this->success([
@@ -91,18 +91,17 @@ class ThemeConfigController extends ApiController
             return $this->error($authResult['code'], $authResult['msg']);
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        }
+
         $accessError = $this->resolveThemeConfigAccessError($request, $user);
         if ($accessError !== null) {
             return $this->error($accessError['code'], $accessError['msg']);
         }
 
         $scope = $this->resolveScope($user);
-        if (! $scope['ok']) {
-            return $this->error($scope['code'], $scope['msg']);
-        }
-
         $validated = $request->validated();
         if ($validated === []) {
             return $this->error(self::PARAM_ERROR_CODE, 'No theme fields to update');
@@ -144,7 +143,7 @@ class ThemeConfigController extends ApiController
 
         $effective = $this->themeConfigService->resolveEffectiveConfig(
             null,
-            (string) ($user->preference?->theme_schema ?? '')
+            $this->resolveUserThemeSchema($user)
         );
 
         return $this->success([
@@ -165,18 +164,17 @@ class ThemeConfigController extends ApiController
             return $this->error($authResult['code'], $authResult['msg']);
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        }
+
         $accessError = $this->resolveThemeConfigAccessError($request, $user);
         if ($accessError !== null) {
             return $this->error($accessError['code'], $accessError['msg']);
         }
 
         $scope = $this->resolveScope($user);
-        if (! $scope['ok']) {
-            return $this->error($scope['code'], $scope['msg']);
-        }
-
         $before = $this->themeConfigService->describeScopeConfig(
             $scope['scopeType'],
             $scope['scopeId'],
@@ -212,7 +210,7 @@ class ThemeConfigController extends ApiController
 
         $effective = $this->themeConfigService->resolveEffectiveConfig(
             null,
-            (string) ($user->preference?->theme_schema ?? '')
+            $this->resolveUserThemeSchema($user)
         );
 
         return $this->success([
@@ -227,27 +225,11 @@ class ThemeConfigController extends ApiController
     }
 
     /**
-     * @return array{
-     *   ok: bool,
-     *   code: string,
-     *   msg: string,
-     *   scopeType?: 'platform',
-     *   scopeId?: null,
-     *   scopeName?: string
-     * }
+     * @return array{scopeType: 'platform', scopeId: null, scopeName: string}
      */
     private function resolveScope(User $user): array
     {
-        $scope = $this->themeConfigService->resolveActorScope($user, null);
-
-        return [
-            'ok' => true,
-            'code' => self::SUCCESS_CODE,
-            'msg' => 'ok',
-            'scopeType' => $scope['scopeType'],
-            'scopeId' => $scope['scopeId'],
-            'scopeName' => $scope['scopeName'],
-        ];
+        return $this->themeConfigService->resolveActorScope($user, null);
     }
 
     /**
@@ -262,7 +244,8 @@ class ThemeConfigController extends ApiController
             ];
         }
 
-        $selectedTenantId = (int) $request->header('X-Tenant-Id', 0);
+        $selectedTenantHeader = $request->header('X-Tenant-Id');
+        $selectedTenantId = is_numeric($selectedTenantHeader) ? (int) $selectedTenantHeader : 0;
         if ($selectedTenantId > 0) {
             return [
                 'code' => self::FORBIDDEN_CODE,
@@ -271,5 +254,18 @@ class ThemeConfigController extends ApiController
         }
 
         return null;
+    }
+
+    private function resolveUserThemeSchema(User $user): ?string
+    {
+        $preference = $user->preference;
+
+        if (! $preference instanceof UserPreference) {
+            return null;
+        }
+
+        $themeSchema = trim((string) $preference->theme_schema);
+
+        return $themeSchema !== '' ? $themeSchema : null;
     }
 }

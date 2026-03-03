@@ -39,7 +39,8 @@ class SetRequestLocale
 
         $items = explode(',', $acceptLanguage);
         foreach ($items as $item) {
-            $candidate = trim(explode(';', $item)[0] ?? '');
+            $segments = explode(';', $item, 2);
+            $candidate = trim($segments[0]);
             $normalized = $this->normalizeLocale($candidate);
             if ($normalized !== null) {
                 return $normalized;

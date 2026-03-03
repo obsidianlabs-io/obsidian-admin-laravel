@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Tenant\Services;
 
+use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Tenant\Models\Tenant;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class TenantContextService
                 ->orderBy('id')
                 ->get(['id', 'name']);
 
-            $headerTenantId = (int) $request->header('X-Tenant-Id', 0);
+            $headerTenantId = $this->headerTenantId($request);
             $currentTenant = $headerTenantId > 0 ? $activeTenants->firstWhere('id', $headerTenantId) : null;
             if ($headerTenantId > 0 && ! $currentTenant) {
                 return [
@@ -50,7 +51,7 @@ class TenantContextService
                 'msg' => 'ok',
                 'tenantId' => $currentTenant ? (int) $currentTenant->id : null,
                 'tenantName' => $currentTenant ? (string) $currentTenant->name : 'No Tenants',
-                'tenants' => $activeTenants
+                'tenants' => array_values($activeTenants
                     ->map(static function (Tenant $tenant): array {
                         return [
                             'tenantId' => (string) $tenant->id,
@@ -58,7 +59,7 @@ class TenantContextService
                         ];
                     })
                     ->values()
-                    ->all(),
+                    ->all()),
             ];
         }
 
@@ -99,7 +100,7 @@ class TenantContextService
                 ->map(static fn ($id): int => (int) $id)
                 ->all();
 
-            $headerTenantId = (int) $request->header('X-Tenant-Id', 0);
+            $headerTenantId = $this->headerTenantId($request);
             if ($headerTenantId > 0 && ! in_array($headerTenantId, $activeTenantIds, true)) {
                 return [
                     'ok' => false,
@@ -139,8 +140,19 @@ class TenantContextService
     {
         $user->loadMissing('role:id,code,level,status');
 
-        $roleCode = (string) ($user->role?->code ?? '');
+        $role = $user->getRelationValue('role');
+        if (! $role instanceof Role) {
+            return false;
+        }
 
-        return $roleCode === 'R_SUPER';
+        return (string) $role->code === 'R_SUPER';
+    }
+
+    private function headerTenantId(Request $request): int
+    {
+        $headerTenantId = $request->header('X-Tenant-Id');
+        $headerValue = is_string($headerTenantId) ? trim($headerTenantId) : '';
+
+        return is_numeric($headerValue) ? (int) $headerValue : 0;
     }
 }

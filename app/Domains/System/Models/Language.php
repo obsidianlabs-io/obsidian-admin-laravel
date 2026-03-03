@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Language extends Model
 {
+    /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<self>> */
     use HasFactory;
 
     /**
@@ -35,6 +36,9 @@ class Language extends Model
         ];
     }
 
+    /**
+     * @return HasMany<LanguageTranslation, $this>
+     */
     public function translations(): HasMany
     {
         return $this->hasMany(LanguageTranslation::class);

@@ -73,6 +73,16 @@ class RbacDoctorCommand extends Command
      */
     private function findUserRoleTenantScopeIssues(): array
     {
+        /** @var list<object{
+         *   user_id: int|string|null,
+         *   user_email: string|null,
+         *   user_tenant_id: int|string|null,
+         *   user_role_id: int|string|null,
+         *   role_id: int|string|null,
+         *   role_code: string|null,
+         *   role_tenant_id: int|string|null
+         * }> $rows
+         */
         $rows = User::query()
             ->leftJoin('roles as scoped_roles', 'scoped_roles.id', '=', 'users.role_id')
             ->select([
@@ -98,10 +108,12 @@ class RbacDoctorCommand extends Command
                     ->orWhereColumn('users.tenant_id', '!=', 'scoped_roles.tenant_id');
             })
             ->orderBy('users.id')
-            ->get();
+            ->toBase()
+            ->get()
+            ->all();
 
-        return $rows
-            ->map(function ($row): string {
+        return array_map(
+            function (object $row): string {
                 return sprintf(
                     'user#%s email=%s user_tenant=%s role_id=%s role_code=%s role_tenant=%s',
                     (string) $row->user_id,
@@ -111,9 +123,9 @@ class RbacDoctorCommand extends Command
                     (string) ($row->role_code ?? 'missing'),
                     $this->formatNullableNumber($row->role_tenant_id)
                 );
-            })
-            ->values()
-            ->all();
+            },
+            $rows
+        );
     }
 
     /**

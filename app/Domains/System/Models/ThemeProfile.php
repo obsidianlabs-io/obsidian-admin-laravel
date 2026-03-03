@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ThemeProfile extends Model
 {
+    /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<self>> */
     use HasFactory;
 
     public const SCOPE_PLATFORM = 'platform';
@@ -49,11 +50,17 @@ class ThemeProfile extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'scope_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function updatedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');

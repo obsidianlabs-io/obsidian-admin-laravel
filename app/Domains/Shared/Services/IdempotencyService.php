@@ -166,7 +166,13 @@ class IdempotencyService
 
     private function payloadHash(mixed $payload): string
     {
-        return hash('sha256', json_encode($this->normalizePayload($payload), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $normalized = $this->normalizePayload($payload);
+        $json = json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (! is_string($json)) {
+            $json = '{}';
+        }
+
+        return hash('sha256', $json);
     }
 
     private function normalizePayload(mixed $payload): mixed

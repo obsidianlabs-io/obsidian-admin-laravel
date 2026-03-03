@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Auth\Http\Controllers;
 
 use App\Domains\Access\Models\UserPreference;
+use App\DTOs\User\UpdateUserDTO;
 use App\Http\Requests\Api\Auth\UpdatePreferredLocaleRequest;
 use App\Http\Requests\Api\Auth\UpdateProfileRequest;
 use App\Http\Requests\Api\Auth\UpdateUserPreferencesRequest;
@@ -19,29 +20,24 @@ class UserProfileController extends AbstractUserController
 {
     public function getUserInfo(Request $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authenticated['user'];
         $user->loadMissing('role.permissions', 'tenant', 'preference');
-        $tenantContext = $this->resolveTenantContext($request, $user);
-        if (! $tenantContext['ok']) {
-            return $this->error($tenantContext['code'], $tenantContext['msg']);
+        $navigationResult = $this->resolveNavigationContext($request, $user);
+        if (! $navigationResult['ok']) {
+            return $navigationResult['response'];
         }
-        $roles = $this->resolveRoles($user);
-        $permissionCodes = $user->permissionCodes();
+
+        $tenantContext = $navigationResult['tenantContext'];
+        $roles = $navigationResult['roles'];
+        $permissionCodes = $navigationResult['permissionCodes'];
+        $navigation = $navigationResult['navigation'];
         $locale = $this->resolveLocale($user);
         $timezone = $this->resolveTimezone($user);
-        $navigation = $this->menuMetadataService->resolveForUser(
-            user: $user,
-            tenantId: $tenantContext['tenantId'],
-            roleCodes: $roles,
-            permissionCodes: $permissionCodes
-        );
         $themeSchema = $this->resolveThemeSchema($user);
         $themeConfig = $this->themeConfigService->resolveEffectiveConfig(
             null,
@@ -70,27 +66,19 @@ class UserProfileController extends AbstractUserController
 
     public function menus(Request $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authenticated['user'];
         $user->loadMissing('role.permissions', 'tenant');
-
-        $tenantContext = $this->resolveTenantContext($request, $user);
-        if (! $tenantContext['ok']) {
-            return $this->error($tenantContext['code'], $tenantContext['msg']);
+        $navigationResult = $this->resolveNavigationContext($request, $user);
+        if (! $navigationResult['ok']) {
+            return $navigationResult['response'];
         }
 
-        $navigation = $this->menuMetadataService->resolveForUser(
-            user: $user,
-            tenantId: $tenantContext['tenantId'],
-            roleCodes: $this->resolveRoles($user),
-            permissionCodes: $user->permissionCodes()
-        );
+        $navigation = $navigationResult['navigation'];
 
         return $this->success([
             'menuScope' => $navigation['menuScope'],
@@ -106,28 +94,24 @@ class UserProfileController extends AbstractUserController
 
     public function getProfile(Request $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authenticated['user'];
 
         return $this->success($this->resolveProfile($user));
     }
 
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authenticated['user'];
 
         $optimisticLockError = $this->ensureOptimisticLock($request, $user, 'User profile');
         if ($optimisticLockError) {
@@ -170,7 +154,7 @@ class UserProfileController extends AbstractUserController
             $payload['password'] = $password;
         }
 
-        $this->userService->update($user, new \App\DTOs\User\UpdateUserDTO(
+        $this->userService->update($user, new UpdateUserDTO(
             name: $payload['name'],
             email: $payload['email'],
             password: $payload['password'] ?? null,
@@ -196,14 +180,12 @@ class UserProfileController extends AbstractUserController
 
     public function updatePreferredLocale(UpdatePreferredLocaleRequest $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authenticated['user'];
 
         $locale = (string) $request->validated()['locale'];
         $oldLocale = $this->resolveLocale($user);
@@ -214,11 +196,7 @@ class UserProfileController extends AbstractUserController
             ], 'Preferred locale updated');
         }
 
-        UserPreference::query()->updateOrCreate(
-            ['user_id' => $user->id],
-            ['locale' => $locale]
-        );
-        $this->resolveUserContext->invalidateUserContextCache();
+        $this->upsertUserPreference((int) $user->id, ['locale' => $locale]);
 
         $this->auditLogService->record(
             action: 'user.locale.update',
@@ -238,14 +216,12 @@ class UserProfileController extends AbstractUserController
 
     public function updateUserPreferences(UpdateUserPreferencesRequest $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authenticated['user'];
         $validated = $request->validated();
         $oldThemeSchema = $this->resolveThemeSchema($user);
         $oldTimezone = $this->resolveTimezone($user);
@@ -271,11 +247,7 @@ class UserProfileController extends AbstractUserController
             $payload['timezone'] = $timezone;
         }
 
-        UserPreference::query()->updateOrCreate(
-            ['user_id' => $user->id],
-            $payload
-        );
-        $this->resolveUserContext->invalidateUserContextCache();
+        $this->upsertUserPreference((int) $user->id, $payload);
 
         ApiDateTime::assignRequestTimezone($request, $timezone);
 
@@ -303,15 +275,96 @@ class UserProfileController extends AbstractUserController
 
     public function timezones(Request $request): JsonResponse
     {
-        $authResult = $this->authenticate($request, 'access-api');
-
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        $authenticated = $this->resolveAuthenticatedUserResponse($request);
+        if (! $authenticated['ok']) {
+            return $authenticated['response'];
         }
 
         return $this->success([
             'defaultTimezone' => ApiDateTime::defaultTimezone(),
             'records' => ApiDateTime::listTimezoneOptions(),
         ]);
+    }
+
+    /**
+     * @return array{ok: false, response: JsonResponse}|array{ok: true, user: \App\Domains\Access\Models\User}
+     */
+    private function resolveAuthenticatedUserResponse(Request $request): array
+    {
+        $authResult = $this->resolveAuthenticatedUser($request);
+        if (! $authResult['ok']) {
+            return [
+                'ok' => false,
+                'response' => $this->error($authResult['code'], $authResult['msg']),
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'user' => $authResult['user'],
+        ];
+    }
+
+    /**
+     * @return array{ok: false, response: JsonResponse}|array{
+     *   ok: true,
+     *   tenantContext: array{
+     *     tenantId: int|null,
+     *     tenantName: string,
+     *     tenants: list<array{tenantId: string, tenantName: string}>
+     *   },
+     *   roles: list<string>,
+     *   permissionCodes: list<string>,
+     *   navigation: array{
+     *     menuScope: string,
+     *     menus: array<int, mixed>,
+     *     routeRules: array<string, mixed>
+     *   }
+     * }
+     */
+    private function resolveNavigationContext(Request $request, \App\Domains\Access\Models\User $user): array
+    {
+        $tenantContext = $this->resolveTenantContext($request, $user);
+        if (! $tenantContext['ok']) {
+            return [
+                'ok' => false,
+                'response' => $this->error($tenantContext['code'], $tenantContext['msg']),
+            ];
+        }
+
+        $resolvedTenantContext = [
+            'tenantId' => $tenantContext['tenantId'] ?? null,
+            'tenantName' => (string) ($tenantContext['tenantName'] ?? ''),
+            'tenants' => $tenantContext['tenants'] ?? [],
+        ];
+        $roles = $this->resolveRoles($user);
+        $permissionCodes = $user->permissionCodes();
+        $navigation = $this->menuMetadataService->resolveForUser(
+            user: $user,
+            tenantId: $resolvedTenantContext['tenantId'],
+            roleCodes: $roles,
+            permissionCodes: $permissionCodes
+        );
+
+        return [
+            'ok' => true,
+            'tenantContext' => $resolvedTenantContext,
+            'roles' => $roles,
+            'permissionCodes' => $permissionCodes,
+            'navigation' => $navigation,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function upsertUserPreference(int $userId, array $payload): void
+    {
+        UserPreference::query()->updateOrCreate(
+            ['user_id' => $userId],
+            $payload
+        );
+
+        $this->resolveUserContext->invalidateUserContextCache();
     }
 }

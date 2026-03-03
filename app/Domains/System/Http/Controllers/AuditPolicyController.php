@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\System\Http\Controllers;
 
+use App\Domains\Access\Models\User;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Events\AuditPolicyUpdatedEvent;
 use App\Domains\System\Events\SystemRealtimeUpdated;
@@ -58,8 +59,10 @@ class AuditPolicyController extends ApiController
             return $this->error($authResult['code'], $authResult['msg']);
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        }
         $validated = $request->validated();
         $changeReason = trim((string) ($validated['changeReason'] ?? ''));
 
@@ -112,8 +115,14 @@ class AuditPolicyController extends ApiController
             return $authResult;
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authResult['user'] ?? null;
+        if (! $user instanceof User) {
+            return [
+                'ok' => false,
+                'code' => self::UNAUTHORIZED_CODE,
+                'msg' => 'Unauthorized',
+            ];
+        }
         if (! $this->tenantContextService->isSuperAdmin($user)) {
             return [
                 'ok' => false,
@@ -130,7 +139,10 @@ class AuditPolicyController extends ApiController
             ];
         }
 
-        $selectedTenantId = (int) $request->header('X-Tenant-Id', '0');
+        $selectedTenantRaw = $request->header('X-Tenant-Id');
+        $selectedTenantId = is_string($selectedTenantRaw) && is_numeric(trim($selectedTenantRaw))
+            ? (int) trim($selectedTenantRaw)
+            : 0;
         if ($selectedTenantId > 0) {
             return [
                 'ok' => false,

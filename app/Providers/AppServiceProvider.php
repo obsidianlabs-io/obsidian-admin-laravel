@@ -142,7 +142,7 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        $this->app['events']->listen(
+        Event::listen(
             \Laravel\Octane\Events\RequestReceived::class,
             static function (): void {
                 ApiDateTime::flushState();

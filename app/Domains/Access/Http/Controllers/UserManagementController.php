@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Domains\Access\Http\Controllers;
 
 use App\Domains\Access\Http\Resources\UserListResource;
+use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
+use App\Domains\Access\Services\UserTenantScopeService;
 use App\Domains\Auth\Http\Controllers\AbstractUserController;
-use App\Domains\Shared\Support\TenantVisibility;
-use App\Domains\Tenant\Models\Organization;
-use App\Domains\Tenant\Models\Team;
 use App\DTOs\User\CreateUserDTO;
 use App\DTOs\User\UpdateUserDTO;
 use App\Http\Requests\Api\User\AssignUserRoleRequest;
@@ -23,7 +22,7 @@ use Illuminate\Support\Facades\Validator;
 
 class UserManagementController extends AbstractUserController
 {
-    public function listUsers(ListUsersRequest $request): JsonResponse
+    public function listUsers(ListUsersRequest $request, UserTenantScopeService $userTenantScopeService): JsonResponse
     {
         $context = $this->resolveUserManagementContext($request, ['user.view', 'user.manage']);
         if (! $context['ok']) {
@@ -45,58 +44,8 @@ class UserManagementController extends AbstractUserController
         $roleCode = trim((string) ($validated['roleCode'] ?? ''));
         $status = (string) ($validated['status'] ?? '');
 
-        $query = User::query()
-            ->with([
-                'role:id,code,name,level',
-                'organization:id,name',
-                'team:id,name',
-            ])
-            ->select([
-                'id',
-                'name',
-                'email',
-                'status',
-                'role_id',
-                'tenant_id',
-                'organization_id',
-                'team_id',
-                'created_at',
-                'updated_at',
-            ])
-            ->where('id', '!=', $authUser->id)
-            ->where(function ($builder) use ($actorLevel): void {
-                $builder->whereNull('role_id')
-                    ->orWhereHas('role', function ($roleQuery) use ($actorLevel): void {
-                        $roleQuery->where('level', '<=', $actorLevel);
-                    });
-            });
-
-        TenantVisibility::applyScope($query, $tenantId, $isSuper);
-
-        if ($keyword !== '') {
-            $query->where(function ($builder) use ($keyword): void {
-                $builder->where('name', 'like', '%'.$keyword.'%')
-                    ->orWhere('email', 'like', '%'.$keyword.'%');
-            });
-        }
-
-        if ($userName !== '') {
-            $query->where('name', 'like', '%'.$userName.'%');
-        }
-
-        if ($userEmail !== '') {
-            $query->where('email', 'like', '%'.$userEmail.'%');
-        }
-
-        if ($roleCode !== '') {
-            $query->whereHas('role', function ($builder) use ($roleCode): void {
-                $builder->where('code', $roleCode);
-            });
-        }
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
+        $query = $userTenantScopeService->buildListQuery($authUser, $actorLevel, $tenantId, $isSuper);
+        $userTenantScopeService->applyListFilters($query, $keyword, $userName, $userEmail, $roleCode, $status);
 
         if ($this->hasCursorPagination($validated)) {
             $page = $this->cursorPaginateById(
@@ -137,7 +86,7 @@ class UserManagementController extends AbstractUserController
         ]);
     }
 
-    public function assignUserRole(AssignUserRoleRequest $request, int $id): JsonResponse
+    public function assignUserRole(AssignUserRoleRequest $request, int $id, UserTenantScopeService $userTenantScopeService): JsonResponse
     {
         $context = $this->resolveUserManagementContext($request, 'user.manage');
         if (! $context['ok']) {
@@ -150,7 +99,7 @@ class UserManagementController extends AbstractUserController
         $authUser = $context['user'];
         $isSuper = $this->isSuperAdmin($authUser);
 
-        $user = $this->findUserInTenantScope($id, $tenantId, $isSuper);
+        $user = $userTenantScopeService->findUserInTenantScope($id, $tenantId, $isSuper);
         if (! $user) {
             return User::query()->whereKey($id)->exists()
                 ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
@@ -183,7 +132,7 @@ class UserManagementController extends AbstractUserController
         }
 
         $oldValues = [
-            'roleCode' => (string) ($user->role?->code ?? ''),
+            'roleCode' => $this->resolveRoleCode($user),
             'roleId' => (int) ($user->role_id ?? 0),
         ];
         $this->userService->assignRole($user, $roleModel);
@@ -209,7 +158,7 @@ class UserManagementController extends AbstractUserController
         ], 'User role updated');
     }
 
-    public function createUser(CreateUserRequest $request): JsonResponse
+    public function createUser(CreateUserRequest $request, UserTenantScopeService $userTenantScopeService): JsonResponse
     {
         $context = $this->resolveUserManagementContext($request, 'user.manage');
         if (! $context['ok']) {
@@ -244,7 +193,7 @@ class UserManagementController extends AbstractUserController
             return $this->error(self::PARAM_ERROR_CODE, 'Role does not belong to selected tenant');
         }
         $targetTenantId = $roleModel->tenant_id !== null ? (int) $roleModel->tenant_id : null;
-        $binding = $this->resolveOrganizationTeamBinding(
+        $binding = $userTenantScopeService->resolveOrganizationTeamBinding(
             $targetTenantId,
             $validated['organizationId'] ?? null,
             $validated['teamId'] ?? null
@@ -293,7 +242,7 @@ class UserManagementController extends AbstractUserController
         });
     }
 
-    public function updateUser(UpdateUserRequest $request, int $id): JsonResponse
+    public function updateUser(UpdateUserRequest $request, int $id, UserTenantScopeService $userTenantScopeService): JsonResponse
     {
         $context = $this->resolveUserManagementContext($request, 'user.manage');
         if (! $context['ok']) {
@@ -306,7 +255,7 @@ class UserManagementController extends AbstractUserController
         $authUser = $context['user'];
         $isSuper = $this->isSuperAdmin($authUser);
 
-        $user = $this->findUserInTenantScope($id, $tenantId, $isSuper);
+        $user = $userTenantScopeService->findUserInTenantScope($id, $tenantId, $isSuper);
         if (! $user) {
             return User::query()->whereKey($id)->exists()
                 ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
@@ -344,7 +293,7 @@ class UserManagementController extends AbstractUserController
         if (! $this->isRoleInTenantScope($roleModel, $targetTenantId)) {
             return $this->error(self::PARAM_ERROR_CODE, 'Role does not belong to user tenant');
         }
-        $binding = $this->resolveOrganizationTeamBinding(
+        $binding = $userTenantScopeService->resolveOrganizationTeamBinding(
             $targetTenantId,
             $validated['organizationId'] ?? null,
             $validated['teamId'] ?? null
@@ -358,7 +307,7 @@ class UserManagementController extends AbstractUserController
         $oldValues = [
             'userName' => $user->name,
             'email' => $user->email,
-            'roleCode' => (string) ($user->role?->code ?? ''),
+            'roleCode' => $this->resolveRoleCode($user),
             'status' => (string) $user->status,
             'organizationId' => $user->organization_id ? (int) $user->organization_id : null,
             'teamId' => $user->team_id ? (int) $user->team_id : null,
@@ -404,7 +353,7 @@ class UserManagementController extends AbstractUserController
         ], 'User updated');
     }
 
-    public function deleteUser(Request $request, int $id): JsonResponse
+    public function deleteUser(Request $request, int $id, UserTenantScopeService $userTenantScopeService): JsonResponse
     {
         $context = $this->resolveUserManagementContext($request, 'user.manage');
         if (! $context['ok']) {
@@ -420,7 +369,7 @@ class UserManagementController extends AbstractUserController
             return $this->error(self::FORBIDDEN_CODE, 'Current user cannot be deleted');
         }
 
-        $user = $this->findUserInTenantScope($id, $tenantId, $isSuper);
+        $user = $userTenantScopeService->findUserInTenantScope($id, $tenantId, $isSuper);
         if (! $user) {
             return User::query()->whereKey($id)->exists()
                 ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
@@ -448,104 +397,21 @@ class UserManagementController extends AbstractUserController
         return $this->success([], 'User deleted');
     }
 
-    private function findUserInTenantScope(int $id, ?int $tenantId, bool $isSuper): ?User
+    private function resolveRoleCode(User $user): string
     {
-        $query = User::query()->whereKey($id);
-        TenantVisibility::applyScope($query, $tenantId, $isSuper);
-
-        return $query->first();
-    }
-
-    /**
-     * @return array{
-     *   ok: bool,
-     *   msg: string,
-     *   organizationId: int|null,
-     *   teamId: int|null
-     * }
-     */
-    private function resolveOrganizationTeamBinding(?int $tenantId, mixed $organizationIdInput, mixed $teamIdInput): array
-    {
-        $organizationId = is_numeric($organizationIdInput) ? (int) $organizationIdInput : null;
-        $teamId = is_numeric($teamIdInput) ? (int) $teamIdInput : null;
-
-        if ($organizationId !== null && $organizationId <= 0) {
-            $organizationId = null;
-        }
-        if ($teamId !== null && $teamId <= 0) {
-            $teamId = null;
-        }
-
-        if ($tenantId === null) {
-            if ($organizationId !== null || $teamId !== null) {
-                return [
-                    'ok' => false,
-                    'msg' => 'Organization and team are not available for platform users',
-                    'organizationId' => null,
-                    'teamId' => null,
-                ];
-            }
-
-            return [
-                'ok' => true,
-                'msg' => 'ok',
-                'organizationId' => null,
-                'teamId' => null,
-            ];
-        }
-
-        $organization = null;
-        if ($organizationId !== null) {
-            $organization = Organization::query()
-                ->where('tenant_id', $tenantId)
-                ->find($organizationId);
-
-            if (! $organization) {
-                return [
-                    'ok' => false,
-                    'msg' => 'Organization not found',
-                    'organizationId' => null,
-                    'teamId' => null,
-                ];
+        $role = $user->getRelationValue('role');
+        if ($role instanceof Role) {
+            $attributes = $role->getAttributes();
+            $code = $attributes['code'] ?? null;
+            if (is_string($code) && $code !== '') {
+                return $code;
             }
         }
 
-        if ($teamId === null) {
-            return [
-                'ok' => true,
-                'msg' => 'ok',
-                'organizationId' => $organization?->id,
-                'teamId' => null,
-            ];
-        }
+        $roleCode = $user->role_id
+            ? Role::query()->whereKey((int) $user->role_id)->value('code')
+            : null;
 
-        $team = Team::query()
-            ->where('tenant_id', $tenantId)
-            ->find($teamId);
-
-        if (! $team) {
-            return [
-                'ok' => false,
-                'msg' => 'Team not found',
-                'organizationId' => null,
-                'teamId' => null,
-            ];
-        }
-
-        if ($organization !== null && (int) $team->organization_id !== (int) $organization->id) {
-            return [
-                'ok' => false,
-                'msg' => 'Team does not belong to selected organization',
-                'organizationId' => null,
-                'teamId' => null,
-            ];
-        }
-
-        return [
-            'ok' => true,
-            'msg' => 'ok',
-            'organizationId' => $organization !== null ? (int) $organization->id : (int) $team->organization_id,
-            'teamId' => $team->id,
-        ];
+        return is_string($roleCode) ? $roleCode : '';
     }
 }

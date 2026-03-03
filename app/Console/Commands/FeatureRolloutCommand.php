@@ -65,7 +65,7 @@ class FeatureRolloutCommand extends Command
         $tenantOption = trim((string) $this->option('tenant'));
         $tenantId = $tenantOption === '' ? null : max(0, (int) $tenantOption);
         $roles = array_values(array_filter(array_map(
-            static fn (string $value): string => trim($value),
+            static fn (mixed $value): string => trim((string) $value),
             (array) $this->option('roles')
         ), static fn (string $value): bool => $value !== ''));
         $scope = $this->featureFlagService->scopeKey($tenantId, $roles);

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AuditPolicyRevision extends Model
 {
+    /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory<self>> */
     use HasFactory;
 
     /**
@@ -40,6 +41,9 @@ class AuditPolicyRevision extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function changedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'changed_by_user_id');

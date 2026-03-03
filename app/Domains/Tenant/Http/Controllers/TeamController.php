@@ -8,6 +8,7 @@ use App\Domains\Access\Models\User;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
+use App\Domains\Tenant\Http\Controllers\Concerns\ResolvesTenantScopedContext;
 use App\Domains\Tenant\Http\Resources\TeamListResource;
 use App\Domains\Tenant\Models\Organization;
 use App\Domains\Tenant\Models\Team;
@@ -16,12 +17,15 @@ use App\Domains\Tenant\Services\TenantContextService;
 use App\Http\Requests\Api\Team\ListTeamsRequest;
 use App\Http\Requests\Api\Team\StoreTeamRequest;
 use App\Http\Requests\Api\Team\UpdateTeamRequest;
+use App\Support\ApiDateTime;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class TeamController extends ApiController
 {
+    use ResolvesTenantScopedContext;
+
     public function __construct(
         private readonly TeamService $teamService,
         private readonly AuditLogService $auditLogService,
@@ -31,12 +35,15 @@ class TeamController extends ApiController
 
     public function list(ListTeamsRequest $request): JsonResponse
     {
-        $context = $this->resolveTenantScopedContext($request, ['team.view', 'team.manage'], 'viewAny');
+        $context = $this->resolveTeamContext($request, ['team.view', 'team.manage'], 'viewAny');
         if (! $context['ok']) {
             return $this->error($context['code'], $context['msg']);
         }
 
-        $tenantId = $context['tenantId'];
+        $tenantId = $this->resolveContextTenantId($context);
+        if (! is_int($tenantId)) {
+            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        }
         $validated = $request->validated();
 
         $current = (int) ($validated['current'] ?? 1);
@@ -55,20 +62,7 @@ class TeamController extends ApiController
             ->select(['id', 'tenant_id', 'organization_id', 'code', 'name', 'description', 'status', 'sort', 'created_at', 'updated_at'])
             ->where('tenant_id', $tenantId);
 
-        if ($keyword !== '') {
-            $query->where(function ($builder) use ($keyword): void {
-                $builder->where('code', 'like', '%'.$keyword.'%')
-                    ->orWhere('name', 'like', '%'.$keyword.'%');
-            });
-        }
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
-
-        if ($organizationId !== null && $organizationId > 0) {
-            $query->where('organization_id', $organizationId);
-        }
+        $this->applyTeamListFilters($query, $keyword, $status, $organizationId);
 
         if ($this->hasCursorPagination($validated)) {
             $page = $this->cursorPaginateById(
@@ -107,12 +101,15 @@ class TeamController extends ApiController
 
     public function all(Request $request): JsonResponse
     {
-        $context = $this->resolveTenantScopedContext($request, ['team.view', 'team.manage'], 'viewAny');
+        $context = $this->resolveTeamContext($request, ['team.view', 'team.manage'], 'viewAny');
         if (! $context['ok']) {
             return $this->error($context['code'], $context['msg']);
         }
 
-        $tenantId = $context['tenantId'];
+        $tenantId = $this->resolveContextTenantId($context);
+        if (! is_int($tenantId)) {
+            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        }
         $organizationId = (int) $request->query('organizationId', 0);
         if ($organizationId > 0 && ! $this->organizationExistsInTenant($tenantId, $organizationId)) {
             return $this->error(self::PARAM_ERROR_CODE, 'Organization not found');
@@ -154,14 +151,16 @@ class TeamController extends ApiController
 
     public function store(StoreTeamRequest $request): JsonResponse
     {
-        $context = $this->resolveTenantScopedContext($request, 'team.manage', 'manage');
+        $context = $this->resolveTeamContext($request, 'team.manage', 'manage');
         if (! $context['ok']) {
             return $this->error($context['code'], $context['msg']);
         }
 
-        $tenantId = $context['tenantId'];
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $context['user'];
+        $tenantId = $this->resolveContextTenantId($context);
+        $user = $this->resolveContextUser($context);
+        if (! is_int($tenantId) || ! $user instanceof User) {
+            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        }
         $dto = $request->toDTO();
 
         if (! $this->organizationExistsInTenant($tenantId, $dto->organizationId)) {
@@ -181,45 +180,31 @@ class TeamController extends ApiController
                 auditable: $team,
                 actor: $user,
                 request: $request,
-                newValues: [
-                    'organizationId' => (int) $team->organization_id,
-                    'teamCode' => (string) $team->code,
-                    'teamName' => (string) $team->name,
-                    'status' => (string) $team->status,
-                    'sort' => (int) ($team->sort ?? 0),
-                ],
+                newValues: $this->teamSnapshot($team),
                 tenantId: $tenantId,
             );
 
-            return $this->success([
-                'id' => $team->id,
-                'organizationId' => (string) $team->organization_id,
-                'teamCode' => (string) $team->code,
-                'teamName' => (string) $team->name,
-                'status' => (string) $team->status,
-                'sort' => (int) ($team->sort ?? 0),
-            ], 'Team created');
+            return $this->success($this->teamResponse($team), 'Team created');
         });
     }
 
     public function update(UpdateTeamRequest $request, int $id): JsonResponse
     {
-        $context = $this->resolveTenantScopedContext($request, 'team.manage', 'manage');
+        $context = $this->resolveTeamContext($request, 'team.manage', 'manage');
         if (! $context['ok']) {
             return $this->error($context['code'], $context['msg']);
         }
 
-        $tenantId = $context['tenantId'];
-        $team = Team::query()
-            ->where('tenant_id', $tenantId)
-            ->withCount('users')
-            ->find($id);
-
-        if (! $team) {
-            return Team::query()->whereKey($id)->exists()
-                ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
-                : $this->error(self::PARAM_ERROR_CODE, 'Team not found');
+        $tenantId = $this->resolveContextTenantId($context);
+        $user = $this->resolveContextUser($context);
+        if (! is_int($tenantId) || ! $user instanceof User) {
+            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
+        $teamResult = $this->resolveTenantTeam($tenantId, $id, ['users']);
+        if (! $teamResult['ok']) {
+            return $teamResult['response'];
+        }
+        $team = $teamResult['team'];
 
         $optimisticLockError = $this->ensureOptimisticLock($request, $team, 'Team');
         if ($optimisticLockError) {
@@ -241,15 +226,7 @@ class TeamController extends ApiController
             return $this->error(self::PARAM_ERROR_CODE, $uniqueError);
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $context['user'];
-        $oldValues = [
-            'organizationId' => (int) $team->organization_id,
-            'teamCode' => (string) $team->code,
-            'teamName' => (string) $team->name,
-            'status' => (string) $team->status,
-            'sort' => (int) ($team->sort ?? 0),
-        ];
+        $oldValues = $this->teamSnapshot($team);
 
         $team = $this->teamService->update($team, $dto);
 
@@ -259,60 +236,36 @@ class TeamController extends ApiController
             actor: $user,
             request: $request,
             oldValues: $oldValues,
-            newValues: [
-                'organizationId' => (int) $team->organization_id,
-                'teamCode' => (string) $team->code,
-                'teamName' => (string) $team->name,
-                'status' => (string) $team->status,
-                'sort' => (int) ($team->sort ?? 0),
-            ],
+            newValues: $this->teamSnapshot($team),
             tenantId: $tenantId,
         );
 
-        return $this->success([
-            'id' => $team->id,
-            'organizationId' => (string) $team->organization_id,
-            'teamCode' => (string) $team->code,
-            'teamName' => (string) $team->name,
-            'status' => (string) $team->status,
-            'sort' => (int) ($team->sort ?? 0),
-            'version' => (string) ($team->updated_at?->copy()->setTimezone('UTC')->timestamp ?? 0),
-            'updateTime' => \App\Support\ApiDateTime::formatForRequest($team->updated_at, $request),
-        ], 'Team updated');
+        return $this->success($this->teamResponse($team, $request), 'Team updated');
     }
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $context = $this->resolveTenantScopedContext($request, 'team.manage', 'manage');
+        $context = $this->resolveTeamContext($request, 'team.manage', 'manage');
         if (! $context['ok']) {
             return $this->error($context['code'], $context['msg']);
         }
 
-        $tenantId = $context['tenantId'];
-        $team = Team::query()
-            ->where('tenant_id', $tenantId)
-            ->withCount('users')
-            ->find($id);
-
-        if (! $team) {
-            return Team::query()->whereKey($id)->exists()
-                ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
-                : $this->error(self::PARAM_ERROR_CODE, 'Team not found');
+        $tenantId = $this->resolveContextTenantId($context);
+        $user = $this->resolveContextUser($context);
+        if (! is_int($tenantId) || ! $user instanceof User) {
+            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
+        $teamResult = $this->resolveTenantTeam($tenantId, $id, ['users']);
+        if (! $teamResult['ok']) {
+            return $teamResult['response'];
+        }
+        $team = $teamResult['team'];
 
         if ((int) ($team->users_count ?? 0) > 0) {
             return $this->error(self::PARAM_ERROR_CODE, 'Team has assigned users');
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $context['user'];
-        $oldValues = [
-            'organizationId' => (int) $team->organization_id,
-            'teamCode' => (string) $team->code,
-            'teamName' => (string) $team->name,
-            'status' => (string) $team->status,
-            'sort' => (int) ($team->sort ?? 0),
-        ];
+        $oldValues = $this->teamSnapshot($team);
 
         $this->teamService->delete($team);
 
@@ -326,89 +279,6 @@ class TeamController extends ApiController
         );
 
         return $this->success([], 'Team deleted');
-    }
-
-    /**
-     * @param  string|list<string>  $permissionCode
-     * @return array{ok: false, code: string, msg: string}|array{
-     *   ok: true,
-     *   code: string,
-     *   msg: string,
-     *   user: User,
-     *   tenantId: int,
-     *   tenantName: string
-     * }
-     */
-    private function resolveTenantScopedContext(Request $request, string|array $permissionCode, string $ability): array
-    {
-        if (is_array($permissionCode)) {
-            /** @var list<string> $permissionCodes */
-            $permissionCodes = array_values(
-                array_filter(
-                    array_map(static fn (mixed $code): string => trim((string) $code), $permissionCode),
-                    static fn (string $code): bool => $code !== ''
-                )
-            );
-            if ($permissionCodes === []) {
-                return [
-                    'ok' => false,
-                    'code' => self::FORBIDDEN_CODE,
-                    'msg' => 'Forbidden',
-                ];
-            }
-            $authResult = $this->authenticateAndAuthorizeAny($request, 'access-api', $permissionCodes);
-        } else {
-            $authResult = $this->authenticateAndAuthorize($request, 'access-api', $permissionCode);
-        }
-
-        if (! $authResult['ok']) {
-            return $authResult;
-        }
-
-        $authUser = $authResult['user'] ?? null;
-        if (! $authUser instanceof User) {
-            return [
-                'ok' => false,
-                'code' => self::FORBIDDEN_CODE,
-                'msg' => 'Forbidden',
-            ];
-        }
-
-        $user = $authUser;
-        if (! Gate::forUser($user)->allows($ability, Team::class)) {
-            return [
-                'ok' => false,
-                'code' => self::FORBIDDEN_CODE,
-                'msg' => 'Forbidden',
-            ];
-        }
-
-        $tenantContext = $this->tenantContextService->resolveTenantContext($request, $user);
-        if (! $tenantContext['ok']) {
-            return [
-                'ok' => false,
-                'code' => $tenantContext['code'],
-                'msg' => $tenantContext['msg'],
-            ];
-        }
-
-        $tenantId = $tenantContext['tenantId'] ?? null;
-        if (! is_int($tenantId) || $tenantId <= 0) {
-            return [
-                'ok' => false,
-                'code' => self::PARAM_ERROR_CODE,
-                'msg' => 'Please select a tenant first',
-            ];
-        }
-
-        return [
-            'ok' => true,
-            'code' => self::SUCCESS_CODE,
-            'msg' => 'ok',
-            'user' => $user,
-            'tenantId' => $tenantId,
-            'tenantName' => (string) ($tenantContext['tenantName'] ?? ''),
-        ];
     }
 
     private function organizationExistsInTenant(int $tenantId, int $organizationId): bool
@@ -446,5 +316,147 @@ class TeamController extends ApiController
         }
 
         return null;
+    }
+
+    /**
+     * @param  string|list<string>  $permissionCode
+     * @return array{
+     *   ok: bool,
+     *   code: string,
+     *   msg: string,
+     *   user?: \App\Domains\Access\Models\User,
+     *   tenantId?: int
+     * }
+     */
+    private function resolveTeamContext(Request $request, string|array $permissionCode, string $ability): array
+    {
+        return $this->resolveTenantScopedContextForModel(
+            $request,
+            $permissionCode,
+            $ability,
+            Team::class,
+            $this->tenantContextService
+        );
+    }
+
+    /**
+     * @param  Builder<Team>  $query
+     */
+    private function applyTeamListFilters(Builder $query, string $keyword, string $status, ?int $organizationId): void
+    {
+        if ($keyword !== '') {
+            $query->where(function (Builder $builder) use ($keyword): void {
+                $builder->where('code', 'like', '%'.$keyword.'%')
+                    ->orWhere('name', 'like', '%'.$keyword.'%');
+            });
+        }
+
+        if ($status !== '') {
+            $query->where('status', $status);
+        }
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->where('organization_id', $organizationId);
+        }
+    }
+
+    /**
+     * @param  list<string>  $withCount
+     * @return array{ok: true, team: Team}|array{ok: false, response: JsonResponse}
+     */
+    private function resolveTenantTeam(int $tenantId, int $id, array $withCount = []): array
+    {
+        $query = Team::query()
+            ->where('tenant_id', $tenantId);
+
+        if ($withCount !== []) {
+            $query->withCount($withCount);
+        }
+
+        $team = $query->find($id);
+        if ($team instanceof Team) {
+            return [
+                'ok' => true,
+                'team' => $team,
+            ];
+        }
+
+        return [
+            'ok' => false,
+            'response' => Team::query()->whereKey($id)->exists()
+                ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
+                : $this->error(self::PARAM_ERROR_CODE, 'Team not found'),
+        ];
+    }
+
+    /**
+     * @return array{
+     *   organizationId: int,
+     *   teamCode: string,
+     *   teamName: string,
+     *   status: string,
+     *   sort: int
+     * }
+     */
+    private function teamSnapshot(Team $team): array
+    {
+        return [
+            'organizationId' => (int) $team->organization_id,
+            'teamCode' => (string) $team->code,
+            'teamName' => (string) $team->name,
+            'status' => (string) $team->status,
+            'sort' => (int) ($team->sort ?? 0),
+        ];
+    }
+
+    /**
+     * @return array{
+     *   id: int,
+     *   organizationId: string,
+     *   teamCode: string,
+     *   teamName: string,
+     *   status: string,
+     *   sort: int,
+     *   version?: string,
+     *   updateTime?: string
+     * }
+     */
+    private function teamResponse(Team $team, ?Request $request = null): array
+    {
+        $response = [
+            'id' => $team->id,
+            'organizationId' => (string) $team->organization_id,
+            'teamCode' => (string) $team->code,
+            'teamName' => (string) $team->name,
+            'status' => (string) $team->status,
+            'sort' => (int) ($team->sort ?? 0),
+        ];
+
+        if ($request instanceof Request) {
+            $response['version'] = (string) ($team->updated_at?->copy()->setTimezone('UTC')->timestamp ?? 0);
+            $response['updateTime'] = ApiDateTime::formatForRequest($team->updated_at, $request);
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param  array{tenantId?: int}  $context
+     */
+    private function resolveContextTenantId(array $context): ?int
+    {
+        $tenantId = $context['tenantId'] ?? null;
+
+        return is_int($tenantId) ? $tenantId : null;
+    }
+
+    /**
+     * @param  array{user?: User}  $context
+     */
+    private function resolveContextUser(array $context): ?User
+    {
+        $user = $context['user'] ?? null;
+
+        return $user instanceof User ? $user : null;
     }
 }

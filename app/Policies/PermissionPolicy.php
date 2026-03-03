@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 
 class PermissionPolicy
@@ -22,8 +23,11 @@ class PermissionPolicy
     {
         $user->loadMissing('role:id,code,level,status');
 
-        $roleCode = (string) ($user->role?->code ?? '');
+        $role = $user->getRelationValue('role');
+        if (! $role instanceof Role) {
+            return false;
+        }
 
-        return $roleCode === 'R_SUPER';
+        return (string) $role->code === 'R_SUPER';
     }
 }

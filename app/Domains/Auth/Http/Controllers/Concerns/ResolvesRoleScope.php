@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 trait ResolvesRoleScope
 {
     /**
-     * @return array{ok: bool, msg: string, role?: Role}
+     * @return array{ok: false, msg: string}|array{ok: true, msg: string, role: Role}
      */
     protected function findActiveRoleByCode(string $roleCode, ?int $tenantId = null, ?int $fallbackTenantId = null): array
     {
