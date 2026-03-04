@@ -71,8 +71,26 @@ final readonly class ApiAuthResult implements ArrayAccess
         return $this->user;
     }
 
+    public function requireUser(): User
+    {
+        if (! $this->user instanceof User) {
+            throw new LogicException('Authenticated user is missing.');
+        }
+
+        return $this->user;
+    }
+
     public function token(): ?PersonalAccessToken
     {
+        return $this->token;
+    }
+
+    public function requireToken(): PersonalAccessToken
+    {
+        if (! $this->token instanceof PersonalAccessToken) {
+            throw new LogicException('Authenticated access token is missing.');
+        }
+
         return $this->token;
     }
 

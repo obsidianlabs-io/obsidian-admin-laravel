@@ -12,7 +12,9 @@ use App\Domains\Auth\Http\Controllers\Concerns\ResolvesRoleScope;
 use App\Domains\Auth\Http\Controllers\Concerns\VerifiesTotpCode;
 use App\Domains\Auth\Services\MenuMetadataService;
 use App\Domains\Auth\Services\TotpService;
+use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Auth\ManagementContext;
+use App\Domains\Shared\Auth\TenantContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\System\Services\ThemeConfigService;
@@ -110,62 +112,37 @@ abstract class AbstractUserController extends ApiController
         }
 
         $tenantContext = $this->resolveTenantContext($request, $authUser);
-        if (! $tenantContext['ok']) {
-            return ManagementContext::failure($tenantContext['code'], $tenantContext['msg']);
+        if ($tenantContext->failed()) {
+            return ManagementContext::failure($tenantContext->code(), $tenantContext->message());
         }
 
         return ManagementContext::success(
             user: $authUser,
             actorLevel: $actorLevel,
-            tenantId: $tenantContext['tenantId'] ?? null,
+            tenantId: $tenantContext->tenantId(),
             isSuper: $this->isSuperAdmin($authUser)
         );
     }
 
-    /**
-     * @return array{
-     *   ok: bool,
-     *   code: string,
-     *   msg: string,
-     *   tenantId?: int|null,
-     *   tenantName?: string,
-     *   tenants?: list<array{tenantId: string, tenantName: string}>
-     * }
-     */
-    protected function resolveTenantContext(Request $request, User $user): array
+    protected function resolveTenantContext(Request $request, User $user): TenantContext
     {
-        return $this->tenantContextService->resolveTenantContext($request, $user);
+        return TenantContext::fromPayload(
+            $this->tenantContextService->resolveTenantContext($request, $user)
+        );
     }
 
-    /**
-     * @return array{ok: false, code: string, msg: string}|array{
-     *   ok: true,
-     *   user: \App\Domains\Access\Models\User
-     * }
-     */
-    protected function resolveAuthenticatedUser(Request $request): array
+    protected function resolveAuthenticatedUser(Request $request): ApiAuthResult
     {
         $authResult = $this->authenticate($request, 'access-api');
         if ($authResult->failed()) {
-            return [
-                'ok' => false,
-                'code' => $authResult->code(),
-                'msg' => $authResult->message(),
-            ];
+            return $authResult;
         }
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return [
-                'ok' => false,
-                'code' => self::UNAUTHORIZED_CODE,
-                'msg' => 'Unauthorized',
-            ];
+            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
 
-        return [
-            'ok' => true,
-            'user' => $user,
-        ];
+        return $authResult;
     }
 }

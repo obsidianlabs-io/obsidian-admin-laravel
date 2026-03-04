@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Shared\Http\Controllers\Concerns;
 
 use App\Domains\Access\Models\User;
+use App\Domains\Shared\Auth\ApiAuthResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -18,7 +19,6 @@ trait ResolvesPlatformConsoleContext
      * - no tenant selected (platform scope only)
      *
      * @param  class-string  $policyModelClass
-     * @return array{ok: false, code: string, msg: string}|array{ok: true, user: User}
      */
     protected function resolvePlatformConsoleContext(
         Request $request,
@@ -26,46 +26,27 @@ trait ResolvesPlatformConsoleContext
         string $policyAbility,
         string $policyModelClass,
         string $tenantSelectedMessage
-    ): array {
+    ): ApiAuthResult {
         $authResult = $this->authenticateAndAuthorize($request, 'access-api', $permissionCode);
         if ($authResult->failed()) {
-            return [
-                'ok' => false,
-                'code' => $authResult->code(),
-                'msg' => $authResult->message(),
-            ];
+            return $authResult;
         }
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return [
-                'ok' => false,
-                'code' => self::UNAUTHORIZED_CODE,
-                'msg' => 'Unauthorized',
-            ];
+            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
 
         if (! Gate::forUser($user)->allows($policyAbility, $policyModelClass)) {
-            return [
-                'ok' => false,
-                'code' => self::FORBIDDEN_CODE,
-                'msg' => 'Forbidden',
-            ];
+            return ApiAuthResult::failure(self::FORBIDDEN_CODE, 'Forbidden');
         }
 
         $selectedTenantRaw = trim((string) $request->header('X-Tenant-Id', '0'));
         $selectedTenantId = ctype_digit($selectedTenantRaw) ? (int) $selectedTenantRaw : 0;
         if ($selectedTenantId > 0) {
-            return [
-                'ok' => false,
-                'code' => self::FORBIDDEN_CODE,
-                'msg' => $tenantSelectedMessage,
-            ];
+            return ApiAuthResult::failure(self::FORBIDDEN_CODE, $tenantSelectedMessage);
         }
 
-        return [
-            'ok' => true,
-            'user' => $user,
-        ];
+        return $authResult;
     }
 }

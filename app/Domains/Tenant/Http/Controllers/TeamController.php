@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Tenant\Http\Controllers;
 
-use App\Domains\Access\Models\User;
+use App\Domains\Shared\Auth\TenantScopedContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
@@ -36,11 +36,11 @@ class TeamController extends ApiController
     public function list(ListTeamsRequest $request): JsonResponse
     {
         $context = $this->resolveTeamContext($request, ['team.view', 'team.manage'], 'viewAny');
-        if (! $context['ok']) {
-            return $this->error($context['code'], $context['msg']);
+        if ($context->failed()) {
+            return $this->error($context->code(), $context->message());
         }
 
-        $tenantId = $this->resolveContextTenantId($context);
+        $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
@@ -102,11 +102,11 @@ class TeamController extends ApiController
     public function all(Request $request): JsonResponse
     {
         $context = $this->resolveTeamContext($request, ['team.view', 'team.manage'], 'viewAny');
-        if (! $context['ok']) {
-            return $this->error($context['code'], $context['msg']);
+        if ($context->failed()) {
+            return $this->error($context->code(), $context->message());
         }
 
-        $tenantId = $this->resolveContextTenantId($context);
+        $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
@@ -152,15 +152,15 @@ class TeamController extends ApiController
     public function store(StoreTeamRequest $request): JsonResponse
     {
         $context = $this->resolveTeamContext($request, 'team.manage', 'manage');
-        if (! $context['ok']) {
-            return $this->error($context['code'], $context['msg']);
+        if ($context->failed()) {
+            return $this->error($context->code(), $context->message());
         }
 
-        $tenantId = $this->resolveContextTenantId($context);
-        $user = $this->resolveContextUser($context);
-        if (! is_int($tenantId) || ! $user instanceof User) {
+        $tenantId = $context->tenantId();
+        if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
+        $user = $context->requireUser();
         $dto = $request->toDTO();
 
         if (! $this->organizationExistsInTenant($tenantId, $dto->organizationId)) {
@@ -191,15 +191,15 @@ class TeamController extends ApiController
     public function update(UpdateTeamRequest $request, int $id): JsonResponse
     {
         $context = $this->resolveTeamContext($request, 'team.manage', 'manage');
-        if (! $context['ok']) {
-            return $this->error($context['code'], $context['msg']);
+        if ($context->failed()) {
+            return $this->error($context->code(), $context->message());
         }
 
-        $tenantId = $this->resolveContextTenantId($context);
-        $user = $this->resolveContextUser($context);
-        if (! is_int($tenantId) || ! $user instanceof User) {
+        $tenantId = $context->tenantId();
+        if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
+        $user = $context->requireUser();
         $teamResult = $this->resolveTenantTeam($tenantId, $id, ['users']);
         if (! $teamResult['ok']) {
             return $teamResult['response'];
@@ -246,15 +246,15 @@ class TeamController extends ApiController
     public function destroy(Request $request, int $id): JsonResponse
     {
         $context = $this->resolveTeamContext($request, 'team.manage', 'manage');
-        if (! $context['ok']) {
-            return $this->error($context['code'], $context['msg']);
+        if ($context->failed()) {
+            return $this->error($context->code(), $context->message());
         }
 
-        $tenantId = $this->resolveContextTenantId($context);
-        $user = $this->resolveContextUser($context);
-        if (! is_int($tenantId) || ! $user instanceof User) {
+        $tenantId = $context->tenantId();
+        if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
+        $user = $context->requireUser();
         $teamResult = $this->resolveTenantTeam($tenantId, $id, ['users']);
         if (! $teamResult['ok']) {
             return $teamResult['response'];
@@ -320,16 +320,12 @@ class TeamController extends ApiController
 
     /**
      * @param  string|list<string>  $permissionCode
-     * @return array{
-     *   ok: bool,
-     *   code: string,
-     *   msg: string,
-     *   user?: \App\Domains\Access\Models\User,
-     *   tenantId?: int
-     * }
      */
-    private function resolveTeamContext(Request $request, string|array $permissionCode, string $ability): array
-    {
+    private function resolveTeamContext(
+        Request $request,
+        string|array $permissionCode,
+        string $ability
+    ): TenantScopedContext {
         return $this->resolveTenantScopedContextForModel(
             $request,
             $permissionCode,
@@ -438,25 +434,5 @@ class TeamController extends ApiController
         }
 
         return $response;
-    }
-
-    /**
-     * @param  array{tenantId?: int}  $context
-     */
-    private function resolveContextTenantId(array $context): ?int
-    {
-        $tenantId = $context['tenantId'] ?? null;
-
-        return is_int($tenantId) ? $tenantId : null;
-    }
-
-    /**
-     * @param  array{user?: User}  $context
-     */
-    private function resolveContextUser(array $context): ?User
-    {
-        $user = $context['user'] ?? null;
-
-        return $user instanceof User ? $user : null;
     }
 }

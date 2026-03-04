@@ -6,8 +6,8 @@ namespace App\Domains\Access\Http\Controllers;
 
 use App\Domains\Access\Http\Resources\PermissionListResource;
 use App\Domains\Access\Models\Permission;
-use App\Domains\Access\Models\User;
 use App\Domains\Access\Services\PermissionService;
+use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Http\Controllers\Concerns\ResolvesPlatformConsoleContext;
 use App\Domains\Shared\Services\ApiCacheService;
@@ -34,8 +34,8 @@ class PermissionController extends ApiController
     {
         $authResult = $this->resolvePermissionConsoleContext($request, 'permission.view');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
         $validated = $request->validated();
@@ -90,8 +90,8 @@ class PermissionController extends ApiController
     {
         $authResult = $this->resolvePermissionConsoleContext($request, 'permission.view');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
         $records = $this->apiCacheService->remember(
@@ -125,10 +125,10 @@ class PermissionController extends ApiController
     {
         $authResult = $this->resolvePermissionConsoleContext($request, 'permission.manage');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
-        $user = $authResult['user'];
+        $user = $authResult->requireUser();
         $validated = $request->validated();
 
         return $this->withIdempotency($request, $user, function () use ($validated, $user, $request): JsonResponse {
@@ -156,8 +156,8 @@ class PermissionController extends ApiController
     {
         $authResult = $this->resolvePermissionConsoleContext($request, 'permission.manage');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
         $permissionResult = $this->resolvePermission($id);
@@ -171,7 +171,7 @@ class PermissionController extends ApiController
             return $optimisticLockError;
         }
 
-        $user = $authResult['user'];
+        $user = $authResult->requireUser();
         $oldValues = $this->permissionSnapshot($permission);
         $validated = $request->validated();
         if ((string) $validated['permissionCode'] !== (string) $permission->code) {
@@ -202,8 +202,8 @@ class PermissionController extends ApiController
     {
         $authResult = $this->resolvePermissionConsoleContext($request, 'permission.manage');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
         $permissionResult = $this->resolvePermission($id, ['roles']);
@@ -215,7 +215,7 @@ class PermissionController extends ApiController
         if (($permission->roles_count ?? 0) > 0) {
             return $this->error(self::PARAM_ERROR_CODE, 'Permission is assigned to roles');
         }
-        $user = $authResult['user'];
+        $user = $authResult->requireUser();
         $oldValues = $this->permissionSnapshot($permission);
 
         $this->permissionService->delete($permission);
@@ -230,10 +230,7 @@ class PermissionController extends ApiController
         return $this->success([], 'Permission deleted');
     }
 
-    /**
-     * @return array{ok: false, code: string, msg: string}|array{ok: true, user: User}
-     */
-    private function resolvePermissionConsoleContext(Request $request, string $permissionCode): array
+    private function resolvePermissionConsoleContext(Request $request, string $permissionCode): ApiAuthResult
     {
         $ability = $permissionCode === 'permission.manage' ? 'manage' : 'viewAny';
 

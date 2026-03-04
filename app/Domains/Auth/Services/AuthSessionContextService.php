@@ -8,43 +8,20 @@ use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Support\ApiDateTime;
 use Illuminate\Http\Request;
-use Laravel\Sanctum\PersonalAccessToken;
 
 final class AuthSessionContextService
 {
-    /**
-     * @return array{ok: false, code: string, msg: string}|array{
-     *   ok: true,
-     *   user: User,
-     *   token: PersonalAccessToken
-     * }
-     */
-    public function requireAuthenticatedSession(ApiAuthResult $authResult): array
+    public function requireAuthenticatedSession(ApiAuthResult $authResult): ApiAuthResult
     {
         if ($authResult->failed()) {
-            return [
-                'ok' => false,
-                'code' => $authResult->code(),
-                'msg' => $authResult->message(),
-            ];
+            return $authResult;
         }
 
-        $user = $authResult->user();
-        $token = $authResult->token();
-
-        if (! $user instanceof User || ! $token instanceof PersonalAccessToken) {
-            return [
-                'ok' => false,
-                'code' => '4010',
-                'msg' => 'Unauthorized',
-            ];
+        if (! $authResult->token() || ! $authResult->user() instanceof User) {
+            return ApiAuthResult::failure('4010', 'Unauthorized');
         }
 
-        return [
-            'ok' => true,
-            'user' => $user,
-            'token' => $token,
-        ];
+        return $authResult;
     }
 
     /**

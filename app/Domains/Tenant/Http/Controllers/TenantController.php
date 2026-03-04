@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Tenant\Http\Controllers;
 
-use App\Domains\Access\Models\User;
+use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Http\Controllers\Concerns\ResolvesPlatformConsoleContext;
 use App\Domains\Shared\Services\ApiCacheService;
@@ -38,8 +38,8 @@ class TenantController extends ApiController
     {
         $authResult = $this->resolveTenantConsoleContext($request, 'tenant.view');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
         $validated = $request->validated();
@@ -92,8 +92,8 @@ class TenantController extends ApiController
     {
         $authResult = $this->resolveTenantConsoleContext($request, 'tenant.view');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
         $records = $this->apiCacheService->remember(
@@ -125,10 +125,10 @@ class TenantController extends ApiController
     {
         $authResult = $this->resolveTenantConsoleContext($request, 'tenant.manage');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
-        $user = $authResult['user'];
+        $user = $authResult->requireUser();
 
         $dto = $request->toDTO();
 
@@ -151,8 +151,8 @@ class TenantController extends ApiController
     {
         $authResult = $this->resolveTenantConsoleContext($request, 'tenant.manage');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
         $tenantResult = $this->resolveTenant($id);
@@ -166,7 +166,7 @@ class TenantController extends ApiController
             return $optimisticLockError;
         }
 
-        $user = $authResult['user'];
+        $user = $authResult->requireUser();
 
         $oldValues = $this->tenantSnapshot($tenant);
         $tenant = ($this->updateTenantAction)($tenant, $request->toDTO());
@@ -187,8 +187,8 @@ class TenantController extends ApiController
     {
         $authResult = $this->resolveTenantConsoleContext($request, 'tenant.manage');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
         $tenantResult = $this->resolveTenant($id, ['users', 'roles']);
@@ -205,7 +205,7 @@ class TenantController extends ApiController
             return $this->error(self::PARAM_ERROR_CODE, 'Tenant has assigned roles');
         }
 
-        $user = $authResult['user'];
+        $user = $authResult->requireUser();
 
         $oldValues = $this->tenantSnapshot($tenant);
 
@@ -221,10 +221,7 @@ class TenantController extends ApiController
         return $this->success([], 'Tenant deleted');
     }
 
-    /**
-     * @return array{ok: false, code: string, msg: string}|array{ok: true, user: User}
-     */
-    private function resolveTenantConsoleContext(Request $request, string $permissionCode): array
+    private function resolveTenantConsoleContext(Request $request, string $permissionCode): ApiAuthResult
     {
         $ability = $permissionCode === 'tenant.manage' ? 'manage' : 'viewAny';
 

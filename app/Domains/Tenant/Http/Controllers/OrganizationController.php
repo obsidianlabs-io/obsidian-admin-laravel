@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Tenant\Http\Controllers;
 
-use App\Domains\Access\Models\User;
+use App\Domains\Shared\Auth\TenantScopedContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
@@ -35,11 +35,11 @@ class OrganizationController extends ApiController
     public function list(ListOrganizationsRequest $request): JsonResponse
     {
         $context = $this->resolveOrganizationContext($request, ['organization.view', 'organization.manage'], 'viewAny');
-        if (! $context['ok']) {
-            return $this->error($context['code'], $context['msg']);
+        if ($context->failed()) {
+            return $this->error($context->code(), $context->message());
         }
 
-        $tenantId = $this->resolveContextTenantId($context);
+        $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
@@ -96,11 +96,11 @@ class OrganizationController extends ApiController
     public function all(Request $request): JsonResponse
     {
         $context = $this->resolveOrganizationContext($request, ['organization.view', 'organization.manage'], 'viewAny');
-        if (! $context['ok']) {
-            return $this->error($context['code'], $context['msg']);
+        if ($context->failed()) {
+            return $this->error($context->code(), $context->message());
         }
 
-        $tenantId = $this->resolveContextTenantId($context);
+        $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
@@ -134,15 +134,15 @@ class OrganizationController extends ApiController
     public function store(StoreOrganizationRequest $request): JsonResponse
     {
         $context = $this->resolveOrganizationContext($request, 'organization.manage', 'manage');
-        if (! $context['ok']) {
-            return $this->error($context['code'], $context['msg']);
+        if ($context->failed()) {
+            return $this->error($context->code(), $context->message());
         }
 
-        $tenantId = $this->resolveContextTenantId($context);
-        $user = $this->resolveContextUser($context);
-        if (! is_int($tenantId) || ! $user instanceof User) {
+        $tenantId = $context->tenantId();
+        if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
+        $user = $context->requireUser();
         $dto = $request->toDTO();
 
         $uniqueError = $this->validateTenantUniqueness($tenantId, $dto->organizationCode, $dto->organizationName);
@@ -172,15 +172,15 @@ class OrganizationController extends ApiController
     public function update(UpdateOrganizationRequest $request, int $id): JsonResponse
     {
         $context = $this->resolveOrganizationContext($request, 'organization.manage', 'manage');
-        if (! $context['ok']) {
-            return $this->error($context['code'], $context['msg']);
+        if ($context->failed()) {
+            return $this->error($context->code(), $context->message());
         }
 
-        $tenantId = $this->resolveContextTenantId($context);
-        $user = $this->resolveContextUser($context);
-        if (! is_int($tenantId) || ! $user instanceof User) {
+        $tenantId = $context->tenantId();
+        if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
+        $user = $context->requireUser();
         $organizationResult = $this->resolveTenantOrganization($tenantId, $id);
         if (! $organizationResult['ok']) {
             return $organizationResult['response'];
@@ -218,15 +218,15 @@ class OrganizationController extends ApiController
     public function destroy(Request $request, int $id): JsonResponse
     {
         $context = $this->resolveOrganizationContext($request, 'organization.manage', 'manage');
-        if (! $context['ok']) {
-            return $this->error($context['code'], $context['msg']);
+        if ($context->failed()) {
+            return $this->error($context->code(), $context->message());
         }
 
-        $tenantId = $this->resolveContextTenantId($context);
-        $user = $this->resolveContextUser($context);
-        if (! is_int($tenantId) || ! $user instanceof User) {
+        $tenantId = $context->tenantId();
+        if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
+        $user = $context->requireUser();
         $organizationResult = $this->resolveTenantOrganization($tenantId, $id, ['teams', 'users']);
         if (! $organizationResult['ok']) {
             return $organizationResult['response'];
@@ -284,16 +284,12 @@ class OrganizationController extends ApiController
 
     /**
      * @param  string|list<string>  $permissionCode
-     * @return array{
-     *   ok: bool,
-     *   code: string,
-     *   msg: string,
-     *   user?: \App\Domains\Access\Models\User,
-     *   tenantId?: int
-     * }
      */
-    private function resolveOrganizationContext(Request $request, string|array $permissionCode, string $ability): array
-    {
+    private function resolveOrganizationContext(
+        Request $request,
+        string|array $permissionCode,
+        string $ability
+    ): TenantScopedContext {
         return $this->resolveTenantScopedContextForModel(
             $request,
             $permissionCode,
@@ -391,25 +387,5 @@ class OrganizationController extends ApiController
         }
 
         return $response;
-    }
-
-    /**
-     * @param  array{tenantId?: int}  $context
-     */
-    private function resolveContextTenantId(array $context): ?int
-    {
-        $tenantId = $context['tenantId'] ?? null;
-
-        return is_int($tenantId) ? $tenantId : null;
-    }
-
-    /**
-     * @param  array{user?: User}  $context
-     */
-    private function resolveContextUser(array $context): ?User
-    {
-        $user = $context['user'] ?? null;
-
-        return $user instanceof User ? $user : null;
     }
 }

@@ -68,12 +68,12 @@ class AuthSecurityController extends AbstractUserController
 
     public function verifyEmail(Request $request): JsonResponse
     {
-        $authenticated = $this->resolveAuthenticatedUserResponse($request);
-        if (! $authenticated['ok']) {
-            return $authenticated['response'];
+        $authResult = $this->resolveAuthenticatedUser($request);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
-        $user = $authenticated['user'];
+        $user = $authResult->requireUser();
         if ($user->email_verified_at !== null) {
             return $this->success([], 'Email already verified');
         }
@@ -98,12 +98,12 @@ class AuthSecurityController extends AbstractUserController
 
     public function setupTwoFactor(Request $request): JsonResponse
     {
-        $authenticated = $this->resolveAuthenticatedUserResponse($request);
-        if (! $authenticated['ok']) {
-            return $authenticated['response'];
+        $authResult = $this->resolveAuthenticatedUser($request);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
-        $user = $authenticated['user'];
+        $user = $authResult->requireUser();
         $secret = $this->totpService->generateSecret();
         $user->forceFill([
             'two_factor_secret' => Crypt::encryptString($secret),
@@ -122,12 +122,12 @@ class AuthSecurityController extends AbstractUserController
 
     public function enableTwoFactor(TwoFactorCodeRequest $request): JsonResponse
     {
-        $authenticated = $this->resolveAuthenticatedUserResponse($request);
-        if (! $authenticated['ok']) {
-            return $authenticated['response'];
+        $authResult = $this->resolveAuthenticatedUser($request);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
-        $user = $authenticated['user'];
+        $user = $authResult->requireUser();
         $otpCode = (string) $request->validated()['otpCode'];
 
         if (! $this->verifyUserTotpCode($user, $otpCode)) {
@@ -147,12 +147,12 @@ class AuthSecurityController extends AbstractUserController
 
     public function disableTwoFactor(TwoFactorCodeRequest $request): JsonResponse
     {
-        $authenticated = $this->resolveAuthenticatedUserResponse($request);
-        if (! $authenticated['ok']) {
-            return $authenticated['response'];
+        $authResult = $this->resolveAuthenticatedUser($request);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
-        $user = $authenticated['user'];
+        $user = $authResult->requireUser();
         $otpCode = (string) $request->validated()['otpCode'];
 
         if (! $this->verifyUserTotpCode($user, $otpCode)) {
@@ -168,25 +168,6 @@ class AuthSecurityController extends AbstractUserController
         );
 
         return $this->success(['enabled' => false], 'Two-factor disabled');
-    }
-
-    /**
-     * @return array{ok: false, response: JsonResponse}|array{ok: true, user: User}
-     */
-    private function resolveAuthenticatedUserResponse(Request $request): array
-    {
-        $authResult = $this->resolveAuthenticatedUser($request);
-        if (! $authResult['ok']) {
-            return [
-                'ok' => false,
-                'response' => $this->error($authResult['code'], $authResult['msg']),
-            ];
-        }
-
-        return [
-            'ok' => true,
-            'user' => $authResult['user'],
-        ];
     }
 
     private function applyTwoFactorState(

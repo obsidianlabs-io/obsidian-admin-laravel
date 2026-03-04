@@ -16,6 +16,7 @@ use App\Domains\Auth\Http\Controllers\Concerns\VerifiesTotpCode;
 use App\Domains\Auth\Services\AuthSessionContextService;
 use App\Domains\Auth\Services\AuthTokenService;
 use App\Domains\Auth\Services\TotpService;
+use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Contracts\ActiveTenantResolver;
@@ -212,12 +213,12 @@ class AuthSessionController extends ApiController
     public function sessions(Request $request): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
-        if ($sessionContext['ok'] === false) {
-            return $this->error($sessionContext['code'], $sessionContext['msg']);
+        if ($sessionContext->failed()) {
+            return $this->error($sessionContext->code(), $sessionContext->message());
         }
 
-        $accessToken = $sessionContext['token'];
-        $user = $sessionContext['user'];
+        $accessToken = $sessionContext->requireToken();
+        $user = $sessionContext->requireUser();
 
         $records = $this->authSessionContextService->mapSessionRecordsForResponse(
             $this->authTokenService->listSessions($user, $accessToken),
@@ -233,8 +234,8 @@ class AuthSessionController extends ApiController
     public function updateSessionAlias(Request $request, string $sessionId): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
-        if ($sessionContext['ok'] === false) {
-            return $this->error($sessionContext['code'], $sessionContext['msg']);
+        if ($sessionContext->failed()) {
+            return $this->error($sessionContext->code(), $sessionContext->message());
         }
 
         $validator = Validator::make(
@@ -252,8 +253,8 @@ class AuthSessionController extends ApiController
             return $this->error(self::PARAM_ERROR_CODE, $validator->errors()->first());
         }
 
-        $accessToken = $sessionContext['token'];
-        $user = $sessionContext['user'];
+        $accessToken = $sessionContext->requireToken();
+        $user = $sessionContext->requireUser();
         $validated = $validator->validated();
 
         $result = $this->authTokenService->updateSessionAlias(
@@ -278,8 +279,8 @@ class AuthSessionController extends ApiController
     public function revokeSession(Request $request, string $sessionId): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
-        if ($sessionContext['ok'] === false) {
-            return $this->error($sessionContext['code'], $sessionContext['msg']);
+        if ($sessionContext->failed()) {
+            return $this->error($sessionContext->code(), $sessionContext->message());
         }
 
         $validator = Validator::make(['sessionId' => $sessionId], [
@@ -289,8 +290,8 @@ class AuthSessionController extends ApiController
             return $this->error(self::PARAM_ERROR_CODE, $validator->errors()->first());
         }
 
-        $accessToken = $sessionContext['token'];
-        $user = $sessionContext['user'];
+        $accessToken = $sessionContext->requireToken();
+        $user = $sessionContext->requireUser();
 
         $result = $this->authTokenService->revokeSession($user, $sessionId, $accessToken);
 
@@ -312,12 +313,12 @@ class AuthSessionController extends ApiController
     public function logout(Request $request): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
-        if ($sessionContext['ok'] === false) {
-            return $this->error($sessionContext['code'], $sessionContext['msg']);
+        if ($sessionContext->failed()) {
+            return $this->error($sessionContext->code(), $sessionContext->message());
         }
 
-        $accessToken = $sessionContext['token'];
-        $user = $sessionContext['user'];
+        $accessToken = $sessionContext->requireToken();
+        $user = $sessionContext->requireUser();
 
         $sessionId = $this->authTokenService->resolveSessionId($accessToken);
 
@@ -353,12 +354,11 @@ class AuthSessionController extends ApiController
         }
 
         $authResult = $this->resolveAuthenticatedUser($request);
-        if ($authResult['ok'] === false) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
-        /** @var \App\Domains\Access\Models\User $user */
-        $user = $authResult['user'];
+        $user = $authResult->requireUser();
         if (! $this->isSuperAdmin($user)) {
             return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
         }
@@ -397,49 +397,15 @@ class AuthSessionController extends ApiController
         return $this->authTokenService->issueTokenPair($user, $rememberMe, $sessionId, $sessionClientContext);
     }
 
-    /**
-     * @return array{ok: false, code: string, msg: string}|array{
-     *   ok: true,
-     *   user: \App\Domains\Access\Models\User,
-     *   token: PersonalAccessToken
-     * }
-     */
-    private function resolveSessionContext(Request $request): array
+    private function resolveSessionContext(Request $request): ApiAuthResult
     {
         return $this->authSessionContextService->requireAuthenticatedSession(
             $this->authenticate($request, 'access-api')
         );
     }
 
-    /**
-     * @return array{ok: false, code: string, msg: string}|array{
-     *   ok: true,
-     *   user: \App\Domains\Access\Models\User
-     * }
-     */
-    private function resolveAuthenticatedUser(Request $request): array
+    private function resolveAuthenticatedUser(Request $request): ApiAuthResult
     {
-        $authResult = $this->authenticate($request, 'access-api');
-        if ($authResult->failed()) {
-            return [
-                'ok' => false,
-                'code' => $authResult->code(),
-                'msg' => $authResult->message(),
-            ];
-        }
-
-        $user = $authResult->user();
-        if (! $user instanceof User) {
-            return [
-                'ok' => false,
-                'code' => self::UNAUTHORIZED_CODE,
-                'msg' => 'Unauthorized',
-            ];
-        }
-
-        return [
-            'ok' => true,
-            'user' => $user,
-        ];
+        return $this->authenticate($request, 'access-api');
     }
 }
