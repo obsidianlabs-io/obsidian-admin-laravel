@@ -46,6 +46,12 @@ class ResolveTenantContext
             return $next($request);
         }
 
+        $tokenable->loadMissing('role:id,code,name,level,status,tenant_id');
+        $role = $tokenable->getRelationValue('role');
+        if (! $role || (string) $role->status !== '1') {
+            return $next($request);
+        }
+
         $tenantContext = $this->tenantContextService->resolveTenantContext($request, $tokenable);
         $roleScope = $this->tenantContextService->resolveRoleScope($request, $tokenable);
         if ($tenantContext->failed()) {

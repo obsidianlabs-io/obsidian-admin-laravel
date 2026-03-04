@@ -305,6 +305,12 @@ abstract class ApiController extends Controller
             return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'User is inactive');
         }
 
+        $tokenable->loadMissing('role:id,code,name,level,status,tenant_id');
+        $role = $tokenable->getRelationValue('role');
+        if (! $role || (string) $role->status !== '1') {
+            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Role is inactive');
+        }
+
         ApiDateTime::assignRequestTimezone($request, ApiDateTime::resolveUserTimezone($tokenable));
 
         $now = now();
@@ -362,7 +368,7 @@ abstract class ApiController extends Controller
 
     protected function isSuperAdmin(User $user): bool
     {
-        $user->loadMissing('role:id,code,level,status');
+        $user->loadMissing('role:id,code,name,level,status');
 
         $roleCode = '';
         if ($user->role instanceof Role) {

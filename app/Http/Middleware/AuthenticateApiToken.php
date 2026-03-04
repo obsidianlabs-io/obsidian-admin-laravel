@@ -51,6 +51,12 @@ class AuthenticateApiToken
             return $this->error($request, self::UNAUTHORIZED_CODE, 'User is inactive');
         }
 
+        $tokenable->loadMissing('role:id,code,name,level,status,tenant_id');
+        $role = $tokenable->getRelationValue('role');
+        if (! $role || (string) $role->status !== '1') {
+            return $this->error($request, self::UNAUTHORIZED_CODE, 'Role is inactive');
+        }
+
         ApiDateTime::assignRequestTimezone($request, ApiDateTime::resolveUserTimezone($tokenable));
         $now = now();
         if (! $token->last_used_at || $token->last_used_at->lt($now->copy()->subMinute())) {

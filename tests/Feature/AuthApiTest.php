@@ -100,6 +100,24 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('msg', 'Tenant is inactive');
     }
 
+    public function test_tenant_user_cannot_login_when_role_is_inactive(): void
+    {
+        $this->seed();
+
+        $admin = User::query()->where('name', 'Admin')->firstOrFail();
+        $adminRole = Role::query()->findOrFail($admin->role_id);
+        $adminRole->forceFill(['status' => '2'])->save();
+
+        $response = $this->postJson('/api/auth/login', [
+            'userName' => 'Admin',
+            'password' => '123456',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('code', '8888')
+            ->assertJsonPath('msg', 'Role is inactive');
+    }
+
     public function test_login_is_rate_limited_after_consecutive_failed_attempts(): void
     {
         $this->seed();
@@ -725,6 +743,32 @@ class AuthApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('code', '8888')
             ->assertJsonPath('msg', 'Tenant is inactive');
+
+        $this->assertNull(PersonalAccessToken::findToken($refreshToken));
+    }
+
+    public function test_refresh_token_is_rejected_when_role_becomes_inactive(): void
+    {
+        $this->seed();
+
+        $loginResponse = $this->postJson('/api/auth/login', [
+            'userName' => 'Admin',
+            'password' => '123456',
+        ]);
+        $refreshToken = (string) $loginResponse->json('data.refreshToken');
+        $this->assertNotNull(PersonalAccessToken::findToken($refreshToken));
+
+        $admin = User::query()->where('name', 'Admin')->firstOrFail();
+        $adminRole = Role::query()->findOrFail($admin->role_id);
+        $adminRole->forceFill(['status' => '2'])->save();
+
+        $response = $this->postJson('/api/auth/refreshToken', [
+            'refreshToken' => $refreshToken,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('code', '8888')
+            ->assertJsonPath('msg', 'Role is inactive');
 
         $this->assertNull(PersonalAccessToken::findToken($refreshToken));
     }

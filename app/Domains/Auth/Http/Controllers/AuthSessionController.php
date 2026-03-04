@@ -133,6 +133,12 @@ class AuthSessionController extends ApiController
             return $this->error(self::UNAUTHORIZED_CODE, 'Tenant is inactive');
         }
 
+        if ($this->isUserWithInactiveRole($user)) {
+            $this->incrementLoginAttempts($throttleKey);
+
+            return $this->error(self::UNAUTHORIZED_CODE, 'Role is inactive');
+        }
+
         if ((bool) config('security.require_email_verification', false) && ! $user->email_verified_at) {
             $this->incrementLoginAttempts($throttleKey);
 
@@ -203,6 +209,12 @@ class AuthSessionController extends ApiController
             $token->delete();
 
             return $this->error(self::UNAUTHORIZED_CODE, 'Tenant is inactive');
+        }
+
+        if ($this->isUserWithInactiveRole($tokenable)) {
+            $token->delete();
+
+            return $this->error(self::UNAUTHORIZED_CODE, 'Role is inactive');
         }
 
         $sessionClientContext = $this->authTokenService->resolveSessionClientContextMetadata($token);
@@ -435,5 +447,16 @@ class AuthSessionController extends ApiController
         }
 
         return (string) $user->tenant->status !== '1';
+    }
+
+    private function isUserWithInactiveRole(User $user): bool
+    {
+        $user->loadMissing('role:id,code,level,status,tenant_id');
+
+        if (! $user->role) {
+            return true;
+        }
+
+        return (string) $user->role->status !== '1';
     }
 }
