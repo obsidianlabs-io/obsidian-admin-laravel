@@ -9,6 +9,7 @@ use App\Domains\Access\Models\Permission;
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Services\PermissionService;
 use App\Domains\Shared\Http\Controllers\ApiController;
+use App\Domains\Shared\Http\Controllers\Concerns\ResolvesPlatformConsoleContext;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
 use App\Http\Requests\Api\Permission\ListPermissionsRequest;
@@ -18,10 +19,11 @@ use App\Support\ApiDateTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class PermissionController extends ApiController
 {
+    use ResolvesPlatformConsoleContext;
+
     public function __construct(
         private readonly PermissionService $permissionService,
         private readonly AuditLogService $auditLogService,
@@ -233,46 +235,15 @@ class PermissionController extends ApiController
      */
     private function resolvePermissionConsoleContext(Request $request, string $permissionCode): array
     {
-        $authResult = $this->authenticateAndAuthorize($request, 'access-api', $permissionCode);
-        if ($authResult->failed()) {
-            return [
-                'ok' => false,
-                'code' => $authResult->code(),
-                'msg' => $authResult->message(),
-            ];
-        }
-
-        $user = $authResult->user();
-        if (! $user instanceof User) {
-            return [
-                'ok' => false,
-                'code' => self::UNAUTHORIZED_CODE,
-                'msg' => 'Unauthorized',
-            ];
-        }
-
         $ability = $permissionCode === 'permission.manage' ? 'manage' : 'viewAny';
-        if (! Gate::forUser($user)->allows($ability, Permission::class)) {
-            return [
-                'ok' => false,
-                'code' => self::FORBIDDEN_CODE,
-                'msg' => 'Forbidden',
-            ];
-        }
 
-        $selectedTenantId = (int) $request->header('X-Tenant-Id', '0');
-        if ($selectedTenantId > 0) {
-            return [
-                'ok' => false,
-                'code' => self::FORBIDDEN_CODE,
-                'msg' => 'Switch to No Tenant to manage permissions',
-            ];
-        }
-
-        return [
-            'ok' => true,
-            'user' => $user,
-        ];
+        return $this->resolvePlatformConsoleContext(
+            request: $request,
+            permissionCode: $permissionCode,
+            policyAbility: $ability,
+            policyModelClass: Permission::class,
+            tenantSelectedMessage: 'Switch to No Tenant to manage permissions'
+        );
     }
 
     /**
