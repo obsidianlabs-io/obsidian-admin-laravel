@@ -4,14 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Domains\Access\Models\Permission;
-use App\Domains\Access\Models\Role;
-use App\Domains\Access\Models\User;
-use App\Domains\Tenant\Models\Organization;
-use App\Domains\Tenant\Models\Team;
-use App\Domains\Tenant\Models\Tenant;
 use Illuminate\Console\Command;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class PurgeSoftDeletedRecordsCommand extends Command
 {
@@ -25,20 +19,20 @@ class PurgeSoftDeletedRecordsCommand extends Command
         $cutoff = now()->subDays($retentionDays);
         $dryRun = (bool) $this->option('dry-run');
 
-        /** @var array<string, class-string<Model>> $targets */
+        /** @var array<string, string> $targets */
         $targets = [
-            'users' => User::class,
-            'roles' => Role::class,
-            'permissions' => Permission::class,
-            'tenants' => Tenant::class,
-            'organizations' => Organization::class,
-            'teams' => Team::class,
+            'users' => 'users',
+            'roles' => 'roles',
+            'permissions' => 'permissions',
+            'tenants' => 'tenants',
+            'organizations' => 'organizations',
+            'teams' => 'teams',
         ];
 
         $totalPurged = 0;
-        foreach ($targets as $label => $modelClass) {
-            $query = $modelClass::query()
-                ->onlyTrashed()
+        foreach ($targets as $label => $table) {
+            $query = DB::table($table)
+                ->whereNotNull('deleted_at')
                 ->where('deleted_at', '<=', $cutoff);
 
             $count = (int) (clone $query)->count();
@@ -55,7 +49,7 @@ class PurgeSoftDeletedRecordsCommand extends Command
                 continue;
             }
 
-            $purged = (int) $query->forceDelete();
+            $purged = (int) $query->delete();
             $this->line(sprintf('%s: %d', $label, $purged));
             $totalPurged += $purged;
         }
