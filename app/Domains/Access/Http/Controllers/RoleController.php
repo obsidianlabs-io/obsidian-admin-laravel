@@ -10,6 +10,7 @@ use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Services\RoleScopeGuardService;
 use App\Domains\Access\Services\RoleService;
+use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
@@ -488,13 +489,6 @@ class RoleController extends ApiController
     }
 
     /**
-     * @param  array{
-     *   ok: bool,
-     *   code: string,
-     *   msg: string,
-     *   user?: User,
-     *   token?: \Laravel\Sanctum\PersonalAccessToken
-     * }  $authResult
      * @return array{ok: false, code: string, msg: string}|array{
      *   ok: true,
      *   user: User,
@@ -503,17 +497,17 @@ class RoleController extends ApiController
      *   isSuper: bool
      * }
      */
-    private function resolveRoleConsoleContext(Request $request, array $authResult): array
+    private function resolveRoleConsoleContext(Request $request, ApiAuthResult $authResult): array
     {
-        if (! $authResult['ok']) {
+        if ($authResult->failed()) {
             return [
                 'ok' => false,
-                'code' => $authResult['code'],
-                'msg' => $authResult['msg'],
+                'code' => $authResult->code(),
+                'msg' => $authResult->message(),
             ];
         }
 
-        $user = $authResult['user'] ?? null;
+        $user = $authResult->user();
         if (! $user instanceof User) {
             return [
                 'ok' => false,

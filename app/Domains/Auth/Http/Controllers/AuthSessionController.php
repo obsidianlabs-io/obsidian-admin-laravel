@@ -57,7 +57,7 @@ class AuthSessionController extends ApiController
 
         $defaultTenantId = $this->activeTenantResolver->findActiveTenantIdByCode('TENANT_MAIN');
         $defaultRole = $this->findActiveRoleByCode('R_USER', $defaultTenantId);
-        if (! $defaultRole['ok']) {
+        if ($defaultRole['ok'] === false) {
             return $this->error(self::PARAM_ERROR_CODE, 'Default tenant role is not configured');
         }
 
@@ -212,7 +212,7 @@ class AuthSessionController extends ApiController
     public function sessions(Request $request): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
-        if (! $sessionContext['ok']) {
+        if ($sessionContext['ok'] === false) {
             return $this->error($sessionContext['code'], $sessionContext['msg']);
         }
 
@@ -233,7 +233,7 @@ class AuthSessionController extends ApiController
     public function updateSessionAlias(Request $request, string $sessionId): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
-        if (! $sessionContext['ok']) {
+        if ($sessionContext['ok'] === false) {
             return $this->error($sessionContext['code'], $sessionContext['msg']);
         }
 
@@ -278,7 +278,7 @@ class AuthSessionController extends ApiController
     public function revokeSession(Request $request, string $sessionId): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
-        if (! $sessionContext['ok']) {
+        if ($sessionContext['ok'] === false) {
             return $this->error($sessionContext['code'], $sessionContext['msg']);
         }
 
@@ -312,7 +312,7 @@ class AuthSessionController extends ApiController
     public function logout(Request $request): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
-        if (! $sessionContext['ok']) {
+        if ($sessionContext['ok'] === false) {
             return $this->error($sessionContext['code'], $sessionContext['msg']);
         }
 
@@ -353,7 +353,7 @@ class AuthSessionController extends ApiController
         }
 
         $authResult = $this->resolveAuthenticatedUser($request);
-        if (! $authResult['ok']) {
+        if ($authResult['ok'] === false) {
             return $this->error($authResult['code'], $authResult['msg']);
         }
 
@@ -420,15 +420,15 @@ class AuthSessionController extends ApiController
     private function resolveAuthenticatedUser(Request $request): array
     {
         $authResult = $this->authenticate($request, 'access-api');
-        if (! $authResult['ok']) {
+        if ($authResult->failed()) {
             return [
                 'ok' => false,
-                'code' => $authResult['code'],
-                'msg' => $authResult['msg'],
+                'code' => $authResult->code(),
+                'msg' => $authResult->message(),
             ];
         }
 
-        $user = $authResult['user'] ?? null;
+        $user = $authResult->user();
         if (! $user instanceof User) {
             return [
                 'ok' => false,

@@ -24,11 +24,11 @@ class AuditLogController extends ApiController
     {
         $authResult = $this->authenticateAndAuthorize($request, 'access-api', 'audit.view');
 
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
 
-        $user = $authResult['user'] ?? null;
+        $user = $authResult->user();
         if (! $user instanceof User) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }

@@ -111,11 +111,15 @@ class AuditPolicyController extends ApiController
     private function authorizeAuditPolicyConsole(Request $request, string $permissionCode): array
     {
         $authResult = $this->authenticate($request, 'access-api');
-        if (! $authResult['ok']) {
-            return $authResult;
+        if ($authResult->failed()) {
+            return [
+                'ok' => false,
+                'code' => $authResult->code(),
+                'msg' => $authResult->message(),
+            ];
         }
 
-        $user = $authResult['user'] ?? null;
+        $user = $authResult->user();
         if (! $user instanceof User) {
             return [
                 'ok' => false,
@@ -151,6 +155,11 @@ class AuditPolicyController extends ApiController
             ];
         }
 
-        return $authResult;
+        return [
+            'ok' => true,
+            'code' => self::SUCCESS_CODE,
+            'msg' => 'ok',
+            'user' => $user,
+        ];
     }
 }

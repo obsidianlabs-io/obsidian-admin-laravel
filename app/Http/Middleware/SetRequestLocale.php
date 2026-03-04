@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Support\LocaleDefaults;
+use App\Support\AppLocale;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +19,7 @@ class SetRequestLocale
     public function handle(Request $request, Closure $next): Response
     {
         // Always set a locale for the request to avoid Octane worker locale leakage.
-        $locale = $this->resolveLocale($request) ?? $this->defaultLocale();
+        $locale = $this->resolveLocale($request) ?? AppLocale::defaultFrameworkLocale();
         app()->setLocale($locale);
 
         return $next($request);
@@ -27,7 +27,7 @@ class SetRequestLocale
 
     private function resolveLocale(Request $request): ?string
     {
-        $headerLocale = $this->normalizeLocale((string) $request->header('X-Locale', ''));
+        $headerLocale = AppLocale::toFrameworkLocale((string) $request->header('X-Locale', ''));
         if ($headerLocale !== null) {
             return $headerLocale;
         }
@@ -41,49 +41,12 @@ class SetRequestLocale
         foreach ($items as $item) {
             $segments = explode(';', $item, 2);
             $candidate = trim($segments[0]);
-            $normalized = $this->normalizeLocale($candidate);
+            $normalized = AppLocale::toFrameworkLocale($candidate);
             if ($normalized !== null) {
                 return $normalized;
             }
         }
 
         return null;
-    }
-
-    private function normalizeLocale(string $locale): ?string
-    {
-        $locale = strtolower(str_replace('_', '-', trim($locale)));
-        if ($locale === '') {
-            return null;
-        }
-
-        if ($locale === 'zh' || $locale === 'zh-cn') {
-            return 'zh_CN';
-        }
-
-        if ($locale === 'en' || $locale === 'en-us') {
-            return 'en';
-        }
-
-        if (str_starts_with($locale, 'zh-')) {
-            return 'zh_CN';
-        }
-
-        if (str_starts_with($locale, 'en-')) {
-            return 'en';
-        }
-
-        return null;
-    }
-
-    private function defaultLocale(): string
-    {
-        $configured = strtolower(str_replace('_', '-', LocaleDefaults::configured()));
-
-        return match ($configured) {
-            'zh', 'zh-cn' => 'zh_CN',
-            'en', 'en-us' => 'en',
-            default => 'en',
-        };
     }
 }

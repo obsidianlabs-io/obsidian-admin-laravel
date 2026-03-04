@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Api\Auth;
 
 use App\Http\Requests\Api\BaseApiRequest;
+use App\Support\AppLocale;
 use Illuminate\Validation\Rule;
 
 class LoginRequest extends BaseApiRequest
@@ -18,17 +19,10 @@ class LoginRequest extends BaseApiRequest
             return;
         }
 
-        $normalized = strtolower(str_replace('_', '-', $locale));
-        $alias = [
-            'en' => 'en-US',
-            'en-us' => 'en-US',
-            'zh' => 'zh-CN',
-            'cn' => 'zh-CN',
-            'zh-cn' => 'zh-CN',
-        ];
+        $normalized = AppLocale::toPreferredLocaleCode($locale);
 
         $this->merge([
-            'locale' => $alias[$normalized] ?? $locale,
+            'locale' => $normalized ?? $locale,
         ]);
     }
 

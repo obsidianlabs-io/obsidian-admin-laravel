@@ -368,11 +368,15 @@ class LanguageController extends ApiController
     private function authorizeLanguageConsole(Request $request, string $permissionCode): array
     {
         $authResult = $this->authenticateAndAuthorize($request, 'access-api', $permissionCode);
-        if (! $authResult['ok']) {
-            return $authResult;
+        if ($authResult->failed()) {
+            return [
+                'ok' => false,
+                'code' => $authResult->code(),
+                'msg' => $authResult->message(),
+            ];
         }
 
-        $user = $authResult['user'] ?? null;
+        $user = $authResult->user();
         if (! $user instanceof User) {
             return [
                 'ok' => false,
@@ -401,12 +405,12 @@ class LanguageController extends ApiController
 
         $result = [
             'ok' => true,
-            'code' => $authResult['code'],
-            'msg' => $authResult['msg'],
+            'code' => self::SUCCESS_CODE,
+            'msg' => 'ok',
             'user' => $user,
         ];
 
-        $token = $authResult['token'] ?? null;
+        $token = $authResult->token();
         if ($token instanceof PersonalAccessToken) {
             $result['token'] = $token;
         }

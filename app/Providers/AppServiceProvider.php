@@ -4,29 +4,12 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Domains\Access\Models\Permission;
-use App\Domains\Access\Models\Role;
-use App\Domains\Access\Models\User;
-use App\Domains\Auth\Events\UserLoggedInEvent;
-use App\Domains\Auth\Events\UserLoggedOutEvent;
-use App\Domains\System\Events\AuditPolicyUpdatedEvent;
-use App\Domains\System\Listeners\RecordAsyncAuditEvent;
-use App\Domains\System\Models\AuditLog;
 use App\Domains\System\Services\FeatureFlagService;
 use App\Domains\Tenant\Actions\ResolveActiveTenantIdByCodeAction;
 use App\Domains\Tenant\Contracts\ActiveTenantResolver;
-use App\Domains\Tenant\Models\Organization;
-use App\Domains\Tenant\Models\Team;
-use App\Domains\Tenant\Models\Tenant;
-use App\Policies\AuditLogPolicy;
-use App\Policies\OrganizationPolicy;
-use App\Policies\PermissionPolicy;
-use App\Policies\RolePolicy;
-use App\Policies\TeamPolicy;
-use App\Policies\TenantPolicy;
-use App\Policies\UserPolicy;
 use App\Support\ApiDateTime;
-use App\Support\LocaleDefaults;
+use App\Support\AppLocale;
+use App\Support\RequestTraceContext;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
@@ -37,7 +20,6 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -60,41 +42,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureEloquentStrictMode();
         $this->configureSlowQueryMonitor();
         $this->registerOctaneFlushHooks();
-        $this->registerDomainEventListeners();
         $this->configureRateLimiting();
-
-        Gate::define('access-permission', function (User $user, string $permissionCode): bool {
-            return $user->hasPermission($permissionCode);
-        });
-
-        Gate::define('viewPulse', function ($user = null): bool {
-            if (app()->environment('local', 'testing')) {
-                return true;
-            }
-
-            if ($user instanceof User) {
-                $user->loadMissing('role:id,code');
-                $role = $user->role;
-
-                return $role instanceof Role && (string) $role->code === 'R_SUPER';
-            }
-
-            return false;
-        });
-
-        Gate::define('viewApiDocs', function (?User $user): bool {
-            if (! (bool) config('scramble.enabled', true)) {
-                return false;
-            }
-
-            if ($user === null) {
-                return false;
-            }
-            $user->loadMissing('role:id,code');
-            $role = $user->role;
-
-            return $role instanceof Role && (string) $role->code === 'R_SUPER';
-        });
 
         Scramble::configure()
             ->withDocumentTransformers(function (OpenApi $openApi) {
@@ -104,14 +52,6 @@ class AppServiceProvider extends ServiceProvider
             });
 
         $featureFlagService->registerDefinitions();
-
-        Gate::policy(User::class, UserPolicy::class);
-        Gate::policy(Role::class, RolePolicy::class);
-        Gate::policy(Permission::class, PermissionPolicy::class);
-        Gate::policy(Tenant::class, TenantPolicy::class);
-        Gate::policy(Organization::class, OrganizationPolicy::class);
-        Gate::policy(Team::class, TeamPolicy::class);
-        Gate::policy(AuditLog::class, AuditLogPolicy::class);
     }
 
     private function configureRateLimiting(): void
@@ -123,13 +63,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth', function (Request $request) {
             return Limit::perMinute((int) config('api.auth_throttle_limit', 5))->by($request->ip());
         });
-    }
-
-    private function registerDomainEventListeners(): void
-    {
-        Event::listen(UserLoggedInEvent::class, RecordAsyncAuditEvent::class);
-        Event::listen(UserLoggedOutEvent::class, RecordAsyncAuditEvent::class);
-        Event::listen(AuditPolicyUpdatedEvent::class, RecordAsyncAuditEvent::class);
     }
 
     /**
@@ -147,11 +80,7 @@ class AppServiceProvider extends ServiceProvider
             static function (): void {
                 ApiDateTime::flushState();
                 Log::withoutContext();
-                app()->setLocale(match (strtolower(str_replace('_', '-', LocaleDefaults::configured()))) {
-                    'zh', 'zh-cn' => 'zh_CN',
-                    'en', 'en-us' => 'en',
-                    default => 'en',
-                });
+                app()->setLocale(AppLocale::defaultFrameworkLocale());
             }
         );
     }
@@ -159,13 +88,7 @@ class AppServiceProvider extends ServiceProvider
     private function configureEloquentStrictMode(): void
     {
         $enabled = (bool) config('observability.eloquent.strict_mode', ! app()->environment('production'));
-        if (! $enabled) {
-            return;
-        }
-
-        Model::preventLazyLoading();
-        Model::preventSilentlyDiscardingAttributes();
-        Model::preventAccessingMissingAttributes();
+        Model::shouldBeStrict($enabled);
     }
 
     private function configureSlowQueryMonitor(): void
@@ -182,8 +105,8 @@ class AppServiceProvider extends ServiceProvider
                 'duration_ms' => round($event->time, 2),
                 'threshold_ms' => $thresholdMs,
                 'sql' => $event->sql,
-                'request_id' => trim((string) (request()->attributes->get('request_id', '') ?? '')),
-                'trace_id' => trim((string) (request()->attributes->get('trace_id', '') ?? '')),
+                'request_id' => RequestTraceContext::requestId(),
+                'trace_id' => RequestTraceContext::traceId(),
             ]);
         });
     }

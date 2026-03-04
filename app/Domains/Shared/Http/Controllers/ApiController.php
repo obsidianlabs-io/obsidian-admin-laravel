@@ -6,9 +6,12 @@ namespace App\Domains\Shared\Http\Controllers;
 
 use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
+use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Services\IdempotencyService;
 use App\Http\Controllers\Controller;
 use App\Support\ApiDateTime;
+use App\Support\ApiResponseFactory;
+use App\Support\RequestTraceContext;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Closure;
@@ -41,13 +44,7 @@ abstract class ApiController extends Controller
      */
     protected function success(array $data = [], string $msg = 'ok'): JsonResponse
     {
-        return response()->json([
-            'code' => self::SUCCESS_CODE,
-            'msg' => $msg,
-            'data' => $data,
-            'requestId' => $this->requestId(),
-            'traceId' => $this->traceId(),
-        ]);
+        return $this->responseFactory()->success($data, $msg);
     }
 
     /**
@@ -55,13 +52,7 @@ abstract class ApiController extends Controller
      */
     protected function error(string $code, string $msg, array $data = [], int $httpStatus = 200): JsonResponse
     {
-        return response()->json([
-            'code' => $code,
-            'msg' => $msg,
-            'data' => $data,
-            'requestId' => $this->requestId(),
-            'traceId' => $this->traceId(),
-        ], $httpStatus);
+        return $this->responseFactory()->error($code, $msg, $data, $httpStatus);
     }
 
     /**
@@ -287,60 +278,31 @@ abstract class ApiController extends Controller
         ];
     }
 
-    /**
-     * @return array{
-     *   ok: bool,
-     *   code: string,
-     *   msg: string,
-     *   user?: \App\Domains\Access\Models\User,
-     *   token?: \Laravel\Sanctum\PersonalAccessToken
-     * }
-     */
-    protected function authenticate(Request $request, string $ability): array
+    protected function authenticate(Request $request, string $ability): ApiAuthResult
     {
         $plainToken = $request->bearerToken();
         if (! $plainToken) {
-            return [
-                'ok' => false,
-                'code' => self::UNAUTHORIZED_CODE,
-                'msg' => 'Unauthorized',
-            ];
+            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
 
         $token = PersonalAccessToken::findToken($plainToken);
         if (! $token || ! $token->can($ability)) {
-            return [
-                'ok' => false,
-                'code' => self::UNAUTHORIZED_CODE,
-                'msg' => 'Unauthorized',
-            ];
+            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
 
         if ($token->expires_at !== null && $token->expires_at->isPast()) {
             $token->delete();
 
-            return [
-                'ok' => false,
-                'code' => self::TOKEN_EXPIRED_CODE,
-                'msg' => 'Token expired',
-            ];
+            return ApiAuthResult::failure(self::TOKEN_EXPIRED_CODE, 'Token expired');
         }
 
         $tokenable = $token->tokenable;
         if (! $tokenable instanceof User) {
-            return [
-                'ok' => false,
-                'code' => self::UNAUTHORIZED_CODE,
-                'msg' => 'Unauthorized',
-            ];
+            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
 
         if ($tokenable->status !== '1') {
-            return [
-                'ok' => false,
-                'code' => self::UNAUTHORIZED_CODE,
-                'msg' => 'User is inactive',
-            ];
+            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'User is inactive');
         }
 
         ApiDateTime::assignRequestTimezone($request, ApiDateTime::resolveUserTimezone($tokenable));
@@ -350,47 +312,24 @@ abstract class ApiController extends Controller
             $token->forceFill(['last_used_at' => $now])->save();
         }
 
-        return [
-            'ok' => true,
-            'code' => self::SUCCESS_CODE,
-            'msg' => 'ok',
-            'user' => $tokenable,
-            'token' => $token,
-        ];
+        return ApiAuthResult::success($tokenable, $token, self::SUCCESS_CODE, 'ok');
     }
 
-    /**
-     * @return array{
-     *   ok: bool,
-     *   code: string,
-     *   msg: string,
-     *   user?: \App\Domains\Access\Models\User,
-     *   token?: \Laravel\Sanctum\PersonalAccessToken
-     * }
-     */
-    protected function authenticateAndAuthorize(Request $request, string $ability, string $permissionCode): array
+    protected function authenticateAndAuthorize(Request $request, string $ability, string $permissionCode): ApiAuthResult
     {
         $authResult = $this->authenticate($request, $ability);
 
-        if (! $authResult['ok']) {
+        if ($authResult->failed()) {
             return $authResult;
         }
 
-        $user = $authResult['user'] ?? null;
+        $user = $authResult->user();
         if (! $user instanceof User) {
-            return [
-                'ok' => false,
-                'code' => self::UNAUTHORIZED_CODE,
-                'msg' => 'Unauthorized',
-            ];
+            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
 
         if (! Gate::forUser($user)->allows('access-permission', $permissionCode)) {
-            return [
-                'ok' => false,
-                'code' => self::FORBIDDEN_CODE,
-                'msg' => 'Forbidden',
-            ];
+            return ApiAuthResult::failure(self::FORBIDDEN_CODE, 'Forbidden');
         }
 
         return $authResult;
@@ -398,29 +337,18 @@ abstract class ApiController extends Controller
 
     /**
      * @param  list<string>  $permissionCodes
-     * @return array{
-     *   ok: bool,
-     *   code: string,
-     *   msg: string,
-     *   user?: \App\Domains\Access\Models\User,
-     *   token?: \Laravel\Sanctum\PersonalAccessToken
-     * }
      */
-    protected function authenticateAndAuthorizeAny(Request $request, string $ability, array $permissionCodes): array
+    protected function authenticateAndAuthorizeAny(Request $request, string $ability, array $permissionCodes): ApiAuthResult
     {
         $authResult = $this->authenticate($request, $ability);
 
-        if (! $authResult['ok']) {
+        if ($authResult->failed()) {
             return $authResult;
         }
 
-        $user = $authResult['user'] ?? null;
+        $user = $authResult->user();
         if (! $user instanceof User) {
-            return [
-                'ok' => false,
-                'code' => self::UNAUTHORIZED_CODE,
-                'msg' => 'Unauthorized',
-            ];
+            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
 
         foreach ($permissionCodes as $permissionCode) {
@@ -429,11 +357,7 @@ abstract class ApiController extends Controller
             }
         }
 
-        return [
-            'ok' => false,
-            'code' => self::FORBIDDEN_CODE,
-            'msg' => 'Forbidden',
-        ];
+        return ApiAuthResult::failure(self::FORBIDDEN_CODE, 'Forbidden');
     }
 
     protected function isSuperAdmin(User $user): bool
@@ -448,18 +372,22 @@ abstract class ApiController extends Controller
         return $roleCode === 'R_SUPER';
     }
 
-    private function requestId(): string
+    protected function requestId(): string
     {
-        $request = request();
-
-        return trim((string) ($request->attributes->get('request_id', '') ?? ''));
+        return RequestTraceContext::requestId();
     }
 
-    private function traceId(): string
+    protected function traceId(): string
     {
-        $request = request();
+        return RequestTraceContext::traceId();
+    }
 
-        return trim((string) ($request->attributes->get('trace_id', '') ?? ''));
+    protected function responseFactory(): ApiResponseFactory
+    {
+        /** @var ApiResponseFactory $factory */
+        $factory = app(ApiResponseFactory::class);
+
+        return $factory;
     }
 
     private function decodeCursorId(?string $token): ?int

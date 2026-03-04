@@ -23,8 +23,7 @@ final class ApiErrorResponse
             'code' => $code,
             'msg' => $message,
             'data' => $data,
-            'requestId' => trim((string) ($request->attributes->get('request_id', '') ?? '')),
-            'traceId' => trim((string) ($request->attributes->get('trace_id', '') ?? '')),
+            ...RequestTraceContext::payload($request),
         ], $httpStatus);
     }
 }

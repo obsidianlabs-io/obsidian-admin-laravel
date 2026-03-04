@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Auth\Services;
 
 use App\Domains\Access\Models\User;
+use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Support\ApiDateTime;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -12,31 +13,24 @@ use Laravel\Sanctum\PersonalAccessToken;
 final class AuthSessionContextService
 {
     /**
-     * @param  array{
-     *   ok: bool,
-     *   code: string,
-     *   msg: string,
-     *   user?: User,
-     *   token?: PersonalAccessToken
-     * }  $authResult
      * @return array{ok: false, code: string, msg: string}|array{
      *   ok: true,
      *   user: User,
      *   token: PersonalAccessToken
      * }
      */
-    public function requireAuthenticatedSession(array $authResult): array
+    public function requireAuthenticatedSession(ApiAuthResult $authResult): array
     {
-        if (! $authResult['ok']) {
+        if ($authResult->failed()) {
             return [
                 'ok' => false,
-                'code' => $authResult['code'],
-                'msg' => $authResult['msg'],
+                'code' => $authResult->code(),
+                'msg' => $authResult->message(),
             ];
         }
 
-        $user = $authResult['user'] ?? null;
-        $token = $authResult['token'] ?? null;
+        $user = $authResult->user();
+        $token = $authResult->token();
 
         if (! $user instanceof User || ! $token instanceof PersonalAccessToken) {
             return [

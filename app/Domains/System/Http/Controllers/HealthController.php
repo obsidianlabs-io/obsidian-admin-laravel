@@ -14,14 +14,12 @@ class HealthController extends ApiController
 
     public function live(): JsonResponse
     {
-        return response()->json([
+        return response()->json($this->responseFactory()->withTrace([
             'name' => config('app.name'),
             'service' => 'obsidian-admin-laravel',
             'status' => 'alive',
             'timestamp' => now()->toIso8601String(),
-            'requestId' => $this->requestIdPayload(),
-            'traceId' => $this->traceIdPayload(),
-        ]);
+        ]));
     }
 
     public function ready(): JsonResponse
@@ -30,17 +28,15 @@ class HealthController extends ApiController
         $exposeChecks = (bool) config('observability.health.expose_checks', true);
         $isReady = $snapshot['status'] !== 'fail';
 
-        return response()->json([
+        return response()->json($this->responseFactory()->withTrace([
             'name' => config('app.name'),
             'service' => 'obsidian-admin-laravel',
             'status' => $isReady ? 'ready' : 'not_ready',
             'ready' => $isReady,
             'timestamp' => now()->toIso8601String(),
-            'requestId' => $this->requestIdPayload(),
-            'traceId' => $this->traceIdPayload(),
             'context' => $snapshot['context'],
             'checks' => $exposeChecks ? $snapshot['checks'] : [],
-        ], $isReady ? 200 : 503);
+        ]), $isReady ? 200 : 503);
     }
 
     public function show(): JsonResponse
@@ -48,25 +44,13 @@ class HealthController extends ApiController
         $snapshot = $this->healthStatusService->snapshot();
         $exposeChecks = (bool) config('observability.health.expose_checks', true);
 
-        return response()->json([
+        return response()->json($this->responseFactory()->withTrace([
             'name' => config('app.name'),
             'service' => 'obsidian-admin-laravel',
             'status' => $snapshot['status'],
             'timestamp' => now()->toIso8601String(),
-            'requestId' => $this->requestIdPayload(),
-            'traceId' => $this->traceIdPayload(),
             'context' => $snapshot['context'],
             'checks' => $exposeChecks ? $snapshot['checks'] : [],
-        ]);
-    }
-
-    private function requestIdPayload(): string
-    {
-        return trim((string) (request()->attributes->get('request_id', '') ?? ''));
-    }
-
-    private function traceIdPayload(): string
-    {
-        return trim((string) (request()->attributes->get('trace_id', '') ?? ''));
+        ]));
     }
 }

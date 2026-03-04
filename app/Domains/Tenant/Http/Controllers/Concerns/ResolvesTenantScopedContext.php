@@ -52,11 +52,15 @@ trait ResolvesTenantScopedContext
             $authResult = $this->authenticateAndAuthorize($request, 'access-api', $permissionCode);
         }
 
-        if (! $authResult['ok']) {
-            return $authResult;
+        if ($authResult->failed()) {
+            return [
+                'ok' => false,
+                'code' => $authResult->code(),
+                'msg' => $authResult->message(),
+            ];
         }
 
-        $authUser = $authResult['user'] ?? null;
+        $authUser = $authResult->user();
         if (! $authUser instanceof User) {
             return [
                 'ok' => false,

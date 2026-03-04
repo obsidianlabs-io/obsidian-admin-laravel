@@ -13,6 +13,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Env;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -26,10 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands()
     ->withMiddleware(function (Middleware $middleware): void {
-        $trustedProxies = env('TRUSTED_PROXIES', 'REMOTE_ADDR');
-        $trustedProxyHeadersConfig = env('TRUSTED_PROXY_HEADERS', 'DEFAULT');
+        $trustedProxies = (string) Env::get('TRUSTED_PROXIES', 'REMOTE_ADDR');
+        $trustedProxyHeadersConfig = (string) Env::get('TRUSTED_PROXY_HEADERS', 'DEFAULT');
         $trustedProxyHeaders = TrustedProxyConfig::parseHeadersMask(
-            is_string($trustedProxyHeadersConfig) ? $trustedProxyHeadersConfig : null
+            $trustedProxyHeadersConfig
         ) ?? TrustedProxyConfig::defaultHeadersMask();
 
         if (is_string($trustedProxies) && trim($trustedProxies) !== '') {

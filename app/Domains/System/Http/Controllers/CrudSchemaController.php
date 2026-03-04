@@ -17,10 +17,10 @@ final class CrudSchemaController extends ApiController
     public function show(Request $request, string $resource): JsonResponse
     {
         $authResult = $this->authenticate($request, 'access-api');
-        if (! $authResult['ok']) {
-            return $this->error($authResult['code'], $authResult['msg']);
+        if ($authResult->failed()) {
+            return $this->error($authResult->code(), $authResult->message());
         }
-        $user = $authResult['user'] ?? null;
+        $user = $authResult->user();
         if (! $user instanceof User) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }

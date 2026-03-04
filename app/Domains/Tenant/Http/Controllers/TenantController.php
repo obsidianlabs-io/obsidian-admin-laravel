@@ -225,15 +225,15 @@ class TenantController extends ApiController
     private function resolveTenantConsoleContext(Request $request, string $permissionCode): array
     {
         $authResult = $this->authenticateAndAuthorize($request, 'access-api', $permissionCode);
-        if (! $authResult['ok']) {
+        if ($authResult->failed()) {
             return [
                 'ok' => false,
-                'code' => $authResult['code'],
-                'msg' => $authResult['msg'],
+                'code' => $authResult->code(),
+                'msg' => $authResult->message(),
             ];
         }
 
-        $user = $authResult['user'] ?? null;
+        $user = $authResult->user();
         if (! $user instanceof User) {
             return [
                 'ok' => false,
