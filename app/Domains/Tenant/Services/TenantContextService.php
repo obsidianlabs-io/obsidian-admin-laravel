@@ -8,6 +8,8 @@ use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\RoleScopeContext;
 use App\Domains\Shared\Auth\TenantContext;
+use App\Domains\Tenant\Models\Organization;
+use App\Domains\Tenant\Models\Team;
 use App\Domains\Tenant\Models\Tenant;
 use Illuminate\Http\Request;
 
@@ -24,6 +26,10 @@ class TenantContextService
     private const PLATFORM_TENANT_NAME = 'Platform';
 
     private const TENANT_INACTIVE_MESSAGE = 'Tenant is inactive';
+
+    private const ORGANIZATION_INACTIVE_MESSAGE = 'Organization is inactive';
+
+    private const TEAM_INACTIVE_MESSAGE = 'Team is inactive';
 
     public function resolveTenantContext(Request $request, User $user): TenantContext
     {
@@ -75,6 +81,11 @@ class TenantContextService
             return TenantContext::failure(self::UNAUTHORIZED_CODE, self::TENANT_INACTIVE_MESSAGE);
         }
 
+        $inactiveAssignmentMessage = $this->resolveInactiveOrganizationOrTeamMessage($user);
+        if ($inactiveAssignmentMessage !== null) {
+            return TenantContext::failure(self::FORBIDDEN_CODE, $inactiveAssignmentMessage);
+        }
+
         return TenantContext::success(
             tenantId: (int) $user->tenant->id,
             tenantName: (string) $user->tenant->name,
@@ -121,6 +132,11 @@ class TenantContextService
             return RoleScopeContext::failure(self::UNAUTHORIZED_CODE, self::TENANT_INACTIVE_MESSAGE);
         }
 
+        $inactiveAssignmentMessage = $this->resolveInactiveOrganizationOrTeamMessage($user);
+        if ($inactiveAssignmentMessage !== null) {
+            return RoleScopeContext::failure(self::FORBIDDEN_CODE, $inactiveAssignmentMessage);
+        }
+
         return RoleScopeContext::success(
             tenantId: (int) $user->tenant_id,
             isSuper: false
@@ -158,5 +174,37 @@ class TenantContextService
         $headerValue = is_string($headerTenantId) ? trim($headerTenantId) : '';
 
         return is_numeric($headerValue) ? (int) $headerValue : 0;
+    }
+
+    private function resolveInactiveOrganizationOrTeamMessage(User $user): ?string
+    {
+        $organizationId = $user->organization_id !== null ? (int) $user->organization_id : null;
+        $teamId = $user->team_id !== null ? (int) $user->team_id : null;
+
+        if ($organizationId === null && $teamId === null) {
+            return null;
+        }
+
+        $user->loadMissing('organization:id,status', 'team:id,status,organization_id');
+
+        if ($organizationId !== null) {
+            $organization = $user->getRelationValue('organization');
+            if (! $organization instanceof Organization || (string) $organization->status !== '1') {
+                return self::ORGANIZATION_INACTIVE_MESSAGE;
+            }
+        }
+
+        if ($teamId !== null) {
+            $team = $user->getRelationValue('team');
+            if (! $team instanceof Team || (string) $team->status !== '1') {
+                return self::TEAM_INACTIVE_MESSAGE;
+            }
+
+            if ($organizationId !== null && (int) $team->organization_id !== $organizationId) {
+                return self::TEAM_INACTIVE_MESSAGE;
+            }
+        }
+
+        return null;
     }
 }

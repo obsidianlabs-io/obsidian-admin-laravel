@@ -129,6 +129,10 @@ final class UserTenantScopeService
             if (! $organization) {
                 return OrganizationTeamBindingResult::failure('1002', 'Organization not found');
             }
+
+            if ((string) $organization->status !== '1') {
+                return OrganizationTeamBindingResult::failure('1002', 'Organization is inactive');
+            }
         }
 
         if ($teamId === null) {
@@ -144,6 +148,10 @@ final class UserTenantScopeService
 
         if (! $team) {
             return OrganizationTeamBindingResult::failure('1002', 'Team not found');
+        }
+
+        if ((string) $team->status !== '1') {
+            return OrganizationTeamBindingResult::failure('1002', 'Team is inactive');
         }
 
         if ($organization !== null && (int) $team->organization_id !== (int) $organization->id) {
