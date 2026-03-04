@@ -44,12 +44,14 @@ class PurgeSoftDeletedRecordsCommand extends Command
             $count = (int) (clone $query)->count();
             if ($count <= 0) {
                 $this->line(sprintf('%s: 0', $label));
+
                 continue;
             }
 
             if ($dryRun) {
                 $this->line(sprintf('%s: %d (dry-run)', $label, $count));
                 $totalPurged += $count;
+
                 continue;
             }
 
@@ -67,4 +69,3 @@ class PurgeSoftDeletedRecordsCommand extends Command
         return self::SUCCESS;
     }
 }
-

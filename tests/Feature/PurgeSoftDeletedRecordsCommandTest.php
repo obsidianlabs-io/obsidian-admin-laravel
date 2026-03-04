@@ -77,4 +77,3 @@ class PurgeSoftDeletedRecordsCommandTest extends TestCase
         $this->assertDatabaseHas('permissions', ['id' => $permission->id]);
     }
 }
-
