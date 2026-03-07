@@ -1,7 +1,7 @@
 <div align="center">
 	<img src="./public/favicon.svg" width="160" />
 	<h1>Obsidian Admin Laravel</h1>
-  <span>中文 | <a href="./README.en_US.md">English</a></span>
+  <span>English | <a href="./README.zh_CN.md">中文</a></span>
 </div>
 
 ---
@@ -9,53 +9,45 @@
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
 > [!NOTE]
-> `Obsidian Admin Laravel` 是一个严格类型化、生产可用、面向企业后台与 SaaS 平台的 Laravel 12 API 基线。它专为标准 Vue3/React 管理后台（如 Obsidian Admin Vue）提供可靠、可扩展、可长期维护的后端能力。
+> `Obsidian Admin Laravel` is a robust, production-ready enterprise backend boilerplate tailored specifically to act as the API foundation for standard Vue3/React admin dashboards (like Obsidian Admin Vue).
 
-## 核心定位
+## Quick Start (Start Here)
 
-- **企业后台 API 基线**：适合作为管理后台、运营后台、内控平台、SaaS 控制台的后端起点。
-- **严格边界而不是传统胖 MVC**：通过 `DTO / Action / Service / Result Data` 降低无结构数组与隐式耦合。
-- **多租户优先**：内建租户上下文、租户安全边界、作用域切换与跨租户防泄漏约束。
-- **适合长期演进**：内置 OpenAPI、审计、幂等、健康检查、CI 质量门禁与架构测试。
-- **高并发友好**：默认设计兼容 `RoadRunner / Octane` 的长驻进程约束。
+If you just want to get the API running quickly, choose one of the following:
 
-## 快速开始（先看这里）
+### Option A: Docker Development (Recommended, least setup friction)
 
-如果你只是想先把 API 跑起来，先选下面一种方式即可：
-
-### 方式 A：Docker 开发环境（推荐，最省环境配置）
-
-适合第一次运行项目、团队统一环境、或你想直接使用 `MySQL + Redis + Horizon + Reverb` 完整栈进行本地开发。
+Best for first-time setup, team-standardized environments, or when you want the full `MySQL + Redis + Horizon + Reverb` stack for local development.
 
 > [!TIP]
-> 如果你是 **Windows 原生环境**，推荐优先使用 Docker Desktop（或 WSL2）运行本项目。`Laravel Horizon` 依赖 `pcntl/posix`，Windows 原生 PHP 环境通常无法安装/运行。
+> If you are on **native Windows**, prefer Docker Desktop (or WSL2). `Laravel Horizon` depends on `pcntl/posix`, which is typically unavailable in native Windows PHP environments.
 
 ```bash
 git clone https://github.com/obsidianlabs-io/obsidian-admin-laravel.git
 cd obsidian-admin-laravel
 cp .env.example .env
 
-# 1) 先准备 vendor（开发 compose 会挂载源码；vendor 使用独立 volume）
+# 1) Prepare vendor first (dev compose bind-mounts source code; vendor is a dedicated volume)
 docker compose -f docker-compose.dev.yml run --rm composer
 
-# 2) 启动开发环境完整栈
+# 2) Start the full development stack
 docker compose -f docker-compose.dev.yml up -d --build
 docker compose -f docker-compose.dev.yml exec app php artisan key:generate
 docker compose -f docker-compose.dev.yml exec app php artisan migrate --force --seed
 ```
 
-健康检查：
+Health check:
 
 ```bash
 curl http://localhost:8080/api/health
 ```
 
 > [!NOTE]
-> 为了避免 Windows 下 `storage/logs/laravel.log` 偶发权限问题，开发环境已做两点处理：
-> 1) 容器日志默认输出到 `stderr`（使用 `docker logs` 查看）
-> 2) `storage` 与 `bootstrap/cache` 使用独立 Docker volume（不直接落在 Windows 挂载目录）
+> To avoid intermittent `storage/logs/laravel.log` permission errors on Windows, the dev stack now applies two defaults:
+> 1) container logs go to `stderr` (`docker logs`), and
+> 2) `storage` and `bootstrap/cache` use dedicated Docker volumes (not direct Windows bind-mounted folders).
 >
-> 如果你之前已启动过旧容器并遇到日志权限报错，可重建开发栈（会清空本地开发数据）：
+> If you previously ran an older stack and hit log permission errors, rebuild the dev stack (this resets local dev data):
 > ```bash
 > docker compose -f docker-compose.dev.yml down -v
 > docker compose -f docker-compose.dev.yml run --rm composer
@@ -63,12 +55,12 @@ curl http://localhost:8080/api/health
 > docker compose -f docker-compose.dev.yml exec app php artisan migrate --force --seed
 > ```
 
-### 方式 B：本地 PHP 原生开发（已有 PHP/Composer 环境）
+### Option B: Native PHP Development (Local)
 
-适合日常调试、断点开发、快速改代码。你可以使用本地 `MySQL + Redis`，也可以自行改成 `sqlite`。
+Best for day-to-day debugging and iterative development. You can use local `MySQL + Redis`, or switch `.env` to `sqlite` for a lightweight local setup.
 
 > [!WARNING]
-> **Windows 原生 PHP 环境**通常无法安装/运行 `Laravel Horizon`（依赖 `pcntl/posix`）。如果你不使用 Docker/WSL2，请使用 `php artisan queue:work` 作为本地队列 worker 替代，不要在 Windows 原生环境尝试运行 `php artisan horizon`。
+> **Native Windows PHP** typically cannot run `Laravel Horizon` (missing `pcntl/posix`). If you are not using Docker/WSL2, use `php artisan queue:work` as the local queue worker instead of `php artisan horizon`.
 
 ```bash
 git clone https://github.com/obsidianlabs-io/obsidian-admin-laravel.git
@@ -81,264 +73,256 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-运行测试：
+Run tests:
 
 ```bash
 composer run test
-# 使用 MySQL 配置执行测试
-composer run test:mysql
-# 使用 PostgreSQL 配置执行测试
-composer run test:pgsql
 ```
 
 > [!TIP]
-> 当前 `.env.example` 默认值面向 Docker（`MySQL + Redis`）。如果你走本地原生开发且不想启动 MySQL/Redis，请按需改 `.env`（例如改用 `sqlite`）。
+> `.env.example` is Docker-first (`MySQL + Redis`) by default. If you want native local development without those services, adjust `.env` first (for example, switch to `sqlite`).
 >
-> Windows 原生开发建议同时调整：
+> Suggested Windows-native local override:
 > ```env
-> # 本地先用同步审计，避免依赖 Horizon
+> # Simplest local option for audit logging during development
 > AUDIT_QUEUE_CONNECTION=sync
-> # 或保留队列，但用 queue:work 而不是 horizon
+> # Or keep queues enabled and run queue:work instead of horizon
 > # QUEUE_CONNECTION=database
 > ```
 
-## 简介
+## Introduction
 
-[`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) 是一个基于 **Laravel 12** 构建的、高度结构化且面向生产环境的后端模板。它不是传统“先堆功能、后补规范”的后台项目，而是从一开始就以 **清晰边界、严格类型、安全治理、多租户隔离、长期维护成本** 为核心目标来设计。
+[`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) is a highly structured, scalable, and secure backend template built on **Laravel 12**. Unlike standard monolithic applications with fat controllers, this project enforces strict **Clean Architecture** patterns, pushing business logic into specialized Services and using **Data Transfer Objects (DTOs)** for strict type safety. It features native true multi-tenancy, enterprise Role-Based Access Control (RBAC), built-in audit logging, and utilizes **Laravel Octane (via RoadRunner)** for ultra-high-performance execution.
 
-项目采用模块化单体（Modular Monolith）结构，将业务拆分到 `app/Domains/*` 中，并通过 **DTO、Query Action、Result/Data Object、架构测试与静态分析** 收紧系统边界。对于需要承接企业后台、内部平台、SaaS 控制台、配置中心、审计中心的团队，它提供的是一个可以持续扩展、而不是很快失控的 Laravel 基线。
+## The Vision
 
-## 创始愿景
+Obsidian was founded by **Boss · Beyond · Black** — three distinct forces united by one vision.
 
-Obsidian 由 **Boss · Beyond · Black** 创立 —— 三股独特的力量因同一个愿景而凝聚在一起。
+**Boss** embodied leadership and structure.
+**Beyond** represented innovation and the courage to challenge limits.
+**Black** stood for depth, precision, and strategic clarity.
 
-**Boss** 象征着卓越的领导力与严谨的体系架构。
-**Beyond** 代表着无尽的创新与打破界限的勇气。
-**Black** 意味着极致的深度、精准与战略性的清晰度。
+Though our journeys unfold apart, the foundation we forged remains eternal.
 
-尽管征途各自展开，我们共同铸就的基石恒久如初。
+Obsidian continues to evolve — rooted in resilience and order, marching steadfast toward enduring value.
 
-Obsidian 持续进化 —— 扎根韧性与秩序，坚定迈向长期价值。
+## Features
 
-## 特性
+### Architecture & Domain Design
 
-### 架构与领域设计
+- **Laravel 12 + PHP 8.2+** with support for `MySQL / PostgreSQL / SQLite` and `Redis` for cache/queues.
+- **Modular Monolith structure** organized by `app/Domains/*` (e.g. `Auth / Access / Tenant / System / Shared`).
+- **Layered design** following `Controller -> DTO -> Service -> Model` to reduce fat controllers.
+- **DTO-driven write flows** for safer, more maintainable request-to-domain boundaries.
+- **Dynamic CRUD Schema API** to power schema-driven frontend pages (forms/tables/search schemas).
 
-- **Laravel 12 + PHP 8.2+**：支持 `MySQL / PostgreSQL / SQLite`，默认适配 `Redis` 缓存与队列。
-- **模块化单体（Modular Monolith）**：按 `app/Domains/*` 组织业务（如 `Auth / Access / Tenant / System / Shared`），便于长期演进。
-- **清晰分层**：遵循 `Controller -> DTO -> Service -> Model` 的职责划分，减少“胖控制器”。
-- **DTO 模式**：关键写操作通过 DTO 承载输入，降低无结构数组在业务层蔓延的风险。
-- **动态 CRUD Schema API**：后端可输出页面 schema / 表格 schema，支撑前端配置化页面能力。
+### Multi-Tenancy & Access Control
 
-### 多租户与权限控制
+- **Platform + Tenant dual scope** (`No Tenant` platform scope and tenant-selected scope).
+- **Tenant context resolution** with centralized `X-Tenant-Id` handling and super admin tenant switching rules.
+- **Tenant safety boundaries** enforced through backend scope checks, database constraints, and cross-tenant tests.
+- **Tenant -> Organization -> Team model support** with user organization/team binding and strict backend consistency checks (team belongs to organization and tenant scope).
+- **RBAC (single user, single role)** with backend permission guards and frontend route/menu integration.
+- **Role Level governance** to prevent same-level and higher-level management operations.
+- **Permission grouping support** derived from permission code prefixes (e.g. `permission.view` -> `permission`).
 
-- **平台 / 租户双作用域**：支持 `No Tenant` 平台模式与租户内作用域切换。
-- **租户上下文解析**：统一处理 `X-Tenant-Id`、超级管理员租户切换、平台作用域限制。
-- **租户安全边界**：包含后端作用域约束、数据库约束与跨租户越权测试覆盖。
-- **Tenant -> Organization -> Team 结构能力**：支持租户下组织与团队管理，用户可绑定组织/团队，且后端强校验团队归属组织与租户一致性。
-- **RBAC（单用户单角色）**：用户绑定单角色，角色绑定权限，前后端联动控制菜单与接口访问。
-- **角色等级（Role Level）治理**：支持角色层级管理（如超级管理员 / 管理员 / 用户），限制同级与越级操作。
-- **权限分组自动化**：权限分组可由权限码前缀推导（例如 `permission.view` -> `permission`）。
+### Authentication & Security
 
-### 认证与安全能力
+- **Sanctum dual-token sessions** (access + refresh tokens) with remember-me TTL support.
+- **Multi-device session management** (session list, device alias, session revoke).
+- **Single-device login policy toggle** configurable per project.
+- **TOTP-based 2FA** with **replay protection** for one-time code reuse prevention.
+- **Login rate limiting and password policy** with configurable thresholds.
+- **Unified API error wrapper** (including `requestId` and `traceId`) for predictable client behavior.
+- **Security baseline checks** via `security:baseline` (CI-friendly policy gate).
 
-- **Sanctum Token 双令牌机制**：Access Token + Refresh Token，支持 Remember Me 会话时长。
-- **多端会话管理**：支持会话列表、设备别名、会话撤销（当前会话与其他会话）。
-- **单设备登录策略开关**：可按项目配置是否启用“登录即踢下其他设备”。
-- **TOTP 双重验证（2FA）**：支持管理员 2FA 流程，并包含 **TOTP 防重放保护**（Replay Protection）。
-- **登录限流与密码策略**：登录限流、强密码规则、可配置的安全基线阈值。
-- **统一 API 错误包装**：标准化 JSON 响应（含 `requestId` / `traceId`），避免裸异常页面。
-- **安全基线检查命令**：内置 `security:baseline`，可用于 CI 安全策略门禁。
+### Auditing, Config, and Platform Governance
 
-### 审计、配置与平台治理
+- **Audit Logs** for platform- and tenant-scoped action tracking.
+- **Audit Policy** with per-action enable/disable, sampling rate, retention days, and change history.
+- **Queued audit writes** for lower API latency under load (`Redis/Horizon` friendly).
+- **Feature Flags** with rollout percentages for gradual menu/feature rollout.
+- **Language management** for runtime translation content administration.
+- **Theme Config APIs** for platform-level frontend theme configuration.
+- **Project Profiles** to apply baseline env defaults and audit policy presets for different deployment styles.
 
-- **审计日志（Audit Logs）**：覆盖平台与租户范围的关键行为记录。
-- **审计策略（Audit Policy）**：支持按动作配置启用/禁用、采样率、保留天数，并记录变更历史。
-- **异步审计写入**：审计日志可通过队列异步写入（支持 `Redis/Horizon`），提升 API 响应性能。
-- **功能开关（Feature Flags）**：支持菜单/功能开关与灰度放量比例。
-- **语言管理（Language）**：支持多语言字典内容管理与运行时国际化配置。
-- **主题配置（Theme Config）**：提供平台级主题配置接口，供管理前端动态读取。
-- **项目配置模板（Project Profile）**：支持按预设快速应用一组安全/功能/审计策略配置。
+### Realtime, Performance & Observability
 
-### 实时、性能与可观测性
+- **Octane / RoadRunner compatibility** (including request-state leak safeguards).
+- **Laravel Reverb / WebSocket** foundation for realtime notifications and UI refresh.
+- **Horizon / Pulse integration** for queue and runtime observability (deployment-dependent).
+- **Health endpoints**: `/api/health`, `/api/health/live`, `/api/health/ready`.
+- **Tracing identifiers** with `traceparent` propagation and response `traceId`.
+- **Idempotency and optimistic-lock support** for safer write APIs.
+- **Trusted proxy configuration + validation command** for correct client IP handling behind reverse proxies.
 
-- **Octane / RoadRunner 兼容**：支持高并发长驻进程运行模式，并针对请求级状态做了兼容处理。
-- **Laravel Reverb / WebSocket**：预置实时广播基础设施，可用于系统通知与实时刷新。
-- **Horizon / Pulse 集成**：支持队列监控与运行时指标观测（依赖部署环境配置）。
-- **健康检查接口**：提供 `/api/health`、`/api/health/live`、`/api/health/ready`。
-- **链路追踪标识**：支持 `traceparent` 透传，并在响应中统一返回 `traceId`。
-- **幂等与乐观锁支持**：关键写接口支持幂等键与可选乐观锁控制，降低重复提交风险。
-- **代理可信链治理**：支持 `TRUSTED_PROXIES / TRUSTED_PROXY_HEADERS` 配置与自检命令。
+### Engineering & Quality Gates
 
-### 工程化与质量保障
+- **Pest / PHPUnit** coverage across feature, regression, command, and architecture tests.
+- **Larastan / PHPStan** static analysis for stronger typing and safer refactors.
+- **Laravel Pint** code style enforcement.
+- **Deptrac** domain boundary enforcement for modular monolith discipline.
+- **OpenAPI generation and linting** via `dedoc/scramble`, plus contract snapshot checks.
+- **CI quality gates** for tests, static analysis, style checks, proxy trust validation, and security baseline checks.
 
-- **Pest / PHPUnit 测试体系**：覆盖功能测试、回归测试、架构测试与命令测试。
-- **Larastan / PHPStan 静态分析**：提升类型安全与重构稳定性。
-- **Laravel Pint 代码风格**：统一格式规范，便于团队协作。
-- **Deptrac 领域边界约束**：防止跨模块随意依赖，守住模块化单体边界。
-- **OpenAPI 自动生成与校验**：基于 `dedoc/scramble` 输出文档，并支持 OpenAPI lint / 契约快照校验。
-- **CI Quality Gate**：可在 CI 中执行测试、静态分析、风格检查、代理配置检查、安全基线检查。
+## Ecosystem
 
-## 生态系统
+This backend is designed to pair perfectly with the following frontend:
+- **[Obsidian Admin Vue](https://github.com/obsidianlabs-io/obsidian-admin-vue)**: A clean, elegant administrative interface based on Vue3, Vite, NaiveUI, and TypeScript (Derived from Soybean Admin).
 
-此后端专为与以下前端完美配合而设计：
-- **[Obsidian Admin Vue](https://github.com/obsidianlabs-io/obsidian-admin-vue)**: 一个清新、优雅的管理后台UI，基于 Vue3, Vite, NaiveUI 和 TypeScript (衍生自 Soybean Admin)。
+## Usage
 
-## 使用
+**Environment Preparation**
 
-**环境准备**
-
-确保你的环境满足以下要求：
+Make sure your environment meets the following requirements:
 - **PHP**: >= 8.2
 - **Composer**: >= 2.x
-- **Database**: MySQL 8+ / PostgreSQL 14+ / SQLite（本地可用）
+- **Database**: MySQL 8+ / PostgreSQL 14+ / SQLite (local-only is fine)
 - **Cache**: Redis 6+
 
-**克隆项目**
+**Clone Project**
 
 ```bash
 git clone https://github.com/obsidianlabs-io/obsidian-admin-laravel.git
 ```
 
-**运行与部署（两种方式，二选一）**
+**Run and Deploy (Two Options, pick one)**
 
-您可以根据自身的技术栈选择使用传统的 PHP 原生方式进行本地开发，或者使用完全配置好的 Docker Compose 进行生产级部署。
+You can launch the backend using the traditional PHP Artisan environment for active development, or utilize the fully provisioned Docker Compose stack for a production-ready setup.
 
-### 方式一：本地 PHP 原生开发
+### Option 1: Native PHP Development (Local)
 
-如果您在本地安装了 `php` 和 `composer`，可以使用传统的 Artisan 命令启动。
+If you have `php` and `composer` installed locally, you can use traditional Artisan commands.
 
 > [!TIP]
-> `.env.example` 默认是 Docker 友好的 `MySQL + Redis` 配置；如果你本地没有这些服务，请先调整 `.env` 后再执行迁移。
+> `.env.example` is Docker-friendly by default (`MySQL + Redis`). If those services are not available locally, update `.env` before running migrations.
 
 ```bash
-# 1. 进入项目目录并复制环境变量文件
+# 1. Enter the project directory and copy the environment file
 cd obsidian-admin-laravel
 cp .env.example .env
 
-# 2. 安装 Composer 依赖
+# 2. Install Composer dependencies
 composer install
 
-# 3. 生成应用密钥
+# 3. Generate the application key
 php artisan key:generate
 
-# 4. 运行数据库迁移和填充（确保你的数据库配置可用）
+# 4. Run migrations and seeders (ensure your configured database is available)
 php artisan migrate --seed
 
-# 5. 启动开发服务器
+# 5. Start the development server
 php artisan serve
 
-# 或使用 RoadRunner/Octane 以获得极致性能
+# Or using RoadRunner/Octane for high performance
 php artisan octane:start
 ```
 
-**运行测试用例**
+**Run Test Suite**
 
 ```bash
 composer run test
-composer run test:mysql
-composer run test:pgsql
 ```
 
-### 方式二：Docker 容器化生产级部署
+### Option 2: Docker Containerized Deployment (Production)
 
-项目内置了生产 Compose 配置，采用镜像化部署方式（不挂载宿主机源码目录），包含 `PHP-FPM`、`Nginx`、`MySQL`、`Redis`、`Horizon` 队列监听器等服务。
+The project ships with a production Compose configuration using an image-based deployment model (no host source bind mount), including `PHP-FPM`, `Nginx`, `MySQL`, `Redis`, and `Horizon` queue listeners.
 
-**1. 一键启动所有服务（生产镜像化部署）**
+**1. Start all services (production image-based deployment)**
 
 ```bash
 docker compose -f docker-compose.production.yml up -d --build
 ```
 
-**2. 首次启动后加载数据**
+**2. Load data after the first start**
 
 > [!IMPORTANT]
-> 每次使用 `down -v` 清空数据卷后重启，都需要重新执行此命令。
+> You must re-run this command whenever you recreate the stack with `down -v` and lose your data volumes.
 
 ```bash
 docker exec obsidian-admin-laravel-app-1 php artisan migrate --force --seed
 ```
 
-**确保 `.env` 队列和缓存配置正确**
+**Ensure `.env` queue and cache drivers are correct**
 
 > [!WARNING]
-> 项目使用 Laravel Horizon 处理异步队列任务（如审计日志）。Horizon **仅支持 Redis 驱动**，如果设置为 `database` 则队列任务不会被自动处理。
+> This project uses Laravel Horizon to process async queue jobs (e.g. audit logs). Horizon **only supports the Redis driver**. If set to `database`, queued jobs will NOT be processed automatically.
 >
-> 请确保 `.env` 中的配置如下：
+> Make sure your `.env` contains:
 > ```env
 > QUEUE_CONNECTION=redis
 > CACHE_STORE=redis
 > ```
-> 修改 `.env` 后，必须使用 `--force-recreate` 重建容器才能生效（普通 `restart` 不会重新加载环境变量）：
+> After modifying `.env`, you must recreate containers with `--force-recreate` (a simple `restart` will NOT reload environment variables):
 > ```bash
 > docker compose -f docker-compose.production.yml up -d --force-recreate
 > ```
 
-**验证服务健康状态**
+**Verify service health**
 
 ```bash
 curl http://localhost:8080/api/health
 ```
 
-返回 `"status": "ok"` 表示所有服务运行正常。
+A response of `"status": "ok"` confirms all services are running correctly.
 
-**停止服务**
+**Stop services**
 
 ```bash
-# 仅停止服务（保留数据卷）
+# Stop containers only (data volumes preserved)
 docker compose -f docker-compose.production.yml down
 
-# 停止并清空所有数据卷（慎用）
+# Stop and remove all data volumes (destructive)
 docker compose -f docker-compose.production.yml down -v
 ```
 
-| 服务 | 说明 | 映射端口 |
+| Service | Description | Exposed Port |
 |---|---|---|
-| `app` | PHP-FPM 应用容器 | 9000 (内部) |
-| `nginx` | Web 服务器 / 反向代理 | **8080** |
-| `mysql` | MySQL 8.0 数据库 | 3306 |
-| `redis` | Redis 7 缓存与队列 | 6379 |
-| `horizon` | Laravel Horizon 队列管理 | - |
-| `scheduler` | Laravel 任务调度器 | - |
-| `pulse-worker` | Laravel Pulse 监控Worker | - |
-| `reverb` | Laravel Reverb WebSocket 服务器 | 6001 |
+| `app` | PHP-FPM application container | 9000 (internal) |
+| `nginx` | Web server / reverse proxy | **8080** |
+| `mysql` | MySQL 8.0 database | 3306 |
+| `redis` | Redis 7 cache & queue | 6379 |
+| `horizon` | Laravel Horizon queue dashboard | - |
+| `scheduler` | Laravel task scheduler | - |
+| `pulse-worker` | Laravel Pulse monitoring worker | - |
+| `reverb` | Laravel Reverb WebSocket server | 6001 |
 
-## 常用命令
+## Common Commands
 
 ```bash
-# 运行测试（Pest）
+# Run tests (Pest)
 composer run test
 
-# 代码格式检查
+# Code style check
 vendor/bin/pint --test
 
-# 静态分析
+# Static analysis
 vendor/bin/phpstan analyse --memory-limit=1G
 
-# 安全基线检查（严格模式）
+# Security baseline check (strict)
 php artisan security:baseline --strict
 
-# 代理可信链配置检查（严格模式）
+# Trusted proxy config validation (strict)
 php artisan http:proxy-trust-check --strict
 
-# 生成/校验 OpenAPI 文档（如已启用文档）
+# OpenAPI / contract checks
 php artisan openapi:lint
 php artisan api:contract-snapshot --check
 ```
 
-## 常用入口
+## Common Endpoints / Consoles
 
-- 健康检查：`GET /api/health`
-- OpenAPI 文档：`/docs/api`（取决于 `API_DOCS_ENABLED`）
-- Horizon 面板：`/horizon`（取决于部署与权限配置）
-- Pulse 面板：`/ops/pulse`（取决于部署与权限配置）
+- Health check: `GET /api/health`
+- OpenAPI docs: `/docs/api` (depends on `API_DOCS_ENABLED`)
+- Horizon: `/horizon` (depends on deployment and auth config)
+- Pulse: `/ops/pulse` (depends on deployment and auth config)
 
-## 鸣谢
+## Acknowledgements
 
-Obsidian Admin Laravel 架构的灵感来源于一系列卓越的开源项目和架构思想，特别感谢 **[DTO](https://github.com/spatie/data-transfer-object)** (Spatie) 和现代化单体架构 (Modular Monolith) 的布道者们，让本项目从 Controller 乱象中重生。
+Obsidian Admin Laravel's architecture draws profound inspiration from exceptional open-source projects and architectural minds. Special thanks to **[DTO](https://github.com/spatie/data-transfer-object)** (Spatie) and the evangelists of Modular Monolithic applications for heavily influencing this structural paradigm shift away from bloated controllers.
 
-## 开源协议
+## License
 
-本项目基于开源 [MIT License](./LICENSE) 协议发布。
+This project is released under the [MIT License](./LICENSE).
 
 *Copyright © 2026 Obsidian Labs.*
