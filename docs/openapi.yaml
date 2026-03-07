@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Obsidian Admin Laravel API
-  version: 1.0.0
+  version: 1.2.0
   description: |
     Obsidian Admin Laravel API contract.
     All endpoints return a wrapper payload: `code`, `msg`, `data`, `requestId`, `traceId`.
@@ -32,71 +32,689 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                userName: { type: string }
-                email: { type: string, format: email }
-                password: { type: string }
-                rememberMe: { type: boolean }
-                otpCode: { type: string }
+              $ref: '#/components/schemas/LoginRequestBody'
       responses:
         '200':
           description: Obsidian response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequestBody'
+      responses:
+        '200':
+          description: Registration response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/forgot-password:
+    post:
+      summary: Send password reset link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequestBody'
+      responses:
+        '200':
+          description: Forgot password response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/reset-password:
+    post:
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequestBody'
+      responses:
+        '200':
+          description: Reset password response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/refreshToken:
+    post:
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequestBody'
+      responses:
+        '200':
+          description: Refresh token response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
   /auth/getUserInfo:
     get:
       summary: Current user info
       responses:
-        '200': { description: OK }
-  /user/list:
+        '200':
+          description: Current user info response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/menus:
     get:
-      summary: User listing
+      summary: Current user menus and route rules
+      responses:
+        '200':
+          description: Menus response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/profile:
+    get:
+      summary: Get current user profile
+      responses:
+        '200':
+          description: Profile response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    put:
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequestBody'
+      responses:
+        '200':
+          description: Profile update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/preferred-locale:
+    put:
+      summary: Update preferred locale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePreferredLocaleRequestBody'
+      responses:
+        '200':
+          description: Preferred locale update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/preferences:
+    put:
+      summary: Update current user preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserPreferencesRequestBody'
+      responses:
+        '200':
+          description: User preferences update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/timezones:
+    get:
+      summary: List supported timezones
+      responses:
+        '200':
+          description: Timezone options response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/sessions:
+    get:
+      summary: List current user auth sessions
+      responses:
+        '200':
+          description: Sessions response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/sessions/{sessionId}/alias:
+    put:
+      summary: Update auth session alias
       parameters:
-        - in: header
-          name: X-Tenant-Id
-          schema: { type: string }
+        - $ref: '#/components/parameters/SessionIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSessionAliasRequestBody'
       responses:
-        '200': { description: OK }
-  /role/list:
-    get:
-      summary: Role listing
+        '200':
+          description: Session alias update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/sessions/{sessionId}:
+    delete:
+      summary: Revoke an auth session
+      parameters:
+        - $ref: '#/components/parameters/SessionIdPath'
       responses:
-        '200': { description: OK }
-  /permission/list:
-    get:
-      summary: Permission listing
-      responses:
-        '200': { description: OK }
-  /tenant/list:
-    get:
-      summary: Tenant listing
-      responses:
-        '200': { description: OK }
-  /auth/forgot-password:
+        '200':
+          description: Session revoke response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/logout:
     post:
-      summary: Send password reset link
+      summary: Logout current session
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequestBody'
       responses:
-        '200': { description: OK }
-  /auth/reset-password:
-    post:
-      summary: Reset password with token
+        '200':
+          description: Logout response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/me:
+    get:
+      summary: Get current authenticated user
       responses:
-        '200': { description: OK }
+        '200':
+          description: Current user response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth/error:
+    get:
+      summary: Return a custom backend error payload for testing
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: msg
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Custom error response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
   /auth/2fa/setup:
     post:
       summary: Generate TOTP secret
       responses:
-        '200': { description: OK }
+        '200':
+          description: Two-factor setup response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
   /auth/2fa/enable:
     post:
       summary: Enable TOTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorCodeRequestBody'
       responses:
-        '200': { description: OK }
+        '200':
+          description: Two-factor enable response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
   /auth/2fa/disable:
     post:
       summary: Disable TOTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorCodeRequestBody'
       responses:
-        '200': { description: OK }
+        '200':
+          description: Two-factor disable response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /user/list:
+    get:
+      summary: User listing
+      parameters:
+        - $ref: '#/components/parameters/TenantHeader'
+        - in: query
+          name: current
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: keyword
+          schema: { type: string }
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/EnableStatus'
+        - in: query
+          name: userName
+          schema: { type: string }
+        - in: query
+          name: userEmail
+          schema: { type: string }
+        - in: query
+          name: roleCode
+          schema: { type: string }
+      responses:
+        '200':
+          description: User list response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /user:
+    post:
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPayload'
+      responses:
+        '200':
+          description: User create response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /user/{id}:
+    put:
+      summary: Update user
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPayload'
+      responses:
+        '200':
+          description: User update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      summary: Delete user
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: User delete response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /user/{id}/role:
+    put:
+      summary: Assign role to user
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignUserRoleRequestBody'
+      responses:
+        '200':
+          description: User role assignment response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /role/list:
+    get:
+      summary: Role listing
+      parameters:
+        - in: query
+          name: current
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: keyword
+          schema: { type: string }
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/EnableStatus'
+        - in: query
+          name: level
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Role list response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /role/all:
+    get:
+      summary: List active roles for selectors
+      parameters:
+        - in: query
+          name: manageableOnly
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Role selector response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /role/assignable-permissions:
+    get:
+      summary: List permissions assignable to roles
+      responses:
+        '200':
+          description: Assignable permissions response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /role:
+    post:
+      summary: Create role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolePayload'
+      responses:
+        '200':
+          description: Role create response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /role/{id}:
+    put:
+      summary: Update role
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolePayload'
+      responses:
+        '200':
+          description: Role update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      summary: Delete role
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Role delete response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /role/{id}/permissions:
+    put:
+      summary: Sync role permissions
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleSyncPermissionsRequestBody'
+      responses:
+        '200':
+          description: Role permissions sync response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /permission/list:
+    get:
+      summary: Permission listing
+      parameters:
+        - in: query
+          name: current
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: keyword
+          schema: { type: string }
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/EnableStatus'
+        - in: query
+          name: group
+          schema: { type: string }
+      responses:
+        '200':
+          description: Permission list response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /permission/all:
+    get:
+      summary: List active permissions for selectors
+      responses:
+        '200':
+          description: Permission selector response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /permission:
+    post:
+      summary: Create permission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionPayload'
+      responses:
+        '200':
+          description: Permission create response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /permission/{id}:
+    put:
+      summary: Update permission
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionPayload'
+      responses:
+        '200':
+          description: Permission update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      summary: Delete permission
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Permission delete response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /tenant/list:
+    get:
+      summary: Tenant listing
+      parameters:
+        - in: query
+          name: current
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: keyword
+          schema: { type: string }
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/EnableStatus'
+      responses:
+        '200':
+          description: Tenant list response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /tenant/all:
+    get:
+      summary: List active tenants for selectors
+      responses:
+        '200':
+          description: Tenant selector response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /tenant:
+    post:
+      summary: Create tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantPayload'
+      responses:
+        '200':
+          description: Tenant create response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /tenant/{id}:
+    put:
+      summary: Update tenant
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantPayload'
+      responses:
+        '200':
+          description: Tenant update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      summary: Delete tenant
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Tenant delete response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
 components:
+  parameters:
+    TenantHeader:
+      in: header
+      name: X-Tenant-Id
+      schema:
+        type: string
+      required: false
+      description: Optional tenant override for super-admin scope.
+    IdPath:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    SessionIdPath:
+      in: path
+      name: sessionId
+      required: true
+      schema:
+        type: string
+        maxLength: 128
   schemas:
     ApiResponse:
       type: object
@@ -128,3 +746,270 @@ components:
         data: {}
         requestId: 177f2e17-c4ad-4976-b681-fd3230884f15
         traceId: 44ad0b87d4a14bf19f9be41ce53bff7a
+    EnableStatus:
+      type: string
+      enum: ['1', '2']
+    LoginRequestBody:
+      type: object
+      required:
+        - userName
+        - password
+        - rememberMe
+      properties:
+        userName:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        rememberMe:
+          type: boolean
+        otpCode:
+          type: string
+        locale:
+          type: string
+    RegisterRequestBody:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    ForgotPasswordRequestBody:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+    ResetPasswordRequestBody:
+      type: object
+      required:
+        - token
+        - email
+        - password
+        - password_confirmation
+      properties:
+        token:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        password_confirmation:
+          type: string
+    RefreshTokenRequestBody:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+    LogoutRequestBody:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+    UpdateSessionAliasRequestBody:
+      type: object
+      properties:
+        deviceAlias:
+          type: string
+          maxLength: 80
+    UpdatePreferredLocaleRequestBody:
+      type: object
+      required:
+        - locale
+      properties:
+        locale:
+          type: string
+        preferredLocale:
+          type: string
+          deprecated: true
+    UpdateUserPreferencesRequestBody:
+      type: object
+      properties:
+        themeSchema:
+          type: string
+          enum: [light, dark, auto]
+        timezone:
+          type: string
+          maxLength: 64
+      additionalProperties: false
+    UpdateProfileRequestBody:
+      type: object
+      required:
+        - userName
+        - email
+      properties:
+        userName:
+          type: string
+        email:
+          type: string
+          format: email
+        currentPassword:
+          type: string
+        password:
+          type: string
+        password_confirmation:
+          type: string
+        timezone:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          type: string
+        updateTime:
+          type: string
+    TwoFactorCodeRequestBody:
+      type: object
+      required:
+        - otpCode
+      properties:
+        otpCode:
+          type: string
+          pattern: '^[0-9]{6}$'
+    UserPayload:
+      type: object
+      required:
+        - userName
+        - email
+        - roleCode
+      properties:
+        userName:
+          type: string
+        email:
+          type: string
+          format: email
+        roleCode:
+          type: string
+        organizationId:
+          type: integer
+          nullable: true
+        teamId:
+          type: integer
+          nullable: true
+        status:
+          $ref: '#/components/schemas/EnableStatus'
+        password:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          type: string
+        updateTime:
+          type: string
+    AssignUserRoleRequestBody:
+      type: object
+      required:
+        - roleCode
+      properties:
+        roleCode:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          type: string
+        updateTime:
+          type: string
+    TenantPayload:
+      type: object
+      required:
+        - tenantCode
+        - tenantName
+      properties:
+        tenantCode:
+          type: string
+        tenantName:
+          type: string
+        status:
+          $ref: '#/components/schemas/EnableStatus'
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          type: string
+        updateTime:
+          type: string
+    PermissionPayload:
+      type: object
+      required:
+        - permissionCode
+        - permissionName
+      properties:
+        permissionCode:
+          type: string
+        permissionName:
+          type: string
+        group:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/EnableStatus'
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          type: string
+        updateTime:
+          type: string
+    RolePayload:
+      type: object
+      required:
+        - roleCode
+        - roleName
+        - level
+      properties:
+        roleCode:
+          type: string
+        roleName:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/EnableStatus'
+        level:
+          type: integer
+          minimum: 1
+          maximum: 999
+        permissionCodes:
+          type: array
+          items:
+            type: string
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          type: string
+        updateTime:
+          type: string
+    RoleSyncPermissionsRequestBody:
+      type: object
+      required:
+        - permissionCodes
+      properties:
+        permissionCodes:
+          type: array
+          items:
+            type: string
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          type: string
+        updateTime:
+          type: string
