@@ -649,6 +649,7 @@ class AuthApiTest extends TestCase
             'currentPassword' => '123456',
             'password' => 'AdminPrime123',
             'password_confirmation' => 'AdminPrime123',
+            'timezone' => 'Asia/Kuala_Lumpur',
         ], [
             'Authorization' => 'Bearer '.$token,
         ]);
@@ -656,11 +657,17 @@ class AuthApiTest extends TestCase
         $updateResponse->assertOk()
             ->assertJsonPath('code', '0000')
             ->assertJsonPath('data.userName', 'AdminPrime')
-            ->assertJsonPath('data.email', 'admin.prime@obsidian.local');
+            ->assertJsonPath('data.email', 'admin.prime@obsidian.local')
+            ->assertJsonPath('data.timezone', 'Asia/Kuala_Lumpur');
 
         $this->assertDatabaseHas('users', [
             'name' => 'AdminPrime',
             'email' => 'admin.prime@obsidian.local',
+        ]);
+        $adminUser = User::query()->where('name', 'AdminPrime')->firstOrFail();
+        $this->assertDatabaseHas('user_preferences', [
+            'user_id' => $adminUser->id,
+            'timezone' => 'Asia/Kuala_Lumpur',
         ]);
 
         $reLoginResponse = $this->postJson('/api/auth/login', [

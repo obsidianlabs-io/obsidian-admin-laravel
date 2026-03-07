@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\Auth\Http\Controllers;
 
 use App\Domains\Access\Models\UserPreference;
-use App\DTOs\User\UpdateUserDTO;
+use App\Domains\Auth\Actions\UpdateOwnProfileAction;
+use App\DTOs\User\UpdateOwnProfileDTO;
 use App\Http\Requests\Api\Auth\UpdatePreferredLocaleRequest;
 use App\Http\Requests\Api\Auth\UpdateProfileRequest;
 use App\Http\Requests\Api\Auth\UpdateUserPreferencesRequest;
@@ -13,8 +14,6 @@ use App\Support\ApiDateTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class UserProfileController extends AbstractUserController
 {
@@ -115,7 +114,7 @@ class UserProfileController extends AbstractUserController
         return $this->success($this->resolveProfile($user));
     }
 
-    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    public function updateProfile(UpdateProfileRequest $request, UpdateOwnProfileAction $updateOwnProfile): JsonResponse
     {
         $authResult = $this->resolveAuthenticatedUser($request);
         if ($authResult->failed()) {
@@ -130,59 +129,29 @@ class UserProfileController extends AbstractUserController
         }
 
         $validated = $request->validated();
-        $uniqueValidator = Validator::make($validated, [
-            'userName' => ['required', 'string', 'max:255', Rule::unique('users', 'name')->ignore($user->id)],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-        ]);
-        if ($uniqueValidator->fails()) {
-            return $this->error(self::PARAM_ERROR_CODE, $uniqueValidator->errors()->first());
-        }
-
-        $passwordValidator = Validator::make($validated, [
-            'password' => ['nullable', 'string', 'max:100', $this->strongPasswordRule()],
-        ]);
-        if ($passwordValidator->fails()) {
-            return $this->error(self::PARAM_ERROR_CODE, $passwordValidator->errors()->first());
-        }
-
-        $oldValues = [
-            'userName' => $user->name,
-            'email' => $user->email,
-        ];
-
-        $payload = [
-            'name' => trim((string) $validated['userName']),
-            'email' => trim((string) $validated['email']),
-        ];
-
         $password = (string) ($validated['password'] ?? '');
         if ($password !== '') {
             $currentPassword = (string) ($validated['currentPassword'] ?? '');
             if (! Hash::check($currentPassword, $user->password)) {
                 return $this->error(self::PARAM_ERROR_CODE, 'Current password is incorrect');
             }
-
-            $payload['password'] = $password;
         }
 
-        $this->userService->update($user, new UpdateUserDTO(
-            name: $payload['name'],
-            email: $payload['email'],
-            password: $payload['password'] ?? null,
-            status: (string) $user->status,
-            roleId: (int) $user->role_id,
-            tenantId: $user->tenant_id ? (int) $user->tenant_id : null,
+        $result = $updateOwnProfile->handle($user, new UpdateOwnProfileDTO(
+            userName: trim((string) $validated['userName']),
+            email: trim((string) $validated['email']),
+            password: $password !== '' ? $password : null,
+            timezone: array_key_exists('timezone', $validated) ? (string) $validated['timezone'] : null,
         ));
+        ApiDateTime::assignRequestTimezone($request, $result->timezone());
+
         $this->auditLogService->record(
             action: 'user.profile.update',
             auditable: $user,
             actor: $user,
             request: $request,
-            oldValues: $oldValues,
-            newValues: [
-                'userName' => $user->name,
-                'email' => $user->email,
-            ],
+            oldValues: $result->oldValues(),
+            newValues: $result->newValues(),
             tenantId: $user->tenant_id ? (int) $user->tenant_id : null
         );
 
