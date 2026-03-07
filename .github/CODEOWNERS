@@ -1,0 +1,7 @@
+# Default owners.
+# Replace the email with a GitHub user or org/team handle once your review team is formalized.
+* obsidianlabs.tech@gmail.com
+
+# Governance and release configuration.
+/.github/ obsidianlabs.tech@gmail.com
+/docs/ obsidianlabs.tech@gmail.com

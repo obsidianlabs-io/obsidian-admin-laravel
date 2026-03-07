@@ -43,7 +43,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 - Dismiss stale pull request approvals when new commits are pushed:
   开启
 - Require review from code owners:
-  如果后面补 `CODEOWNERS` 再开启
+  开启
 - Require status checks to pass before merging:
   开启
 - Require branches to be up to date before merging:
@@ -87,6 +87,18 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 
 - `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/.github/workflows/ci.yml`
 - `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/.github/workflows/quality.yml`
+
+## 4.5. CODEOWNERS
+
+当前仓库已包含：
+
+- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/.github/CODEOWNERS`
+
+当前使用维护邮箱作为默认 owner，这样语法有效、不会依赖一个尚未创建的 GitHub team。
+
+如果后面你建立了正式团队，再把 owner 替换成：
+
+- `@obsidianlabs-io/<team-name>`
 
 ## 5. Actions Permissions
 
