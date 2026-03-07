@@ -11,7 +11,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 - Description:
   `Obsidian Admin Laravel is a production-ready Laravel 12 backend template built for enterprise admin systems, internal platforms, and SaaS products. It emphasizes strict typing, domain-driven structure, tenant-safe data isolation, auditability, and long-term maintainability.`
 - About:
-  `Strictly-typed Laravel 12 admin backend with DDD boundaries, multi-tenancy, audit logs, OpenAPI generation, and Octane-friendly architecture.`
+  `Strictly-typed Laravel 12 admin backend with DDD boundaries, multi-tenancy, audit logs, OpenAPI generation, and official Octane integration.`
 - Topics:
   `laravel laravel12 php php82 api backend ddd clean-architecture multi-tenancy saas rbac audit-logs openapi scramble sanctum roadrunner octane redis horizon reverb pest phpstan deptrac postgresql mysql`
 - Website:

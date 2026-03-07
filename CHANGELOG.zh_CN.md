@@ -7,6 +7,16 @@
 
 ---
 
+## [Unreleased]
+
+### ✨ 新增
+- 正式接入官方 `laravel/octane`，并以 `RoadRunner` 作为默认运行时路径。
+- 新增已提交的 `config/octane.php`，以及 `octane:install / octane:start / octane:reload / octane:stop` Composer 快捷脚本。
+
+### 🔧 调整
+- 将自定义的请求级状态重置逻辑迁移到官方 Octane listener 流程中。
+- 明确区分“仓库内已提交的 Octane 配置”与“本机需要单独初始化的 RoadRunner 二进制”。
+
 ## [1.1.0] - 2026-03-03
 
 ### ✨ 新增
@@ -31,7 +41,7 @@
 
 ### ✨ 特性 (Features)
 - **核心框架**：Laravel 12 (PHP 8.2+)。
-- **极致性能**：原生预配置并支持基于 **RoadRunner 提供驱动的 Laravel Octane**，为高并发 API 请求提供最强吞吐量。
+- **高并发友好**：默认代码结构已针对 **Laravel Octane** 的长驻 worker 约束做兼容处理，团队可按需接入官方 Octane 包。
 - **领域驱动设计 (DDD)**：完全摒弃了传统的全局 `app/Http/Controllers` 目录。将核心逻辑深度重构拆分为高内聚的 `app/Domains` (例如 Auth, Tenant, System 领域)。
 - **物理架构守卫 (Deptrac)**：深度集成 `qossmic/deptrac`，在 CI/CD 中通过物理规则强行约束领域之间的互相调用。彻底杜绝未经授权的跨领域“意大利面条”代码依赖。
 - **严格的数据传输对象 (DTOs)**：抛弃了不可靠的纯数组(Array)数据传递机制。引入了原生的 PHP 8.2 Readonly DTO 雷厉风行地规范 Controller 与底层 Service 层间的入参，保障绝对的类型安全。

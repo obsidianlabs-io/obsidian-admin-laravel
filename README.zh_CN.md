@@ -10,6 +10,8 @@
 
 > [!NOTE]
 > `Obsidian Admin Laravel` 是一个严格类型化、生产可用、面向企业后台与 SaaS 平台的 Laravel 12 API 基线。它专为标准 Vue3/React 管理后台（如 Obsidian Admin Vue）提供可靠、可扩展、可长期维护的后端能力。
+>
+> 当前仓库已经包含官方 `Laravel Octane` 集成，并默认面向 `RoadRunner` 运行时。需要注意的是，RoadRunner 二进制仍然是机器级文件，需要在本地初始化，因此在使用前请先阅读 [`docs/octane.md`](./docs/octane.md)。
 
 ## 核心定位
 
@@ -17,7 +19,7 @@
 - **严格边界而不是传统胖 MVC**：通过 `DTO / Action / Service / Result Data` 降低无结构数组与隐式耦合。
 - **多租户优先**：内建租户上下文、租户安全边界、作用域切换与跨租户防泄漏约束。
 - **适合长期演进**：内置 OpenAPI、审计、幂等、健康检查、CI 质量门禁与架构测试。
-- **高并发友好**：默认设计兼容 `RoadRunner / Octane` 的长驻进程约束。
+- **高并发友好**：项目已正式接入 `Laravel Octane`，并针对长驻 worker 的状态隔离做了额外处理。
 
 ## 快速开始（先看这里）
 
@@ -162,7 +164,7 @@ Obsidian 持续进化 —— 扎根韧性与秩序，坚定迈向长期价值。
 
 ### 实时、性能与可观测性
 
-- **Octane / RoadRunner 兼容**：支持高并发长驻进程运行模式，并针对请求级状态做了兼容处理。
+- **官方 Laravel Octane 集成**：默认以 `RoadRunner` 为主路径，并已处理请求级状态泄漏风险。
 - **Laravel Reverb / WebSocket**：预置实时广播基础设施，可用于系统通知与实时刷新。
 - **Horizon / Pulse 集成**：支持队列监控与运行时指标观测（依赖部署环境配置）。
 - **健康检查接口**：提供 `/api/health`、`/api/health/live`、`/api/health/ready`。
@@ -228,9 +230,12 @@ php artisan migrate --seed
 # 5. 启动开发服务器
 php artisan serve
 
-# 或使用 RoadRunner/Octane 以获得极致性能
-php artisan octane:start
+# 如需启用本机的 RoadRunner 二进制并运行 Octane
+php artisan octane:install --server=roadrunner
+php artisan octane:start --server=roadrunner
 ```
+
+关于当前仓库的 Octane 支持模型、本地二进制初始化方式以及生产建议，请查看 [`docs/octane.md`](./docs/octane.md)。
 
 **运行测试用例**
 

@@ -10,6 +10,8 @@
 
 > [!NOTE]
 > `Obsidian Admin Laravel` is a robust, production-ready enterprise backend boilerplate tailored specifically to act as the API foundation for standard Vue3/React admin dashboards (like Obsidian Admin Vue).
+>
+> The repository now ships with official Laravel Octane integration and RoadRunner-oriented defaults. The machine-specific RoadRunner binary is still generated locally, so review [`docs/octane.md`](./docs/octane.md) before using Octane in development or production.
 
 ## Quick Start (Start Here)
 
@@ -92,7 +94,7 @@ composer run test
 
 ## Introduction
 
-[`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) is a highly structured, scalable, and secure backend template built on **Laravel 12**. Unlike standard monolithic applications with fat controllers, this project enforces strict **Clean Architecture** patterns, pushing business logic into specialized Services and using **Data Transfer Objects (DTOs)** for strict type safety. It features native true multi-tenancy, enterprise Role-Based Access Control (RBAC), built-in audit logging, and utilizes **Laravel Octane (via RoadRunner)** for ultra-high-performance execution.
+[`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) is a highly structured, scalable, and secure backend template built on **Laravel 12**. Unlike standard monolithic applications with fat controllers, this project enforces strict **Clean Architecture** patterns, pushing business logic into specialized Services and using **Data Transfer Objects (DTOs)** for strict type safety. It features native true multi-tenancy, enterprise Role-Based Access Control (RBAC), built-in audit logging, and official **Laravel Octane** integration with RoadRunner-oriented defaults and worker-safe request lifecycle guards.
 
 ## The Vision
 
@@ -148,7 +150,7 @@ Obsidian continues to evolve — rooted in resilience and order, marching steadf
 
 ### Realtime, Performance & Observability
 
-- **Octane / RoadRunner compatibility** (including request-state leak safeguards).
+- **Official Laravel Octane integration** with RoadRunner-oriented defaults and request-state leak safeguards.
 - **Laravel Reverb / WebSocket** foundation for realtime notifications and UI refresh.
 - **Horizon / Pulse integration** for queue and runtime observability (deployment-dependent).
 - **Health endpoints**: `/api/health`, `/api/health/live`, `/api/health/ready`.
@@ -214,9 +216,12 @@ php artisan migrate --seed
 # 5. Start the development server
 php artisan serve
 
-# Or using RoadRunner/Octane for high performance
-php artisan octane:start
+# Optional: initialize the local RoadRunner binary and run Octane
+php artisan octane:install --server=roadrunner
+php artisan octane:start --server=roadrunner
 ```
+
+See [`docs/octane.md`](./docs/octane.md) for the exact support model, local binary requirements, and production notes.
 
 **Run Test Suite**
 

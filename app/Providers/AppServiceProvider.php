@@ -7,9 +7,6 @@ namespace App\Providers;
 use App\Domains\System\Services\FeatureFlagService;
 use App\Domains\Tenant\Actions\ResolveActiveTenantIdByCodeAction;
 use App\Domains\Tenant\Contracts\ActiveTenantResolver;
-use App\Support\ApiDateTime;
-use App\Support\AppLocale;
-use App\Support\RequestContext;
 use App\Support\RequestTraceContext;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
@@ -20,7 +17,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -42,7 +38,6 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureEloquentStrictMode();
         $this->configureSlowQueryMonitor();
-        $this->registerOctaneFlushHooks();
         $this->configureRateLimiting();
 
         Scramble::configure()
@@ -64,27 +59,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth', function (Request $request) {
             return Limit::perMinute((int) config('api.auth_throttle_limit', 5))->by($request->ip());
         });
-    }
-
-    /**
-     * Register flush hooks for Laravel Octane (RoadRunner / Swoole).
-     * Only activates when Octane is installed; safe to leave in for plain PHP-FPM.
-     */
-    private function registerOctaneFlushHooks(): void
-    {
-        if (! class_exists(\Laravel\Octane\Events\RequestReceived::class)) {
-            return;
-        }
-
-        Event::listen(
-            \Laravel\Octane\Events\RequestReceived::class,
-            static function (): void {
-                ApiDateTime::flushState();
-                RequestContext::flush();
-                Log::withoutContext();
-                app()->setLocale(AppLocale::defaultFrameworkLocale());
-            }
-        );
     }
 
     private function configureEloquentStrictMode(): void

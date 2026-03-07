@@ -13,10 +13,13 @@
         "dedoc/scramble": "^0.13.14",
         "laravel/framework": "^12.0",
         "laravel/horizon": "^5.44",
+        "laravel/octane": "^2.14",
         "laravel/pennant": "^1.19",
         "laravel/pulse": "^1.5",
         "laravel/reverb": "^1.0",
-        "laravel/sanctum": "^4.3"
+        "laravel/sanctum": "^4.3",
+        "spiral/roadrunner-cli": "^2.6.0",
+        "spiral/roadrunner-http": "^3.3.0"
     },
     "require-dev": {
         "deptrac/deptrac": "^4.6",
@@ -51,6 +54,18 @@
         ],
         "dev": [
             "@php artisan serve"
+        ],
+        "octane:install": [
+            "@php artisan octane:install --server=roadrunner"
+        ],
+        "octane:start": [
+            "@php artisan octane:start --server=roadrunner"
+        ],
+        "octane:reload": [
+            "@php artisan octane:reload --server=roadrunner"
+        ],
+        "octane:stop": [
+            "@php artisan octane:stop --server=roadrunner"
         ],
         "analyse": [
             "@php artisan config:clear --ansi",

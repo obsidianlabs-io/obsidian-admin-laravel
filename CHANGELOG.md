@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### ✨ Added
+- Added official `laravel/octane` integration with RoadRunner-oriented defaults.
+- Added committed `config/octane.php` and Composer shortcuts for Octane install/start/reload/stop.
+
+### 🔧 Changed
+- Moved custom worker reset logic onto the official Octane listener pipeline.
+- Clarified documentation around local RoadRunner binary initialization versus committed project config.
+
 ## [1.2.0] - 2026-03-07
 
 ### ✨ Added
@@ -49,7 +59,7 @@ Welcome to the first official release of **Obsidian Admin Laravel**, an enterpri
 
 ### ✨ Features
 - **Architecture**: Laravel 12 on PHP 8.2+.
-- **Performance Constraints**: Native, pre-configured support for **Laravel Octane via RoadRunner**, allowing maximum throughput for API endpoints.
+- **Performance Constraints**: request lifecycle safeguards that laid the groundwork for the project's later official **Laravel Octane** integration.
 - **Domain-Driven Design (DDD)**: Discarded traditional `app/Http/Controllers` structures for deep, self-contained `app/Domains` boundaries (e.g., Auth, Tenant, System).
 - **Physical Boundary Enforcement**: Deep integration with `qossmic/deptrac` ensuring that Domains cannot accidentally leak into or depend on unauthorized Domain layers.
 - **Strict Data Transfer Objects (DTOs)**: Removed unstructured Array requests in favor of PHP 8.2 readonly DTO classes to guarantee type-safety between Controllers and domain Services.

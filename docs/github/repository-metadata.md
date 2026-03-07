@@ -9,7 +9,7 @@ v1.2.0 · Production hardening and typed architecture baseline
 ## Repository About
 
 ```text
-Strictly-typed Laravel 12 admin backend with DDD boundaries, multi-tenancy, audit logs, OpenAPI generation, and Octane-friendly architecture.
+Strictly-typed Laravel 12 admin backend with DDD boundaries, multi-tenancy, audit logs, OpenAPI generation, and official Octane integration.
 ```
 
 ## Repository Description
