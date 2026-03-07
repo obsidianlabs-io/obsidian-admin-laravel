@@ -215,6 +215,11 @@ jobs:
           docker run -d --name obsidian-admin-laravel-image-smoke \
             -e APP_ENV=production \
             -e APP_DEBUG=false \
+            -e APP_KEY=base64:Q2qE5A3yM4tQvL3X0yr7M5m4r2m40fX9zCw1Q2m3N4o= \
+            -e CACHE_STORE=array \
+            -e SESSION_DRIVER=array \
+            -e QUEUE_CONNECTION=sync \
+            -e AUDIT_QUEUE_CONNECTION=sync \
             -e LOG_CHANNEL=stderr \
             -e LOG_STACK=stderr \
             obsidian-admin-laravel:image-smoke
@@ -226,6 +231,30 @@ jobs:
             docker logs obsidian-admin-laravel-image-smoke
             exit 1
           fi
+
+      - name: Probe Laravel live endpoint inside image
+        run: |
+          cat <<'PHP' > /tmp/image-smoke-probe.php
+          <?php
+          require '/var/www/html/vendor/autoload.php';
+
+          $app = require '/var/www/html/bootstrap/app.php';
+          $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+          $request = Illuminate\Http\Request::create('/api/health/live', 'GET');
+          $response = $kernel->handle($request);
+          $content = $response->getContent() ?: '';
+
+          fwrite(STDOUT, $content.PHP_EOL);
+
+          $kernel->terminate($request, $response);
+
+          if ($response->getStatusCode() !== 200 || !str_contains($content, '"status":"alive"')) {
+              fwrite(STDERR, "live probe failed\n");
+              exit(1);
+          }
+          PHP
+          docker cp /tmp/image-smoke-probe.php obsidian-admin-laravel-image-smoke:/tmp/image-smoke-probe.php
+          docker exec obsidian-admin-laravel-image-smoke php /tmp/image-smoke-probe.php
 
       - name: Stop production app image
         if: always()
