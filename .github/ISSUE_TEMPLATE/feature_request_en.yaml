@@ -1,0 +1,65 @@
+name: "🚀 Feature Request"
+description: Suggest a feature, platform improvement, or open-source enhancement
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement.
+
+        Good feature requests are concrete and explain:
+        - what problem exists today
+        - why the current workflow is insufficient
+        - why the change belongs in the shared project baseline
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Architecture
+        - API / Contract
+        - Tenant Safety / Access Control
+        - Auth / Security
+        - Audit / Observability
+        - Performance / Octane / Runtime
+        - DevEx / Tooling / CI
+        - Documentation / Open Source
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem are you trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe the implementation idea or expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Tradeoffs / Alternatives
+      description: What alternatives did you consider, and why is this better?
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and Impact
+      description: Explain whether this affects API contracts, runtime behavior, CI, docs, or upgrade complexity
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional Context

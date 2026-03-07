@@ -1,0 +1,65 @@
+name: "🚀 功能请求"
+description: 提出功能增强、平台优化或开源项目改进建议
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你提出改进建议。
+
+        一个好的功能请求应该说清楚：
+        - 当前到底有什么问题
+        - 为什么现有流程不够用
+        - 为什么这个改动应该进入共享基线，而不是项目私有逻辑
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 分类
+      options:
+        - Architecture
+        - API / Contract
+        - Tenant Safety / Access Control
+        - Auth / Security
+        - Audit / Observability
+        - Performance / Octane / Runtime
+        - DevEx / Tooling / CI
+        - Documentation / Open Source
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题描述
+      description: 当前要解决的核心问题是什么？
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 描述你期望的实现方式或最终行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: 权衡与替代方案
+      description: 你考虑过哪些替代方案？为什么当前方案更合适？
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: 影响范围
+      description: 请说明是否会影响 API 契约、运行时行为、CI、文档或升级复杂度
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充说明

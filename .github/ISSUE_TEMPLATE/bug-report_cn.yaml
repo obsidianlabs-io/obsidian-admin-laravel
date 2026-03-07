@@ -1,0 +1,98 @@
+name: "🐞 Bug 提交"
+description: 提交后端 Bug、回归问题、契约异常或运行故障
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你提交 Bug。
+
+        提交前请先确认：
+        - 问题可以稳定复现
+        - 仓库里没有重复 issue
+        - 如果是安全漏洞，不要走这个表单
+
+        安全问题请按 `SECURITY.md` 中的私下报告流程处理。
+
+  - type: input
+    id: version
+    attributes:
+      label: 影响版本
+      description: 发布版本、分支名或 commit hash
+      placeholder: v1.2.0 / main / 90379fc
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响模块
+      options:
+        - Auth
+        - Access / RBAC
+        - Tenant / 多租户
+        - System / Audit / Config
+        - OpenAPI / 契约
+        - Queue / Horizon / Reverb
+        - Octane / RoadRunner
+        - CI / Tooling
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      description: 请说明 PHP 版本、数据库、缓存/队列驱动、运行时与部署方式
+      placeholder: |
+        PHP 8.2
+        Laravel 12
+        MySQL 8 / PostgreSQL 15 / SQLite
+        Redis queue
+        Docker / Native / Octane
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 重现步骤
+      description: 详细说明如何稳定重现该问题
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: 影响范围
+      description: 说明实际影响。如果涉及跨租户泄漏、权限绕过、契约破坏或生产风险，请明确写出。
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志 / Trace ID / Request ID
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充说明
