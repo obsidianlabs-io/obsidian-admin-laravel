@@ -48,7 +48,7 @@ body:
       label: 环境信息
       description: 请说明 PHP 版本、数据库、缓存/队列驱动、运行时与部署方式
       placeholder: |
-        PHP 8.2
+        PHP 8.4
         Laravel 12
         MySQL 8 / PostgreSQL 15 / SQLite
         Redis queue

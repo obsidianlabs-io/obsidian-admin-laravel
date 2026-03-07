@@ -13,7 +13,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 - About:
   `Strictly-typed Laravel 12 admin backend with DDD boundaries, multi-tenancy, audit logs, OpenAPI generation, and official Octane integration.`
 - Topics:
-  `laravel laravel12 php php82 api backend ddd clean-architecture multi-tenancy saas rbac audit-logs openapi scramble sanctum roadrunner octane redis horizon reverb pest phpstan deptrac postgresql mysql`
+  `laravel laravel12 php php84 api backend ddd clean-architecture multi-tenancy saas rbac audit-logs openapi scramble sanctum roadrunner octane redis horizon reverb pest phpstan deptrac postgresql mysql`
 - Website:
   留空即可，除非你后面有正式官网或文档站。
 - Include in the home page:

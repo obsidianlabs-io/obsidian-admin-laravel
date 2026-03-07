@@ -130,7 +130,7 @@ Obsidian 持续进化 —— 扎根韧性与秩序，坚定迈向长期价值。
 
 ### 架构与领域设计
 
-- **Laravel 12 + PHP 8.2+**：支持 `MySQL / PostgreSQL / SQLite`，默认适配 `Redis` 缓存与队列。
+- **Laravel 12 + PHP 8.4+**：支持 `MySQL / PostgreSQL / SQLite`，默认适配 `Redis` 缓存与队列。
 - **模块化单体（Modular Monolith）**：按 `app/Domains/*` 组织业务（如 `Auth / Access / Tenant / System / Shared`），便于长期演进。
 - **清晰分层**：遵循 `Controller -> DTO -> Service -> Model` 的职责划分，减少“胖控制器”。
 - **DTO 模式**：关键写操作通过 DTO 承载输入，降低无结构数组在业务层蔓延的风险。
@@ -195,7 +195,7 @@ Obsidian 持续进化 —— 扎根韧性与秩序，坚定迈向长期价值。
 **环境准备**
 
 确保你的环境满足以下要求：
-- **PHP**: >= 8.2
+- **PHP**: >= 8.4
 - **Composer**: >= 2.x
 - **Database**: MySQL 8+ / PostgreSQL 14+ / SQLite（本地可用）
 - **Cache**: Redis 6+

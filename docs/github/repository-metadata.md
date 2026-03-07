@@ -33,5 +33,5 @@ Obsidian Labs 致力于为真正要长期演进的产品构建清晰、稳固、
 ## Suggested Topics
 
 ```text
-laravel laravel12 php php82 api backend ddd clean-architecture multi-tenancy saas rbac audit-logs openapi scramble sanctum roadrunner octane redis horizon reverb pest phpstan deptrac postgresql mysql
+laravel laravel12 php php84 api backend ddd clean-architecture multi-tenancy saas rbac audit-logs openapi scramble sanctum roadrunner octane redis horizon reverb pest phpstan deptrac postgresql mysql
 ```

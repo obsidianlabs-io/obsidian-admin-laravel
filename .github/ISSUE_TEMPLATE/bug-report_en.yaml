@@ -48,7 +48,7 @@ body:
       label: Environment
       description: Include PHP version, database, cache/queue driver, runtime, and deployment mode
       placeholder: |
-        PHP 8.2
+        PHP 8.4
         Laravel 12
         MySQL 8 / PostgreSQL 15 / SQLite
         Redis queue

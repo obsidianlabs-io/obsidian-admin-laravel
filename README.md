@@ -116,7 +116,7 @@ Obsidian continues to evolve — rooted in resilience and order, marching steadf
 
 ### Architecture & Domain Design
 
-- **Laravel 12 + PHP 8.2+** with support for `MySQL / PostgreSQL / SQLite` and `Redis` for cache/queues.
+- **Laravel 12 + PHP 8.4+** with support for `MySQL / PostgreSQL / SQLite` and `Redis` for cache/queues.
 - **Modular Monolith structure** organized by `app/Domains/*` (e.g. `Auth / Access / Tenant / System / Shared`).
 - **Layered design** following `Controller -> DTO -> Service -> Model` to reduce fat controllers.
 - **DTO-driven write flows** for safer, more maintainable request-to-domain boundaries.
@@ -181,7 +181,7 @@ This backend is designed to pair perfectly with the following frontend:
 **Environment Preparation**
 
 Make sure your environment meets the following requirements:
-- **PHP**: >= 8.2
+- **PHP**: >= 8.4
 - **Composer**: >= 2.x
 - **Database**: MySQL 8+ / PostgreSQL 14+ / SQLite (local-only is fine)
 - **Cache**: Redis 6+
