@@ -18,6 +18,18 @@ Strictly-typed Laravel 12 admin backend with DDD boundaries, multi-tenancy, audi
 Obsidian Admin Laravel is a production-ready Laravel 12 backend template built for enterprise admin systems, internal platforms, and SaaS products. It emphasizes strict typing, domain-driven structure, tenant-safe data isolation, auditability, and long-term maintainability.
 ```
 
+## Organization Bio
+
+```text
+Obsidian Labs builds structured, scalable software foundations for serious products.
+```
+
+## Organization Bio (ZH)
+
+```text
+Obsidian Labs 致力于为真正要长期演进的产品构建清晰、稳固、可扩展的软件基础。
+```
+
 ## Suggested Topics
 
 ```text
