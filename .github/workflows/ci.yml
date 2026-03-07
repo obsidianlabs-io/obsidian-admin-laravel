@@ -256,6 +256,26 @@ jobs:
           docker cp /tmp/image-smoke-probe.php obsidian-admin-laravel-image-smoke:/tmp/image-smoke-probe.php
           docker exec obsidian-admin-laravel-image-smoke php /tmp/image-smoke-probe.php
 
+      - name: Dump image boot diagnostics
+        if: failure()
+        run: |
+          docker logs obsidian-admin-laravel-image-smoke || true
+          docker exec obsidian-admin-laravel-image-smoke sh -lc '
+            echo "--- php -v ---"
+            php -v
+            echo "--- php -m ---"
+            php -m | sort
+            echo "--- bootstrap/cache ---"
+            ls -la bootstrap/cache
+            echo "--- storage/logs ---"
+            ls -la storage/logs
+            if [ -f storage/logs/laravel.log ]; then
+              echo "--- storage/logs/laravel.log ---"
+              tail -n 200 storage/logs/laravel.log
+            fi
+          ' || true
+          docker exec obsidian-admin-laravel-image-smoke php artisan route:list --path=health/live || true
+
       - name: Stop production app image
         if: always()
         run: |
