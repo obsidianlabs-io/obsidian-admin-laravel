@@ -144,6 +144,16 @@ jobs:
           cat storage/logs/octane-smoke.log
           exit 1
 
+      - name: Dump Octane diagnostics
+        if: failure()
+        run: |
+          cat storage/logs/octane-smoke.log || true
+          php artisan about --only=environment || true
+          php artisan route:list --path=health/live || true
+          if [ -d storage/logs ]; then
+            ls -la storage/logs
+          fi
+
       - name: Stop Octane
         if: always()
         run: |
