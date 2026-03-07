@@ -10,12 +10,9 @@ use Illuminate\Support\Str;
 
 trait ThrottlesLogins
 {
-    /**
-     * @param  array<string, mixed>  $validated
-     */
-    protected function resolveLoginThrottleKey(Request $request, array $validated): string
+    protected function resolveLoginThrottleKey(Request $request, string $loginKey): string
     {
-        $loginKey = trim((string) ($validated['userName'] ?? $validated['email'] ?? ''));
+        $loginKey = trim($loginKey);
         if ($loginKey === '') {
             $loginKey = 'unknown';
         }

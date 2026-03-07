@@ -9,29 +9,36 @@ use App\Domains\Access\Services\UserService;
 use App\Domains\Auth\Actions\ResolveUserContextAction;
 use App\Domains\Auth\Events\UserLoggedInEvent;
 use App\Domains\Auth\Events\UserLoggedOutEvent;
-use App\Domains\Auth\Http\Controllers\Concerns\HasStrongPasswordRule;
 use App\Domains\Auth\Http\Controllers\Concerns\ResolvesRoleScope;
 use App\Domains\Auth\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Domains\Auth\Http\Controllers\Concerns\VerifiesTotpCode;
 use App\Domains\Auth\Services\AuthSessionContextService;
 use App\Domains\Auth\Services\AuthTokenService;
+use App\Domains\Auth\Services\Results\TokenPairResult;
+use App\Domains\Auth\Services\SessionClientContextData;
 use App\Domains\Auth\Services\TotpService;
 use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Contracts\ActiveTenantResolver;
+use App\DTOs\Auth\LoginInputDTO;
+use App\DTOs\Auth\RefreshTokenInputDTO;
+use App\DTOs\Auth\RegisterInputDTO;
+use App\DTOs\Auth\RevokeSessionInputDTO;
+use App\DTOs\Auth\UpdateSessionAliasInputDTO;
 use App\DTOs\User\CreateUserDTO;
 use App\Http\Requests\Api\Auth\LoginRequest;
+use App\Http\Requests\Api\Auth\RefreshTokenRequest;
 use App\Http\Requests\Api\Auth\RegisterRequest;
+use App\Http\Requests\Api\Auth\RevokeSessionRequest;
+use App\Http\Requests\Api\Auth\UpdateSessionAliasRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthSessionController extends ApiController
 {
-    use HasStrongPasswordRule;
     use ResolvesRoleScope;
     use ThrottlesLogins;
     use VerifiesTotpCode;
@@ -48,13 +55,7 @@ class AuthSessionController extends ApiController
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $passwordValidator = Validator::make($validated, [
-            'password' => ['required', 'string', 'max:100', $this->strongPasswordRule()],
-        ]);
-        if ($passwordValidator->fails()) {
-            return $this->error(self::LOGIN_FAILED_CODE, $passwordValidator->errors()->first());
-        }
+        $input = RegisterInputDTO::fromValidated($request->validated());
 
         $defaultTenantId = $this->activeTenantResolver->findActiveTenantIdByCode('TENANT_MAIN');
         $defaultRoleLookup = $this->findActiveRoleByCode('R_USER', $defaultTenantId);
@@ -69,11 +70,11 @@ class AuthSessionController extends ApiController
 
         $defaultRoleId = (int) $defaultRoleModel->id;
 
-        return $this->withIdempotency($request, null, function () use ($validated, $defaultRoleId, $defaultTenantId, $request): JsonResponse {
+        return $this->withIdempotency($request, null, function () use ($input, $defaultRoleId, $defaultTenantId, $request): JsonResponse {
             $user = $this->userService->create(new CreateUserDTO(
-                name: (string) $validated['name'],
-                email: (string) $validated['email'],
-                password: (string) $validated['password'],
+                name: $input->name,
+                email: $input->email,
+                password: $input->password,
                 status: '1',
                 roleId: $defaultRoleId,
                 tenantId: $defaultTenantId
@@ -93,14 +94,14 @@ class AuthSessionController extends ApiController
                 tenantId: $defaultTenantId
             );
 
-            return $this->success($tokens, 'Register success');
+            return $this->success($tokens->toArray(), 'Register success');
         });
     }
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $throttleKey = $this->resolveLoginThrottleKey($request, $validated);
+        $input = LoginInputDTO::fromValidated($request->validated());
+        $throttleKey = $this->resolveLoginThrottleKey($request, $input->loginKey());
         if ($this->tooManyLoginAttempts($throttleKey)) {
             return $this->error(
                 self::LOGIN_FAILED_CODE,
@@ -108,14 +109,14 @@ class AuthSessionController extends ApiController
             );
         }
 
-        $loginKey = $validated['userName'] ?? $validated['email'] ?? '';
+        $loginKey = $input->loginKey();
 
         $user = User::query()
             ->where('name', $loginKey)
             ->orWhere('email', $loginKey)
             ->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        if (! $user || ! Hash::check($input->password, $user->password)) {
             $this->incrementLoginAttempts($throttleKey);
 
             return $this->error(self::LOGIN_FAILED_CODE, 'Username or password is incorrect');
@@ -148,7 +149,7 @@ class AuthSessionController extends ApiController
         $requiresTwoFactor = (bool) $user->two_factor_enabled
             || ((bool) config('security.super_admin_require_2fa', false) && $this->isSuperAdmin($user));
         if ($requiresTwoFactor) {
-            $otpCode = trim((string) ($validated['otpCode'] ?? ''));
+            $otpCode = $input->otpCode ?? '';
             if ($otpCode === '') {
                 $this->clearLoginAttempts($throttleKey);
 
@@ -162,31 +163,22 @@ class AuthSessionController extends ApiController
         }
 
         $this->clearLoginAttempts($throttleKey);
-        $requestedLocale = trim((string) ($validated['locale'] ?? ''));
+        $requestedLocale = $input->locale ?? '';
         if ($requestedLocale !== '') {
             $this->resolveUserContext->syncLocaleOnLogin($user, $requestedLocale);
         }
 
-        $rememberMe = filter_var($validated['rememberMe'] ?? false, FILTER_VALIDATE_BOOLEAN);
-        $tokens = $this->issueTokenPair($user, $rememberMe, null, $request);
+        $tokens = $this->issueTokenPair($user, $input->rememberMe, null, $request);
 
-        event(UserLoggedInEvent::fromRequest($user, $request, $rememberMe));
+        event(UserLoggedInEvent::fromRequest($user, $request, $input->rememberMe));
 
-        return $this->success($tokens, 'Login success');
+        return $this->success($tokens->toArray(), 'Login success');
     }
 
-    public function refreshToken(Request $request): JsonResponse
+    public function refreshToken(RefreshTokenRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'refreshToken' => ['required', 'string'],
-        ]);
-
-        if ($validator->fails()) {
-            return $this->error(self::UNAUTHORIZED_CODE, $validator->errors()->first());
-        }
-
-        /** @var string $plainRefreshToken */
-        $plainRefreshToken = $validator->validated()['refreshToken'];
+        $input = RefreshTokenInputDTO::fromValidated($request->validated());
+        $plainRefreshToken = $input->refreshToken;
 
         $token = PersonalAccessToken::findToken($plainRefreshToken);
 
@@ -231,7 +223,7 @@ class AuthSessionController extends ApiController
             $sessionClientContext
         );
 
-        return $this->success($tokens, 'Refresh token success');
+        return $this->success($tokens->toArray(), 'Refresh token success');
     }
 
     public function sessions(Request $request): JsonResponse
@@ -255,82 +247,63 @@ class AuthSessionController extends ApiController
         ]);
     }
 
-    public function updateSessionAlias(Request $request, string $sessionId): JsonResponse
+    public function updateSessionAlias(UpdateSessionAliasRequest $request, string $sessionId): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
         if ($sessionContext->failed()) {
             return $this->error($sessionContext->code(), $sessionContext->message());
         }
 
-        $validator = Validator::make(
-            [
-                'sessionId' => $sessionId,
-                'deviceAlias' => $request->input('deviceAlias'),
-            ],
-            [
-                'sessionId' => ['required', 'string', 'max:128'],
-                'deviceAlias' => ['nullable', 'string', 'max:80'],
-            ]
-        );
-
-        if ($validator->fails()) {
-            return $this->error(self::PARAM_ERROR_CODE, $validator->errors()->first());
-        }
-
         $accessToken = $sessionContext->requireToken();
         $user = $sessionContext->requireUser();
-        $validated = $validator->validated();
+        $input = UpdateSessionAliasInputDTO::fromValidated($request->validated());
+        $validatedSessionId = $input->sessionId;
 
         $result = $this->authTokenService->updateSessionAlias(
             $user,
-            $sessionId,
-            is_string($validated['deviceAlias'] ?? null) ? $validated['deviceAlias'] : null,
+            $validatedSessionId,
+            $input->deviceAlias,
             $accessToken
         );
 
-        if ($result['updatedTokenCount'] <= 0) {
+        if ($result->updatedTokenCount() <= 0) {
             return $this->error(self::PARAM_ERROR_CODE, 'Session not found');
         }
 
         return $this->success([
-            'sessionId' => $sessionId,
-            'deviceAlias' => (string) ($result['deviceAlias'] ?? ''),
-            'updatedTokenCount' => (int) $result['updatedTokenCount'],
-            'updatedCurrentSession' => (bool) $result['updatedCurrentSession'],
+            'sessionId' => $validatedSessionId,
+            'deviceAlias' => (string) ($result->deviceAlias() ?? ''),
+            'updatedTokenCount' => $result->updatedTokenCount(),
+            'updatedCurrentSession' => $result->updatedCurrentSession(),
         ], 'Session alias updated');
     }
 
-    public function revokeSession(Request $request, string $sessionId): JsonResponse
+    public function revokeSession(RevokeSessionRequest $request, string $sessionId): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
         if ($sessionContext->failed()) {
             return $this->error($sessionContext->code(), $sessionContext->message());
         }
 
-        $validator = Validator::make(['sessionId' => $sessionId], [
-            'sessionId' => ['required', 'string', 'max:128'],
-        ]);
-        if ($validator->fails()) {
-            return $this->error(self::PARAM_ERROR_CODE, $validator->errors()->first());
-        }
-
         $accessToken = $sessionContext->requireToken();
         $user = $sessionContext->requireUser();
+        $input = RevokeSessionInputDTO::fromValidated($request->validated());
+        $validatedSessionId = $input->sessionId;
 
-        $result = $this->authTokenService->revokeSession($user, $sessionId, $accessToken);
+        $result = $this->authTokenService->revokeSession($user, $validatedSessionId, $accessToken);
 
-        if ($result['deletedTokenCount'] <= 0) {
+        if ($result->deletedTokenCount() <= 0) {
             return $this->error(self::PARAM_ERROR_CODE, 'Session not found');
         }
 
-        if ($result['revokedCurrentSession']) {
+        if ($result->revokedCurrentSession()) {
             event(UserLoggedOutEvent::fromRequest($user, $request));
         }
 
         return $this->success([
-            'sessionId' => $sessionId,
-            'deletedTokenCount' => (int) $result['deletedTokenCount'],
-            'revokedCurrentSession' => (bool) $result['revokedCurrentSession'],
+            'sessionId' => $validatedSessionId,
+            'deletedTokenCount' => $result->deletedTokenCount(),
+            'revokedCurrentSession' => $result->revokedCurrentSession(),
         ], 'Session revoked');
     }
 
@@ -394,29 +367,22 @@ class AuthSessionController extends ApiController
     }
 
     /**
-     * @param  array{
-     *   deviceName?: string,
-     *   deviceAlias?: string,
-     *   browser?: string,
-     *   os?: string,
-     *   deviceType?: string,
-     *   ipAddress?: string
-     * }  $baseSessionClientContext
-     * @return array{token: string, refreshToken: string}
+     * Issue access + refresh token pair with merged session client context.
      */
     private function issueTokenPair(
         User $user,
         bool $rememberMe = false,
         ?string $sessionId = null,
         ?Request $request = null,
-        array $baseSessionClientContext = []
-    ): array {
+        ?SessionClientContextData $baseSessionClientContext = null
+    ): TokenPairResult {
         $requestSessionClientContext = $this->authTokenService->buildSessionClientContext(
             $request?->userAgent(),
             $request?->ip()
         );
 
-        $sessionClientContext = array_merge($baseSessionClientContext, $requestSessionClientContext);
+        $sessionClientContext = $baseSessionClientContext?->merge($requestSessionClientContext)
+            ?? $requestSessionClientContext;
 
         return $this->authTokenService->issueTokenPair($user, $rememberMe, $sessionId, $sessionClientContext);
     }
