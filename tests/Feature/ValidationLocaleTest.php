@@ -20,6 +20,7 @@ class ValidationLocaleTest extends TestCase
             ->assertJsonPath('code', '1001');
 
         $this->assertStringContainsString('密码', (string) $response->json('msg'));
+        $this->assertStringContainsString('密码', (string) $response->json('data.errors.password.0'));
     }
 
     public function test_validation_error_prefers_x_locale_header_when_present(): void
@@ -35,5 +36,6 @@ class ValidationLocaleTest extends TestCase
             ->assertJsonPath('code', '1001');
 
         $this->assertStringContainsString('password', strtolower((string) $response->json('msg')));
+        $this->assertStringContainsString('password', strtolower((string) $response->json('data.errors.password.0')));
     }
 }

@@ -20,10 +20,21 @@ abstract class BaseApiRequest extends FormRequest
 
     protected function failedValidation(Validator $validator): void
     {
+        /** @var array<string, list<string>> $errors */
+        $errors = collect($validator->errors()->toArray())
+            ->map(function ($messages): array {
+                return collect(is_array($messages) ? $messages : [$messages])
+                    ->map(static fn (mixed $message): string => (string) $message)
+                    ->values()
+                    ->all();
+            })
+            ->all();
+
         throw new HttpResponseException(ApiErrorResponse::json(
             $this,
             $this->errorCode,
-            (string) $validator->errors()->first()
+            (string) $validator->errors()->first(),
+            ['errors' => $errors]
         ));
     }
 }
