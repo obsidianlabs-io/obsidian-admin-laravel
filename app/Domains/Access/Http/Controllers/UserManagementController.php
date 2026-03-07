@@ -18,7 +18,6 @@ use App\Http\Requests\Api\User\UpdateUserRequest;
 use App\Support\ApiDateTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class UserManagementController extends AbstractUserController
 {
@@ -167,12 +166,6 @@ class UserManagementController extends AbstractUserController
         $tenantId = $context->tenantId();
         $authUser = $context->requireUser();
         $validated = $request->validated();
-        $passwordValidator = Validator::make($validated, [
-            'password' => ['required', 'string', 'max:100', $this->strongPasswordRule()],
-        ]);
-        if ($passwordValidator->fails()) {
-            return $this->error(self::PARAM_ERROR_CODE, $passwordValidator->errors()->first());
-        }
         $roleCode = (string) $validated['roleCode'];
 
         $roleLookup = $this->findActiveRoleByCode($roleCode, $tenantId);
@@ -267,12 +260,6 @@ class UserManagementController extends AbstractUserController
         }
 
         $validated = $request->validated();
-        $passwordValidator = Validator::make($validated, [
-            'password' => ['nullable', 'string', 'max:100', $this->strongPasswordRule()],
-        ]);
-        if ($passwordValidator->fails()) {
-            return $this->error(self::PARAM_ERROR_CODE, $passwordValidator->errors()->first());
-        }
         $roleCode = (string) $validated['roleCode'];
 
         $roleLookup = $this->findActiveRoleByCode($roleCode, $tenantId, (int) ($user->tenant_id ?? 0));

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Api\User;
 
 use App\Http\Requests\Api\BaseApiRequest;
+use App\Support\Validation\PasswordPolicy;
 use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends BaseApiRequest
@@ -23,7 +24,7 @@ class UpdateUserRequest extends BaseApiRequest
             'organizationId' => ['nullable', 'integer', 'min:1'],
             'teamId' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', 'in:1,2'],
-            'password' => ['nullable', 'string', 'max:100'],
+            'password' => ['nullable', 'string', 'max:100', PasswordPolicy::strong()],
             'version' => ['nullable', 'integer', 'min:1'],
             'updatedAt' => ['nullable', 'string', 'max:64'],
             'updateTime' => ['nullable', 'string', 'max:64'],

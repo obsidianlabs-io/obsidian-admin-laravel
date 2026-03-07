@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Requests\Api\User;
 
 use App\Http\Requests\Api\BaseApiRequest;
+use App\Support\Validation\PasswordPolicy;
 
 class CreateUserRequest extends BaseApiRequest
 {
     /**
-     * @return array<string, list<string>>
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
@@ -20,7 +21,7 @@ class CreateUserRequest extends BaseApiRequest
             'organizationId' => ['nullable', 'integer', 'min:1'],
             'teamId' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', 'in:1,2'],
-            'password' => ['required', 'string', 'max:100'],
+            'password' => ['required', 'string', 'max:100', PasswordPolicy::strong()],
         ];
     }
 }

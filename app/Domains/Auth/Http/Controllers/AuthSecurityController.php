@@ -14,7 +14,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Validator;
 
 class AuthSecurityController extends AbstractUserController
 {
@@ -37,12 +36,6 @@ class AuthSecurityController extends AbstractUserController
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $passwordValidator = Validator::make($validated, [
-            'password' => ['required', 'string', 'max:100', $this->strongPasswordRule()],
-        ]);
-        if ($passwordValidator->fails()) {
-            return $this->error(self::PARAM_ERROR_CODE, $passwordValidator->errors()->first());
-        }
 
         $status = Password::reset(
             [

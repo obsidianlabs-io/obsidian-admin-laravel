@@ -7,7 +7,6 @@ namespace App\Domains\Auth\Http\Controllers;
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Services\UserService;
 use App\Domains\Auth\Actions\ResolveUserContextAction;
-use App\Domains\Auth\Http\Controllers\Concerns\HasStrongPasswordRule;
 use App\Domains\Auth\Http\Controllers\Concerns\ResolvesRoleScope;
 use App\Domains\Auth\Http\Controllers\Concerns\VerifiesTotpCode;
 use App\Domains\Auth\Services\MenuMetadataService;
@@ -23,7 +22,6 @@ use Illuminate\Http\Request;
 
 abstract class AbstractUserController extends ApiController
 {
-    use HasStrongPasswordRule;
     use ResolvesRoleScope;
     use VerifiesTotpCode;
 
