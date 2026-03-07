@@ -205,6 +205,14 @@ jobs:
           docker compose -f docker-compose.production.yml logs app nginx mysql redis
           exit 1
 
+      - name: Dump Docker smoke diagnostics
+        if: failure()
+        run: |
+          docker compose -f docker-compose.production.yml logs app nginx mysql redis || true
+          docker compose -f docker-compose.production.yml exec -T app php artisan about --only=environment || true
+          docker compose -f docker-compose.production.yml exec -T app php artisan route:list --path=health/live || true
+          docker compose -f docker-compose.production.yml exec -T app sh -lc 'if [ -d storage/logs ]; then ls -la storage/logs; fi' || true
+
       - name: Stop Docker runtime
         if: always()
         run: docker compose -f docker-compose.production.yml down -v
