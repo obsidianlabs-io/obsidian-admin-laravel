@@ -47,6 +47,16 @@ curl --fail --silent http://127.0.0.1:18080/api/health/live
 docker compose -f docker-compose.production.yml down -v
 ```
 
+If the release changed the final app image, entrypoint, or PHP-FPM startup path, also run:
+
+```bash
+docker build -t obsidian-admin-laravel:image-smoke .
+docker run -d --name obsidian-admin-laravel-image-smoke obsidian-admin-laravel:image-smoke
+docker inspect -f '{{.State.Running}}' obsidian-admin-laravel-image-smoke
+docker rm -f obsidian-admin-laravel-image-smoke
+docker image rm obsidian-admin-laravel:image-smoke
+```
+
 ## 4. Runtime Truth
 
 Confirm documentation still matches reality:

@@ -64,6 +64,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 - `CI / quality`
 - `CI / octane-smoke`
 - `CI / docker-smoke`
+- `CI / image-boot-smoke`
 - `CI / tests-sqlite`
 - `CI / tests-mysql`
 - `CI / tests-pgsql`
@@ -89,6 +90,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 
 - `CI / octane-smoke` 用于验证官方 Octane + RoadRunner 启动链路没有回退
 - `CI / docker-smoke` 用于验证 production compose + nginx + php-fpm 运行链路没有回退
+- `CI / image-boot-smoke` 用于验证 release app image 冷启动时不会直接崩掉
 - 如果你的发布叙事继续包含 `official Octane integration`，建议把它设为 required
 
 对应 workflow:

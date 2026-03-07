@@ -57,6 +57,16 @@ curl --fail --silent http://127.0.0.1:18080/api/health/live
 docker compose -f docker-compose.production.yml down -v
 ```
 
+如果你修改了最终 app image、entrypoint、PHP-FPM 启动命令或 bootstrap cache 行为，也建议额外确认 cold boot：
+
+```bash
+docker build -t obsidian-admin-laravel:image-smoke .
+docker run -d --name obsidian-admin-laravel-image-smoke obsidian-admin-laravel:image-smoke
+docker inspect -f '{{.State.Running}}' obsidian-admin-laravel-image-smoke
+docker rm -f obsidian-admin-laravel-image-smoke
+docker image rm obsidian-admin-laravel:image-smoke
+```
+
 ## 4. Check Repository State
 
 确认当前仓库状态:
