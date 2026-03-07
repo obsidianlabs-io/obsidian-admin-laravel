@@ -2,12 +2,57 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "obsidianlabs-io/obsidian-admin-laravel",
     "type": "project",
-    "description": "Obsidian Admin Laravel robust boilerplate.",
+    "description": "Strictly-typed Laravel 12 admin backend with domain-driven boundaries, multi-tenancy, audit logs, OpenAPI generation, and official Octane integration.",
     "keywords": [
         "laravel",
-        "framework"
+        "laravel12",
+        "php",
+        "php84",
+        "api",
+        "backend",
+        "admin",
+        "ddd",
+        "clean-architecture",
+        "multi-tenancy",
+        "saas",
+        "rbac",
+        "audit-logs",
+        "openapi",
+        "scramble",
+        "sanctum",
+        "octane",
+        "roadrunner",
+        "reverb",
+        "redis",
+        "horizon",
+        "phpstan",
+        "pest",
+        "deptrac",
+        "postgresql",
+        "mysql"
+    ],
+    "homepage": "https://github.com/obsidianlabs-io/obsidian-admin-laravel",
+    "authors": [
+        {
+            "name": "Obsidian Labs",
+            "email": "obsidianlabs.tech@gmail.com",
+            "homepage": "https://github.com/obsidianlabs-io",
+            "role": "Maintainer"
+        }
     ],
     "license": "MIT",
+    "support": {
+        "docs": "https://github.com/obsidianlabs-io/obsidian-admin-laravel#readme",
+        "issues": "https://github.com/obsidianlabs-io/obsidian-admin-laravel/issues",
+        "source": "https://github.com/obsidianlabs-io/obsidian-admin-laravel",
+        "email": "obsidianlabs.tech@gmail.com"
+    },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/obsidianlabs-io"
+        }
+    ],
     "require": {
         "php": "^8.4",
         "dedoc/scramble": "^0.13.14",
