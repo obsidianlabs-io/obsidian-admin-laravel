@@ -1,21 +1,28 @@
 services:
   composer:
-    image: composer:2
-    working_dir: /app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: php-base
+    restart: "no"
+    working_dir: /var/www/html
     volumes:
-      - ./:/app
-      - vendor-data:/app/vendor
-    command: composer install --ignore-platform-reqs
+      - ./:/var/www/html
+      - vendor-data:/var/www/html/vendor
+    command: composer install --prefer-dist --no-interaction --no-progress
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      target: app-dev
     image: obsidian-admin-laravel:latest
     restart: unless-stopped
     env_file:
       - .env
     depends_on:
+      composer:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       redis:

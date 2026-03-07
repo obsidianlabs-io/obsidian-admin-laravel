@@ -37,10 +37,8 @@ git clone https://github.com/obsidianlabs-io/obsidian-admin-laravel.git
 cd obsidian-admin-laravel
 cp .env.example .env
 
-# 1) 先准备 vendor（开发 compose 会挂载源码；vendor 使用独立 volume）
-docker compose -f docker-compose.dev.yml run --rm composer
-
-# 2) 启动开发环境完整栈
+# 启动开发环境完整栈
+# one-shot composer 服务会先自动安装 vendor，再启动 app。
 docker compose -f docker-compose.dev.yml up -d --build
 docker compose -f docker-compose.dev.yml exec app php artisan key:generate
 docker compose -f docker-compose.dev.yml exec app php artisan migrate --force --seed
@@ -57,12 +55,18 @@ curl http://localhost:8080/api/health
 > 1) 容器日志默认输出到 `stderr`（使用 `docker logs` 查看）
 > 2) `storage` 与 `bootstrap/cache` 使用独立 Docker volume（不直接落在 Windows 挂载目录）
 >
+> 另外，开发栈现在使用 one-shot `composer` 服务，并与应用镜像共享同一套 PHP 扩展基线，因此不会再出现 RoadRunner/Octane 依赖（例如 `ext-sockets`）只在某个阶段缺失的问题。
+>
 > 如果你之前已启动过旧容器并遇到日志权限报错，可重建开发栈（会清空本地开发数据）：
 > ```bash
 > docker compose -f docker-compose.dev.yml down -v
-> docker compose -f docker-compose.dev.yml run --rm composer
 > docker compose -f docker-compose.dev.yml up -d --build
 > docker compose -f docker-compose.dev.yml exec app php artisan migrate --force --seed
+> ```
+>
+> 如果只是 `composer.json` 或 `composer.lock` 有变化，且你只想刷新依赖而不重建整个开发栈：
+> ```bash
+> docker compose -f docker-compose.dev.yml run --rm composer
 > ```
 
 ### 方式 B：本地 PHP 原生开发（已有 PHP/Composer 环境）

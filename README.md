@@ -29,10 +29,8 @@ git clone https://github.com/obsidianlabs-io/obsidian-admin-laravel.git
 cd obsidian-admin-laravel
 cp .env.example .env
 
-# 1) Prepare vendor first (dev compose bind-mounts source code; vendor is a dedicated volume)
-docker compose -f docker-compose.dev.yml run --rm composer
-
-# 2) Start the full development stack
+# Start the full development stack
+# The one-shot composer service now installs vendor automatically before app starts.
 docker compose -f docker-compose.dev.yml up -d --build
 docker compose -f docker-compose.dev.yml exec app php artisan key:generate
 docker compose -f docker-compose.dev.yml exec app php artisan migrate --force --seed
@@ -49,12 +47,18 @@ curl http://localhost:8080/api/health
 > 1) container logs go to `stderr` (`docker logs`), and
 > 2) `storage` and `bootstrap/cache` use dedicated Docker volumes (not direct Windows bind-mounted folders).
 >
+> The dev stack also uses a one-shot `composer` service with the same PHP extension baseline as the app image, so Docker builds no longer drift from RoadRunner/Octane dependencies like `ext-sockets`.
+>
 > If you previously ran an older stack and hit log permission errors, rebuild the dev stack (this resets local dev data):
 > ```bash
 > docker compose -f docker-compose.dev.yml down -v
-> docker compose -f docker-compose.dev.yml run --rm composer
 > docker compose -f docker-compose.dev.yml up -d --build
 > docker compose -f docker-compose.dev.yml exec app php artisan migrate --force --seed
+> ```
+>
+> If `composer.json` or `composer.lock` changes and you only want to refresh dependencies without recreating the whole stack:
+> ```bash
+> docker compose -f docker-compose.dev.yml run --rm composer
 > ```
 
 ### Option B: Native PHP Development (Local)
