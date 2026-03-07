@@ -19,13 +19,13 @@ use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Services\TenantContextService;
 use App\Http\Requests\Api\Role\ListRolesRequest;
+use App\Http\Requests\Api\Role\StoreRoleRequest;
 use App\Http\Requests\Api\Role\SyncRolePermissionsRequest;
+use App\Http\Requests\Api\Role\UpdateRoleRequest;
 use App\Support\ApiDateTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class RoleController extends ApiController
 {
@@ -217,7 +217,7 @@ class RoleController extends ApiController
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreRoleRequest $request): JsonResponse
     {
         $context = $this->resolveRoleConsoleContext(
             $request,
@@ -231,24 +231,18 @@ class RoleController extends ApiController
         $targetTenantId = $context->tenantId();
         $isSuper = $context->isSuper();
 
-        $validator = Validator::make($request->all(), [
-            'roleCode' => ['required', 'string', 'max:64', $this->roleScopeGuardService->uniqueRoleCodeRule($targetTenantId)],
-            'roleName' => ['required', 'string', 'max:100', $this->roleScopeGuardService->uniqueRoleNameRule($targetTenantId)],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'status' => ['nullable', 'in:1,2'],
-            'level' => ['required', 'integer', 'min:'.self::ROLE_LEVEL_MIN, 'max:'.self::ROLE_LEVEL_MAX],
-            'permissionCodes' => ['nullable', 'array'],
-            'permissionCodes.*' => ['string', Rule::exists('permissions', 'code')],
-        ]);
-
-        if ($validator->fails()) {
-            return $this->error(self::PARAM_ERROR_CODE, $validator->errors()->first());
-        }
-
-        $validated = $validator->validated();
+        $validated = $request->validated();
         $reservedRoleCodeError = $this->validateReservedRoleCode((string) $validated['roleCode']);
         if ($reservedRoleCodeError instanceof JsonResponse) {
             return $reservedRoleCodeError;
+        }
+        $roleUniquenessError = $this->validateRoleUniqueness(
+            roleCode: (string) $validated['roleCode'],
+            roleName: (string) $validated['roleName'],
+            tenantId: $targetTenantId
+        );
+        if ($roleUniquenessError instanceof JsonResponse) {
+            return $roleUniquenessError;
         }
         $requestedRoleLevel = (int) ($validated['level'] ?? self::DEFAULT_ROLE_LEVEL);
         $roleLevelError = $this->validateRequestedRoleLevel($requestedRoleLevel, $actorLevel);
@@ -294,7 +288,7 @@ class RoleController extends ApiController
         });
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateRoleRequest $request, int $id): JsonResponse
     {
         $context = $this->resolveRoleConsoleContext(
             $request,
@@ -320,27 +314,19 @@ class RoleController extends ApiController
 
         $targetTenantId = $role->tenant_id !== null ? (int) $role->tenant_id : null;
 
-        $validator = Validator::make($request->all(), [
-            'roleCode' => ['required', 'string', 'max:64', $this->roleScopeGuardService->uniqueRoleCodeRule($targetTenantId, $role->id)],
-            'roleName' => ['required', 'string', 'max:100', $this->roleScopeGuardService->uniqueRoleNameRule($targetTenantId, $role->id)],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'status' => ['nullable', 'in:1,2'],
-            'level' => ['required', 'integer', 'min:'.self::ROLE_LEVEL_MIN, 'max:'.self::ROLE_LEVEL_MAX],
-            'permissionCodes' => ['nullable', 'array'],
-            'permissionCodes.*' => ['string', Rule::exists('permissions', 'code')],
-            'version' => ['nullable', 'integer', 'min:1'],
-            'updatedAt' => ['nullable', 'string', 'max:64'],
-            'updateTime' => ['nullable', 'string', 'max:64'],
-        ]);
-
-        if ($validator->fails()) {
-            return $this->error(self::PARAM_ERROR_CODE, $validator->errors()->first());
-        }
-
-        $validated = $validator->validated();
+        $validated = $request->validated();
         $reservedRoleCodeError = $this->validateReservedRoleCode((string) $validated['roleCode'], $role);
         if ($reservedRoleCodeError instanceof JsonResponse) {
             return $reservedRoleCodeError;
+        }
+        $roleUniquenessError = $this->validateRoleUniqueness(
+            roleCode: (string) $validated['roleCode'],
+            roleName: (string) $validated['roleName'],
+            tenantId: $targetTenantId,
+            ignoreRoleId: (int) $role->id
+        );
+        if ($roleUniquenessError instanceof JsonResponse) {
+            return $roleUniquenessError;
         }
         $requestedRoleLevel = (int) ($validated['level'] ?? $role->level ?? self::DEFAULT_ROLE_LEVEL);
         $roleLevelError = $this->validateRequestedRoleLevel($requestedRoleLevel, $actorLevel);
@@ -646,6 +632,23 @@ class RoleController extends ApiController
         }
 
         return $this->error(self::PARAM_ERROR_CODE, 'Role code is reserved');
+    }
+
+    private function validateRoleUniqueness(
+        string $roleCode,
+        string $roleName,
+        ?int $tenantId,
+        ?int $ignoreRoleId = null
+    ): ?JsonResponse {
+        if ($this->roleScopeGuardService->roleCodeExistsInScope($roleCode, $tenantId, $ignoreRoleId)) {
+            return $this->error(self::PARAM_ERROR_CODE, __('validation.unique', ['attribute' => 'role code']));
+        }
+
+        if ($this->roleScopeGuardService->roleNameExistsInScope($roleName, $tenantId, $ignoreRoleId)) {
+            return $this->error(self::PARAM_ERROR_CODE, __('validation.unique', ['attribute' => 'role name']));
+        }
+
+        return null;
     }
 
     private function validateRequestedRoleLevel(int $requestedLevel, int $actorLevel): ?JsonResponse

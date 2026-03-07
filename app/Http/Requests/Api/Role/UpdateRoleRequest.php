@@ -9,6 +9,10 @@ use Illuminate\Validation\Rule;
 
 class UpdateRoleRequest extends BaseApiRequest
 {
+    private const ROLE_LEVEL_MIN = 1;
+
+    private const ROLE_LEVEL_MAX = 999;
+
     /**
      * @return array<string, mixed>
      */
@@ -19,6 +23,7 @@ class UpdateRoleRequest extends BaseApiRequest
             'roleName' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:1000'],
             'status' => ['nullable', 'in:1,2'],
+            'level' => ['required', 'integer', 'min:'.self::ROLE_LEVEL_MIN, 'max:'.self::ROLE_LEVEL_MAX],
             'permissionCodes' => ['nullable', 'array'],
             'permissionCodes.*' => ['string', Rule::exists('permissions', 'code')],
             'version' => ['nullable', 'integer', 'min:1'],

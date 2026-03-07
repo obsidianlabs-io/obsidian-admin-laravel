@@ -45,6 +45,23 @@ final class RoleScopeGuardService
         return $rule;
     }
 
+    public function roleCodeExistsInScope(string $roleCode, ?int $tenantId, ?int $ignoreRoleId = null): bool
+    {
+        $query = Role::query()->where('code', trim($roleCode));
+
+        if ($tenantId === null) {
+            $query->whereNull('tenant_id');
+        } else {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        if ($ignoreRoleId !== null) {
+            $query->whereKeyNot($ignoreRoleId);
+        }
+
+        return $query->exists();
+    }
+
     public function uniqueRoleNameRule(?int $tenantId, ?int $ignoreRoleId = null): Unique
     {
         $rule = Rule::unique('roles', 'name')
@@ -63,6 +80,23 @@ final class RoleScopeGuardService
         }
 
         return $rule;
+    }
+
+    public function roleNameExistsInScope(string $roleName, ?int $tenantId, ?int $ignoreRoleId = null): bool
+    {
+        $query = Role::query()->where('name', trim($roleName));
+
+        if ($tenantId === null) {
+            $query->whereNull('tenant_id');
+        } else {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        if ($ignoreRoleId !== null) {
+            $query->whereKeyNot($ignoreRoleId);
+        }
+
+        return $query->exists();
     }
 
     /**
