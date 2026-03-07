@@ -135,3 +135,9 @@ git push origin vX.Y.Z
 For the last pre-release pass, use:
 
 - `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/release-final-checklist.md`
+
+## 11. Final Sign-Off
+
+For the last pre-release pass, use:
+
+- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/release-final-checklist.md`

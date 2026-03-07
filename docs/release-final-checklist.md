@@ -1,24 +1,24 @@
 # Release Final Checklist
 
-This is the final release gate for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
+This is the last sign-off checklist for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 
-Use this checklist after feature work is finished and before creating or publishing a GitHub Release.
+Use it after implementation is finished and before publishing a release.
 
 ## 1. Working Tree
 
 - `git status --short` is empty
 - `HEAD` is the exact commit you want to release
-- no local hotfixes are waiting outside `main`
+- no local-only fixes are waiting outside `main`
 
 ## 2. Release Content
 
-- `CHANGELOG.md` is updated
+- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/CHANGELOG.md` is updated
 - the target release note exists:
   - `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/releases/vX.Y.Z.md`
-- repository metadata still matches the current product positioning:
+- repository metadata still matches current positioning:
   - `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/repository-metadata.md`
 
-## 3. Backend Quality Gates
+## 3. Required Backend Gates
 
 All of these must pass on the release commit:
 
@@ -28,7 +28,7 @@ vendor/bin/phpstan analyse --memory-limit=1G
 php artisan test
 ```
 
-If your release touches platform hardening, infrastructure, or contract surfaces, also run:
+If the release touched infrastructure, platform hardening, or contract surfaces, also run:
 
 ```bash
 php artisan openapi:lint
@@ -38,14 +38,14 @@ php artisan http:proxy-trust-check --strict
 
 ## 4. Runtime Truth
 
-Confirm the README still matches the repository reality:
+Confirm documentation still matches reality:
 
 - Octane claims match actual package/config state
-- queue guidance matches current Horizon/Redis requirements
+- queue guidance matches Horizon + Redis requirements
 - Docker guidance matches current compose files
-- release docs do not promise disabled or placeholder features
+- README does not advertise disabled or placeholder features as fully implemented
 
-## 5. GitHub Repository Settings
+## 5. GitHub Settings
 
 Confirm there is no drift in:
 
@@ -65,7 +65,7 @@ Reference:
 Always use this order:
 
 1. push `main`
-2. confirm CI is green on remote
+2. confirm remote CI is green
 3. create annotated tag
 4. push tag
 5. publish GitHub Release
@@ -78,7 +78,7 @@ Always use this order:
 
 ## 8. GitHub Release
 
-Before pressing publish:
+Before publishing:
 
 - selected tag is correct
 - release title matches repository metadata guidance
@@ -92,14 +92,14 @@ After publishing, confirm:
 - tag exists remotely
 - GitHub Release is visible
 - `main` is still green
-- no new workflow failures appeared on tag push
+- no new workflow failure appeared on tag push
 
 ## 10. Hard Stop Conditions
 
 Do not release if any of these are true:
 
 - working tree is dirty
-- required quality gates are red
+- required gates are red
 - release note and changelog disagree on version
-- tag points at the wrong commit
-- README is advertising features that are not actually wired
+- tag points to the wrong commit
+- README is ahead of actual implementation
