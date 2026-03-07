@@ -11,14 +11,15 @@ use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Actions\CreateTenantAction;
 use App\Domains\Tenant\Actions\DeleteTenantAction;
+use App\Domains\Tenant\Actions\ListTenantsQueryAction;
 use App\Domains\Tenant\Actions\UpdateTenantAction;
+use App\Domains\Tenant\Data\TenantResponseData;
+use App\Domains\Tenant\Data\TenantSnapshot;
 use App\Domains\Tenant\Http\Resources\TenantListResource;
 use App\Domains\Tenant\Models\Tenant;
 use App\Http\Requests\Api\Tenant\ListTenantsRequest;
 use App\Http\Requests\Api\Tenant\StoreTenantRequest;
 use App\Http\Requests\Api\Tenant\UpdateTenantRequest;
-use App\Support\ApiDateTime;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -34,7 +35,7 @@ class TenantController extends ApiController
         private readonly ApiCacheService $apiCacheService
     ) {}
 
-    public function list(ListTenantsRequest $request): JsonResponse
+    public function list(ListTenantsRequest $request, ListTenantsQueryAction $listTenantsQuery): JsonResponse
     {
         $authResult = $this->resolveTenantConsoleContext($request, 'tenant.view');
 
@@ -42,50 +43,33 @@ class TenantController extends ApiController
             return $this->error($authResult->code(), $authResult->message());
         }
 
-        $validated = $request->validated();
+        $input = $request->toDTO();
 
-        $current = (int) ($validated['current'] ?? 1);
-        $size = (int) ($validated['size'] ?? 10);
-        $keyword = trim((string) ($validated['keyword'] ?? ''));
-        $status = (string) ($validated['status'] ?? '');
+        $query = $listTenantsQuery->handle($input);
 
-        $query = Tenant::query()
-            ->withCount('users')
-            ->select(['id', 'code', 'name', 'status', 'created_at', 'updated_at']);
-        $this->applyTenantFilters($query, $keyword, $status);
-
-        if ($this->hasCursorPagination($validated)) {
+        if ($input->usesCursorPagination((string) $request->input('paginationMode', ''))) {
             $page = $this->cursorPaginateById(
                 clone $query,
-                $size,
-                (string) ($validated['cursor'] ?? ''),
+                $input->size,
+                $input->cursor,
                 false
             );
             $records = TenantListResource::collection($page['records'])->resolve($request);
 
-            return $this->success([
-                'paginationMode' => 'cursor',
-                'size' => $page['size'],
-                'hasMore' => $page['hasMore'],
-                'nextCursor' => $page['nextCursor'],
-                'records' => $records,
-            ]);
+            return $this->success($this->cursorPaginationPayload($page, $records)->toArray());
         }
 
         $total = (clone $query)->count();
 
         $records = TenantListResource::collection(
             $query->orderBy('id')
-                ->forPage($current, $size)
+                ->forPage($input->current, $input->size)
                 ->get()
         )->resolve($request);
 
-        return $this->success([
-            'current' => $current,
-            'size' => $size,
-            'total' => $total,
-            'records' => $records,
-        ]);
+        return $this->success(
+            $this->offsetPaginationPayload($input->current, $input->size, $total, $records)->toArray()
+        );
     }
 
     public function all(Request $request): JsonResponse
@@ -140,10 +124,10 @@ class TenantController extends ApiController
                 auditable: $tenant,
                 actor: $user,
                 request: $request,
-                newValues: $this->tenantSnapshot($tenant)
+                newValues: TenantSnapshot::fromModel($tenant)->toArray()
             );
 
-            return $this->success($this->tenantResponse($tenant), 'Tenant created');
+            return $this->success(TenantResponseData::fromModel($tenant)->toArray(), 'Tenant created');
         });
     }
 
@@ -167,7 +151,7 @@ class TenantController extends ApiController
 
         $user = $authResult->requireUser();
 
-        $oldValues = $this->tenantSnapshot($tenant);
+        $oldValues = TenantSnapshot::fromModel($tenant)->toArray();
         $tenant = ($this->updateTenantAction)($tenant, $request->toDTO());
 
         $this->auditLogService->record(
@@ -176,10 +160,10 @@ class TenantController extends ApiController
             actor: $user,
             request: $request,
             oldValues: $oldValues,
-            newValues: $this->tenantSnapshot($tenant)
+            newValues: TenantSnapshot::fromModel($tenant)->toArray()
         );
 
-        return $this->success($this->tenantResponse($tenant, $request), 'Tenant updated');
+        return $this->success(TenantResponseData::fromModel($tenant, $request)->toArray(), 'Tenant updated');
     }
 
     public function destroy(Request $request, int $id): JsonResponse
@@ -197,7 +181,7 @@ class TenantController extends ApiController
 
         $user = $authResult->requireUser();
 
-        $oldValues = $this->tenantSnapshot($tenant);
+        $oldValues = TenantSnapshot::fromModel($tenant)->toArray();
 
         if ((string) $tenant->status === '1') {
             $tenant->forceFill(['status' => '2'])->save();
@@ -209,7 +193,7 @@ class TenantController extends ApiController
                 actor: $user,
                 request: $request,
                 oldValues: $oldValues,
-                newValues: $this->tenantSnapshot($tenant)
+                newValues: TenantSnapshot::fromModel($tenant)->toArray()
             );
 
             return $this->deletionActionSuccess('tenant', (int) $tenant->id, 'deactivated', 'Tenant deactivated');
@@ -259,23 +243,6 @@ class TenantController extends ApiController
     }
 
     /**
-     * @param  Builder<Tenant>  $query
-     */
-    private function applyTenantFilters(Builder $query, string $keyword, string $status): void
-    {
-        if ($keyword !== '') {
-            $query->where(function (Builder $builder) use ($keyword): void {
-                $builder->where('code', 'like', '%'.$keyword.'%')
-                    ->orWhere('name', 'like', '%'.$keyword.'%');
-            });
-        }
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
-    }
-
-    /**
      * @param  list<string>  $withCount
      */
     private function resolveTenant(int $id, array $withCount = []): ?Tenant
@@ -291,46 +258,5 @@ class TenantController extends ApiController
     private function tenantNotFoundResponse(): JsonResponse
     {
         return $this->error(self::PARAM_ERROR_CODE, 'Tenant not found');
-    }
-
-    /**
-     * @return array{
-     *   tenantCode: string,
-     *   tenantName: string,
-     *   status: string
-     * }
-     */
-    private function tenantSnapshot(Tenant $tenant): array
-    {
-        return [
-            'tenantCode' => (string) $tenant->code,
-            'tenantName' => (string) $tenant->name,
-            'status' => (string) $tenant->status,
-        ];
-    }
-
-    /**
-     * @return array{
-     *   id: int,
-     *   tenantCode: string,
-     *   tenantName: string,
-     *   status: string,
-     *   version?: string,
-     *   updateTime?: string
-     * }
-     */
-    private function tenantResponse(Tenant $tenant, ?Request $request = null): array
-    {
-        $response = [
-            'id' => $tenant->id,
-            ...$this->tenantSnapshot($tenant),
-        ];
-
-        if ($request instanceof Request) {
-            $response['version'] = (string) ($tenant->updated_at?->copy()->setTimezone('UTC')->timestamp ?? 0);
-            $response['updateTime'] = ApiDateTime::formatForRequest($tenant->updated_at, $request);
-        }
-
-        return $response;
     }
 }

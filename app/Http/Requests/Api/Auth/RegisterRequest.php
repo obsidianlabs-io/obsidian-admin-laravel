@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Auth;
 
+use App\DTOs\Auth\RegisterInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 use App\Support\Validation\PasswordPolicy;
 
@@ -21,5 +22,10 @@ class RegisterRequest extends BaseApiRequest
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'max:100', PasswordPolicy::strong()],
         ];
+    }
+
+    public function toDTO(): RegisterInputDTO
+    {
+        return RegisterInputDTO::fromValidated($this->validated());
     }
 }

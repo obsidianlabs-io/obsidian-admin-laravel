@@ -7,6 +7,8 @@ namespace App\Domains\System\Http\Controllers;
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Models\UserPreference;
 use App\Domains\Shared\Http\Controllers\ApiController;
+use App\Domains\System\Data\ThemeActorScopeData;
+use App\Domains\System\Data\ThemeConfigResponseData;
 use App\Domains\System\Models\ThemeProfile;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\System\Services\ThemeConfigService;
@@ -40,25 +42,16 @@ class ThemeConfigController extends ApiController
 
         $scope = $this->resolveScope($user);
         $scopeConfig = $this->themeConfigService->describeScopeConfig(
-            $scope['scopeType'],
-            $scope['scopeId'],
-            $scope['scopeName']
+            $scope->scopeType,
+            $scope->scopeId,
+            $scope->scopeName
         );
         $effective = $this->themeConfigService->resolveEffectiveConfig(
             null,
             $this->resolveUserThemeSchema($user)
         );
 
-        return $this->success([
-            'scopeType' => $scopeConfig['scopeType'],
-            'scopeId' => $scopeConfig['scopeId'] ? (string) $scopeConfig['scopeId'] : '',
-            'scopeName' => $scopeConfig['scopeName'],
-            'version' => $scopeConfig['version'],
-            'config' => $scopeConfig['config'],
-            'effectiveConfig' => $effective['config'],
-            'effectiveVersion' => (int) $effective['profileVersion'],
-            'editable' => true,
-        ]);
+        return $this->success((new ThemeConfigResponseData($scopeConfig, $effective, true))->toArray());
     }
 
     public function publicShow(Request $request): JsonResponse
@@ -72,16 +65,7 @@ class ThemeConfigController extends ApiController
         );
         $effective = $this->themeConfigService->resolveEffectiveConfig(null, null);
 
-        return $this->success([
-            'scopeType' => $scopeConfig['scopeType'],
-            'scopeId' => '',
-            'scopeName' => $scopeConfig['scopeName'],
-            'version' => $scopeConfig['version'],
-            'config' => $effective['config'],
-            'effectiveConfig' => $effective['config'],
-            'effectiveVersion' => (int) $effective['profileVersion'],
-            'editable' => false,
-        ]);
+        return $this->success((new ThemeConfigResponseData($scopeConfig, $effective, false))->toArray());
     }
 
     public function update(UpdateThemeConfigRequest $request): JsonResponse
@@ -102,22 +86,22 @@ class ThemeConfigController extends ApiController
         }
 
         $scope = $this->resolveScope($user);
-        $validated = $request->validated();
-        if ($validated === []) {
+        $input = $request->toDTO();
+        if (! $input->hasChanges()) {
             return $this->error(self::PARAM_ERROR_CODE, 'No theme fields to update');
         }
 
         $before = $this->themeConfigService->describeScopeConfig(
-            $scope['scopeType'],
-            $scope['scopeId'],
-            $scope['scopeName']
+            $scope->scopeType,
+            $scope->scopeId,
+            $scope->scopeName
         );
 
         $updated = $this->themeConfigService->updateScopeConfig(
-            $scope['scopeType'],
-            $scope['scopeId'],
-            $scope['scopeName'],
-            $validated,
+            $scope->scopeType,
+            $scope->scopeId,
+            $scope->scopeName,
+            $input,
             (int) $user->id
         );
 
@@ -126,19 +110,9 @@ class ThemeConfigController extends ApiController
             auditable: 'theme-profile',
             actor: $user,
             request: $request,
-            oldValues: [
-                'scopeType' => $before['scopeType'],
-                'scopeId' => $before['scopeId'],
-                'version' => $before['version'],
-                'config' => $before['config'],
-            ],
-            newValues: [
-                'scopeType' => $updated['scopeType'],
-                'scopeId' => $updated['scopeId'],
-                'version' => $updated['version'],
-                'config' => $updated['config'],
-            ],
-            tenantId: $updated['scopeType'] === 'tenant' ? $updated['scopeId'] : null
+            oldValues: $before->toAuditArray(),
+            newValues: $updated->toAuditArray(),
+            tenantId: $updated->scopeType === 'tenant' ? $updated->scopeId : null
         );
 
         $effective = $this->themeConfigService->resolveEffectiveConfig(
@@ -146,15 +120,10 @@ class ThemeConfigController extends ApiController
             $this->resolveUserThemeSchema($user)
         );
 
-        return $this->success([
-            'scopeType' => $updated['scopeType'],
-            'scopeId' => $updated['scopeId'] ? (string) $updated['scopeId'] : '',
-            'scopeName' => $updated['scopeName'],
-            'version' => $updated['version'],
-            'config' => $updated['config'],
-            'effectiveConfig' => $effective['config'],
-            'effectiveVersion' => (int) $effective['profileVersion'],
-        ], 'Theme configuration updated');
+        return $this->success(
+            (new ThemeConfigResponseData($updated, $effective, true))->toArray(),
+            'Theme configuration updated'
+        );
     }
 
     public function reset(Request $request): JsonResponse
@@ -176,15 +145,15 @@ class ThemeConfigController extends ApiController
 
         $scope = $this->resolveScope($user);
         $before = $this->themeConfigService->describeScopeConfig(
-            $scope['scopeType'],
-            $scope['scopeId'],
-            $scope['scopeName']
+            $scope->scopeType,
+            $scope->scopeId,
+            $scope->scopeName
         );
 
         $updated = $this->themeConfigService->resetScopeConfig(
-            $scope['scopeType'],
-            $scope['scopeId'],
-            $scope['scopeName'],
+            $scope->scopeType,
+            $scope->scopeId,
+            $scope->scopeName,
             (int) $user->id
         );
 
@@ -193,19 +162,9 @@ class ThemeConfigController extends ApiController
             auditable: 'theme-profile',
             actor: $user,
             request: $request,
-            oldValues: [
-                'scopeType' => $before['scopeType'],
-                'scopeId' => $before['scopeId'],
-                'version' => $before['version'],
-                'config' => $before['config'],
-            ],
-            newValues: [
-                'scopeType' => $updated['scopeType'],
-                'scopeId' => $updated['scopeId'],
-                'version' => $updated['version'],
-                'config' => $updated['config'],
-            ],
-            tenantId: $updated['scopeType'] === 'tenant' ? $updated['scopeId'] : null
+            oldValues: $before->toAuditArray(),
+            newValues: $updated->toAuditArray(),
+            tenantId: $updated->scopeType === 'tenant' ? $updated->scopeId : null
         );
 
         $effective = $this->themeConfigService->resolveEffectiveConfig(
@@ -213,21 +172,13 @@ class ThemeConfigController extends ApiController
             $this->resolveUserThemeSchema($user)
         );
 
-        return $this->success([
-            'scopeType' => $updated['scopeType'],
-            'scopeId' => $updated['scopeId'] ? (string) $updated['scopeId'] : '',
-            'scopeName' => $updated['scopeName'],
-            'version' => $updated['version'],
-            'config' => $updated['config'],
-            'effectiveConfig' => $effective['config'],
-            'effectiveVersion' => (int) $effective['profileVersion'],
-        ], 'Theme configuration reset');
+        return $this->success(
+            (new ThemeConfigResponseData($updated, $effective, true))->toArray(),
+            'Theme configuration reset'
+        );
     }
 
-    /**
-     * @return array{scopeType: 'platform', scopeId: null, scopeName: string}
-     */
-    private function resolveScope(User $user): array
+    private function resolveScope(User $user): ThemeActorScopeData
     {
         return $this->themeConfigService->resolveActorScope($user, null);
     }

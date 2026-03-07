@@ -5,10 +5,19 @@ declare(strict_types=1);
 namespace App\Domains\System\Services;
 
 use App\Domains\Access\Models\User;
+use App\Domains\System\Data\AuditLogPruneResultData;
+use App\Domains\System\Data\AuditPolicyChangeData;
+use App\Domains\System\Data\AuditPolicyEffectiveStateData;
+use App\Domains\System\Data\AuditPolicyGlobalUpdateResultData;
+use App\Domains\System\Data\AuditPolicyHistoryPageData;
+use App\Domains\System\Data\AuditPolicyHistoryRecordData;
+use App\Domains\System\Data\AuditPolicyRecordData;
+use App\Domains\System\Data\AuditPolicyRecordsData;
+use App\Domains\System\Data\AuditPolicyUpdateResultData;
 use App\Domains\System\Models\AuditLog;
 use App\Domains\System\Models\AuditPolicy;
 use App\Domains\System\Models\AuditPolicyRevision;
-use App\Domains\Tenant\Models\Tenant;
+use App\DTOs\Audit\UpdateAuditPolicyRecordInputDTO;
 use App\Support\ApiDateTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -34,117 +43,44 @@ class AuditPolicyService
      */
     private ?array $eventCatalogCache = null;
 
-    /**
-     * @return list<array{
-     *   scopeType: 'platform'|'tenant',
-     *   tenantId: string,
-     *   tenantName: string
-     * }>
-     */
-    public function listScopes(): array
-    {
-        /** @var list<array{scopeType: 'platform'|'tenant', tenantId: string, tenantName: string}> $scopes */
-        $scopes = [
-            [
-                'scopeType' => 'platform',
-                'tenantId' => '',
-                'tenantName' => 'Platform Default',
-            ],
-        ];
-
-        /** @var list<array{scopeType: 'tenant', tenantId: string, tenantName: string}> $tenantScopes */
-        $tenantScopes = Tenant::query()
-            ->where('status', '1')
-            ->orderBy('id')
-            ->get(['id', 'name'])
-            ->map(static function (Tenant $tenant): array {
-                return [
-                    'scopeType' => 'tenant',
-                    'tenantId' => (string) $tenant->id,
-                    'tenantName' => (string) $tenant->name,
-                ];
-            })
-            ->values()
-            ->all();
-
-        return [...$scopes, ...$tenantScopes];
-    }
-
-    /**
-     * @return list<array{
-     *   action: string,
-     *   category: 'mandatory'|'optional',
-     *   mandatory: bool,
-     *   locked: bool,
-     *   lockReason: string,
-     *   description: string,
-     *   enabled: bool,
-     *   samplingRate: float,
-     *   retentionDays: int,
-     *   source: 'default'|'platform'|'tenant',
-     *   defaultEnabled: bool,
-     *   defaultSamplingRate: float,
-     *   defaultRetentionDays: int
-     * }>
-     */
-    public function listEffectivePolicies(?int $tenantId): array
+    public function listEffectivePolicies(?int $tenantId): AuditPolicyRecordsData
     {
         $records = [];
         $catalog = $this->eventCatalog();
 
         foreach ($catalog as $action => $definition) {
             $effective = $this->resolveEffectivePolicy($action, $tenantId);
-            $records[] = [
-                'action' => $action,
-                'category' => $definition['category'],
-                'mandatory' => $definition['mandatory'],
-                'locked' => $definition['mandatory'],
-                'lockReason' => $definition['mandatory']
+            $records[] = new AuditPolicyRecordData(
+                action: $action,
+                category: $definition['category'],
+                mandatory: $definition['mandatory'],
+                locked: $definition['mandatory'],
+                lockReason: $definition['mandatory']
                     ? 'Mandatory events are always enabled and cannot be sampled.'
                     : '',
-                'description' => $definition['description'],
-                'enabled' => $effective['enabled'],
-                'samplingRate' => $effective['samplingRate'],
-                'retentionDays' => $effective['retentionDays'],
-                'source' => $effective['source'],
-                'defaultEnabled' => $definition['defaultEnabled'],
-                'defaultSamplingRate' => $definition['defaultSamplingRate'],
-                'defaultRetentionDays' => $definition['defaultRetentionDays'],
-            ];
+                description: $definition['description'],
+                effective: $effective,
+                defaultEnabled: $definition['defaultEnabled'],
+                defaultSamplingRate: $definition['defaultSamplingRate'],
+                defaultRetentionDays: $definition['defaultRetentionDays'],
+            );
         }
 
-        usort($records, static function (array $left, array $right): int {
-            $leftCategoryRank = $left['category'] === 'mandatory' ? 0 : 1;
-            $rightCategoryRank = $right['category'] === 'mandatory' ? 0 : 1;
+        usort($records, static function (AuditPolicyRecordData $left, AuditPolicyRecordData $right): int {
+            $leftCategoryRank = $left->category === 'mandatory' ? 0 : 1;
+            $rightCategoryRank = $right->category === 'mandatory' ? 0 : 1;
 
             if ($leftCategoryRank !== $rightCategoryRank) {
                 return $leftCategoryRank <=> $rightCategoryRank;
             }
 
-            return strcmp((string) $left['action'], (string) $right['action']);
+            return strcmp($left->action, $right->action);
         });
 
-        return $records;
+        return new AuditPolicyRecordsData($records);
     }
 
-    /**
-     * @return array{
-     *   current: int,
-     *   size: int,
-     *   total: int,
-     *   records: list<array{
-     *     id: string,
-     *     scope: string,
-     *     changedByUserId: string,
-     *     changedByUserName: string,
-     *     changeReason: string,
-     *     changedCount: int,
-     *     changedActions: list<string>,
-     *     createdAt: string
-     *   }>
-     * }
-     */
-    public function listRevisionHistory(int $current = 1, int $size = 10, ?string $timezone = null): array
+    public function listRevisionHistory(int $current = 1, int $size = 10, ?string $timezone = null): AuditPolicyHistoryPageData
     {
         $current = max(1, $current);
         $size = max(1, min(100, $size));
@@ -156,17 +92,6 @@ class AuditPolicyService
 
         $total = $query->count();
 
-        /** @var list<array{
-         *   id: string,
-         *   scope: string,
-         *   changedByUserId: string,
-         *   changedByUserName: string,
-         *   changeReason: string,
-         *   changedCount: int,
-         *   changedActions: list<string>,
-         *   createdAt: string
-         * }> $records
-         */
         $records = [];
 
         $revisions = $query->orderByDesc('id')
@@ -177,43 +102,30 @@ class AuditPolicyService
             $changedByUser = $revision->getRelationValue('changedByUser');
             $changedByUserName = $changedByUser instanceof User ? (string) $changedByUser->name : 'System';
 
-            $records[] = [
-                'id' => (string) $revision->id,
-                'scope' => (string) $revision->scope,
-                'changedByUserId' => $revision->changed_by_user_id ? (string) $revision->changed_by_user_id : '',
-                'changedByUserName' => $changedByUserName,
-                'changeReason' => (string) $revision->change_reason,
-                'changedCount' => (int) $revision->changed_count,
-                'changedActions' => $this->normalizeActionList($revision->changed_actions),
-                'createdAt' => ApiDateTime::iso($revision->created_at, $resolvedTimezone),
-            ];
+            $records[] = new AuditPolicyHistoryRecordData(
+                id: (string) $revision->id,
+                scope: (string) $revision->scope,
+                changedByUserId: $revision->changed_by_user_id ? (string) $revision->changed_by_user_id : '',
+                changedByUserName: $changedByUserName,
+                changeReason: (string) $revision->change_reason,
+                changedCount: (int) $revision->changed_count,
+                changedActions: $this->normalizeActionList($revision->changed_actions),
+                createdAt: ApiDateTime::iso($revision->created_at, $resolvedTimezone),
+            );
         }
 
-        return [
-            'current' => $current,
-            'size' => $size,
-            'total' => $total,
-            'records' => $records,
-        ];
+        return new AuditPolicyHistoryPageData(
+            current: $current,
+            size: $size,
+            total: $total,
+            records: $records,
+        );
     }
 
     /**
-     * @param list<array{
-     *   action?: mixed,
-     *   enabled?: mixed,
-     *   samplingRate?: mixed,
-     *   retentionDays?: mixed
-     * }> $records
-     * @return array{
-     *   updated: int,
-     *   changes: list<array{
-     *     action: string,
-     *     old: array{enabled: bool, samplingRate: float, retentionDays: int},
-     *     new: array{enabled: bool, samplingRate: float, retentionDays: int}
-     *   }>
-     * }
+     * @param  list<UpdateAuditPolicyRecordInputDTO>  $records
      */
-    public function updatePolicies(?int $tenantId, array $records): array
+    public function updatePolicies(?int $tenantId, array $records): AuditPolicyUpdateResultData
     {
         $catalog = $this->eventCatalog();
         $scopeId = $tenantId ?? AuditPolicy::PLATFORM_SCOPE_ID;
@@ -226,7 +138,7 @@ class AuditPolicyService
         $changes = [];
 
         foreach ($records as $record) {
-            $action = trim((string) ($record['action'] ?? ''));
+            $action = trim($record->action);
             if ($action === '') {
                 throw new InvalidArgumentException('Action is required');
             }
@@ -238,14 +150,10 @@ class AuditPolicyService
 
             $isMandatory = (bool) $definition['mandatory'];
             $oldEffective = $this->resolveEffectivePolicy($action, $tenantId);
-            $oldValues = [
-                'enabled' => $oldEffective['enabled'],
-                'samplingRate' => $oldEffective['samplingRate'],
-                'retentionDays' => $oldEffective['retentionDays'],
-            ];
-            $enabled = filter_var($record['enabled'] ?? $definition['defaultEnabled'], FILTER_VALIDATE_BOOLEAN);
-            $samplingRate = $this->normalizeSamplingRate($record['samplingRate'] ?? $definition['defaultSamplingRate']);
-            $retentionDays = $this->normalizeRetentionDays($record['retentionDays'] ?? $definition['defaultRetentionDays']);
+            $oldValues = $oldEffective->toRuleArray();
+            $enabled = $record->enabled;
+            $samplingRate = $this->normalizeSamplingRate($record->samplingRate ?? $definition['defaultSamplingRate']);
+            $retentionDays = $this->normalizeRetentionDays($record->retentionDays ?? $definition['defaultRetentionDays']);
 
             if ($isMandatory && ! $enabled) {
                 throw new InvalidArgumentException("Mandatory audit action cannot be disabled: {$action}");
@@ -294,60 +202,48 @@ class AuditPolicyService
                 ]
             );
 
-            $newValues = [
-                'enabled' => (bool) $updated->enabled,
-                'samplingRate' => $this->normalizeSamplingRate($updated->sampling_rate),
-                'retentionDays' => $this->normalizeRetentionDays((int) ($updated->retention_days ?? $retentionDays)),
-            ];
+            $newValues = new AuditPolicyEffectiveStateData(
+                enabled: (bool) $updated->enabled,
+                samplingRate: $this->normalizeSamplingRate($updated->sampling_rate),
+                retentionDays: $this->normalizeRetentionDays((int) ($updated->retention_days ?? $retentionDays)),
+            );
 
-            if ($oldValues !== $newValues) {
-                $changes[] = [
-                    'action' => $action,
-                    'old' => $oldValues,
-                    'new' => $newValues,
-                ];
+            if ($oldValues !== $newValues->toRuleArray()) {
+                $changes[] = new AuditPolicyChangeData(
+                    action: $action,
+                    old: new AuditPolicyEffectiveStateData(
+                        enabled: $oldValues['enabled'],
+                        samplingRate: $oldValues['samplingRate'],
+                        retentionDays: $oldValues['retentionDays'],
+                    ),
+                    new: $newValues,
+                );
             }
         }
 
         $this->flushCaches();
 
-        return [
-            'updated' => count($changes),
-            'changes' => $changes,
-        ];
+        return new AuditPolicyUpdateResultData(
+            updated: count($changes),
+            changes: $changes,
+        );
     }
 
     /**
      * Update global policies and clear tenant overrides for affected actions.
      *
-     * @param list<array{
-     *   action?: mixed,
-     *   enabled?: mixed,
-     *   samplingRate?: mixed,
-     *   retentionDays?: mixed
-     * }> $records
-     * @return array{
-     *   updated: int,
-     *   clearedTenantOverrides: int,
-     *   revisionId: string,
-     *   changes: list<array{
-     *     action: string,
-     *     old: array{enabled: bool, samplingRate: float, retentionDays: int},
-     *     new: array{enabled: bool, samplingRate: float, retentionDays: int}
-     *   }>
-     * }
+     * @param  list<UpdateAuditPolicyRecordInputDTO>  $records
      */
-    public function updateGlobalPolicies(array $records, ?int $changedByUserId = null, ?string $changeReason = null): array
-    {
+    public function updateGlobalPolicies(
+        array $records,
+        ?int $changedByUserId = null,
+        ?string $changeReason = null
+    ): AuditPolicyGlobalUpdateResultData {
         $normalizedReason = trim((string) $changeReason);
 
-        return DB::transaction(function () use ($records, $changedByUserId, $normalizedReason): array {
+        return DB::transaction(function () use ($records, $changedByUserId, $normalizedReason): AuditPolicyGlobalUpdateResultData {
             $result = $this->updatePolicies(null, $records);
-
-            $actions = array_unique(array_map(
-                static fn (array $change): string => trim($change['action']),
-                $result['changes']
-            ));
+            $actions = $result->changedActions();
 
             $clearedTenantOverrides = 0;
             if ($actions !== []) {
@@ -361,35 +257,32 @@ class AuditPolicyService
             $snapshot = $this->listEffectivePolicies(null);
 
             $revisionId = '';
-            if ($result['updated'] > 0) {
+            if ($result->updated > 0) {
                 if ($normalizedReason === '') {
                     throw new InvalidArgumentException('Change reason is required when updating audit policy');
                 }
 
-                $changedActions = array_unique(array_map(
-                    static fn (array $change): string => (string) $change['action'],
-                    $result['changes']
-                ));
+                $changedActions = $result->changedActions();
 
                 $revision = AuditPolicyRevision::query()->create([
                     'scope' => 'global',
                     'changed_by_user_id' => $changedByUserId,
                     'change_reason' => $normalizedReason,
-                    'changed_count' => count($result['changes']),
+                    'changed_count' => count($result->changes),
                     'changed_actions' => $changedActions,
-                    'changes' => $result['changes'],
-                    'policy_snapshot' => $snapshot,
+                    'changes' => $result->changesToArray(),
+                    'policy_snapshot' => $snapshot->toArray(),
                 ]);
 
                 $revisionId = (string) $revision->id;
             }
 
-            return [
-                'updated' => $result['updated'],
-                'clearedTenantOverrides' => $clearedTenantOverrides,
-                'revisionId' => $revisionId,
-                'changes' => $result['changes'],
-            ];
+            return new AuditPolicyGlobalUpdateResultData(
+                updated: $result->updated,
+                clearedTenantOverrides: $clearedTenantOverrides,
+                revisionId: $revisionId,
+                changes: $result->changes,
+            );
         });
     }
 
@@ -397,11 +290,11 @@ class AuditPolicyService
     {
         $effective = $this->resolveEffectivePolicy($action, $tenantId);
 
-        if (! $effective['enabled']) {
+        if (! $effective->enabled) {
             return false;
         }
 
-        $samplingRate = $effective['samplingRate'];
+        $samplingRate = $effective->samplingRate;
         if ($samplingRate >= 1.0) {
             return true;
         }
@@ -415,15 +308,7 @@ class AuditPolicyService
         return random_int(1, 10000) <= max(0, min(10000, $threshold));
     }
 
-    /**
-     * @return array{
-     *   dryRun: bool,
-     *   totalDeleted: int,
-     *   unknownDeleted: int,
-     *   actionCount: int
-     * }
-     */
-    public function pruneExpiredLogs(bool $dryRun = false): array
+    public function pruneExpiredLogs(bool $dryRun = false): AuditLogPruneResultData
     {
         $catalog = $this->eventCatalog();
         $knownActions = array_keys($catalog);
@@ -431,7 +316,7 @@ class AuditPolicyService
         $totalDeleted = 0;
 
         foreach ($catalog as $action => $definition) {
-            $retentionDays = $this->resolveEffectivePolicy($action, null)['retentionDays'];
+            $retentionDays = $this->resolveEffectivePolicy($action, null)->retentionDays;
             $cutoff = $now->copy()->subDays($retentionDays);
 
             $deleted = $this->runPruneQuery(
@@ -452,12 +337,12 @@ class AuditPolicyService
         $unknownDeleted = $this->runPruneQuery($unknownQuery, $dryRun);
         $totalDeleted += $unknownDeleted;
 
-        return [
-            'dryRun' => $dryRun,
-            'totalDeleted' => $totalDeleted,
-            'unknownDeleted' => $unknownDeleted,
-            'actionCount' => count($knownActions),
-        ];
+        return new AuditLogPruneResultData(
+            dryRun: $dryRun,
+            totalDeleted: $totalDeleted,
+            unknownDeleted: $unknownDeleted,
+            actionCount: count($knownActions),
+        );
     }
 
     /**
@@ -535,24 +420,16 @@ class AuditPolicyService
         return $this->eventCatalogCache;
     }
 
-    /**
-     * @return array{
-     *   enabled: bool,
-     *   samplingRate: float,
-     *   retentionDays: int,
-     *   source: 'default'|'platform'|'tenant'
-     * }
-     */
-    private function resolveEffectivePolicy(string $action, ?int $tenantId): array
+    private function resolveEffectivePolicy(string $action, ?int $tenantId): AuditPolicyEffectiveStateData
     {
         $definition = $this->eventDefinition($action);
         if (! $definition) {
-            return [
-                'enabled' => true,
-                'samplingRate' => 1.0,
-                'retentionDays' => $this->optionalDefaultRetentionDays(),
-                'source' => 'default',
-            ];
+            return new AuditPolicyEffectiveStateData(
+                enabled: true,
+                samplingRate: 1.0,
+                retentionDays: $this->optionalDefaultRetentionDays(),
+                source: 'default',
+            );
         }
 
         if ($definition['mandatory']) {
@@ -568,12 +445,12 @@ class AuditPolicyService
                 $source = $tenantPolicy ? 'tenant' : 'platform';
             }
 
-            return [
-                'enabled' => true,
-                'samplingRate' => 1.0,
-                'retentionDays' => $retentionDays,
-                'source' => $source,
-            ];
+            return new AuditPolicyEffectiveStateData(
+                enabled: true,
+                samplingRate: 1.0,
+                retentionDays: $retentionDays,
+                source: $source,
+            );
         }
 
         $enabled = $definition['defaultEnabled'];
@@ -599,12 +476,12 @@ class AuditPolicyService
             }
         }
 
-        return [
-            'enabled' => $enabled,
-            'samplingRate' => $samplingRate,
-            'retentionDays' => $retentionDays,
-            'source' => $source,
-        ];
+        return new AuditPolicyEffectiveStateData(
+            enabled: $enabled,
+            samplingRate: $samplingRate,
+            retentionDays: $retentionDays,
+            source: $source,
+        );
     }
 
     /**

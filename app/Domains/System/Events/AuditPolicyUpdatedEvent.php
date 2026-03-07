@@ -6,6 +6,7 @@ namespace App\Domains\System\Events;
 
 use App\Domains\Access\Models\User;
 use App\Domains\System\Contracts\AsyncAuditEvent;
+use App\Domains\System\Data\AuditPolicyGlobalUpdateResultData;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Http\Request;
 use Illuminate\Queue\SerializesModels;
@@ -34,33 +35,21 @@ final class AuditPolicyUpdatedEvent implements AsyncAuditEvent
         private readonly ?string $requestId
     ) {}
 
-    /**
-     * @param  array{
-     *   updated: int,
-     *   clearedTenantOverrides: int,
-     *   revisionId: string,
-     *   changes: list<array{
-     *     action: string,
-     *     old: array{enabled: bool, samplingRate: float, retentionDays: int},
-     *     new: array{enabled: bool, samplingRate: float, retentionDays: int}
-     *   }>
-     * }  $result
-     */
     public static function fromRequest(
         User $user,
         Request $request,
         string $changeReason,
-        array $result
+        AuditPolicyGlobalUpdateResultData $result
     ): self {
         $requestId = trim((string) ($request->attributes->get('request_id', '') ?? ''));
 
         return new self(
             changedByUserId: (int) $user->id,
             changeReason: $changeReason,
-            updated: (int) $result['updated'],
-            clearedTenantOverrides: (int) $result['clearedTenantOverrides'],
-            revisionId: (string) $result['revisionId'],
-            changes: $result['changes'],
+            updated: $result->updated,
+            clearedTenantOverrides: $result->clearedTenantOverrides,
+            revisionId: $result->revisionId,
+            changes: $result->changesToArray(),
             ipAddress: $request->ip(),
             userAgent: $request->userAgent(),
             requestId: $requestId !== '' ? $requestId : null

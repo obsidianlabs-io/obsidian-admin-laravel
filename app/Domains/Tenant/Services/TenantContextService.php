@@ -8,6 +8,7 @@ use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\RoleScopeContext;
 use App\Domains\Shared\Auth\TenantContext;
+use App\Domains\Shared\Auth\TenantOptionData;
 use App\Domains\Tenant\Models\Organization;
 use App\Domains\Tenant\Models\Team;
 use App\Domains\Tenant\Models\Tenant;
@@ -47,13 +48,13 @@ class TenantContextService
                 return TenantContext::failure(self::FORBIDDEN_CODE, 'Selected tenant is invalid or inactive');
             }
 
-            /** @var list<array{tenantId: string, tenantName: string}> $tenantOptions */
+            /** @var list<TenantOptionData> $tenantOptions */
             $tenantOptions = $activeTenants
-                ->map(static function (Tenant $tenant): array {
-                    return [
-                        'tenantId' => (string) $tenant->id,
-                        'tenantName' => (string) $tenant->name,
-                    ];
+                ->map(static function (Tenant $tenant): TenantOptionData {
+                    return new TenantOptionData(
+                        tenantId: (string) $tenant->id,
+                        tenantName: (string) $tenant->name,
+                    );
                 })
                 ->values()
                 ->all();
@@ -89,10 +90,12 @@ class TenantContextService
         return TenantContext::success(
             tenantId: (int) $user->tenant->id,
             tenantName: (string) $user->tenant->name,
-            tenants: [[
-                'tenantId' => (string) $user->tenant->id,
-                'tenantName' => (string) $user->tenant->name,
-            ]],
+            tenants: [
+                new TenantOptionData(
+                    tenantId: (string) $user->tenant->id,
+                    tenantName: (string) $user->tenant->name,
+                ),
+            ],
             code: self::SUCCESS_CODE,
             message: 'ok'
         );

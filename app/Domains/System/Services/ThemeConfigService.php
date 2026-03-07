@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Domains\System\Services;
 
 use App\Domains\Access\Models\User;
+use App\Domains\System\Data\EffectiveThemeConfigData;
+use App\Domains\System\Data\ThemeActorScopeData;
+use App\Domains\System\Data\ThemeScopeConfigData;
 use App\Domains\System\Models\ThemeProfile;
+use App\DTOs\Theme\UpdateThemeConfigInputDTO;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -46,25 +50,19 @@ use Illuminate\Support\Facades\DB;
  */
 class ThemeConfigService
 {
-    /**
-     * @return array{scopeType: 'platform', scopeId: null, scopeName: string}
-     */
-    public function resolveActorScope(User $user, ?int $tenantId): array
+    public function resolveActorScope(User $user, ?int $tenantId): ThemeActorScopeData
     {
         // Project-level shared theme config for all scopes.
         unset($user, $tenantId);
 
-        return [
-            'scopeType' => ThemeProfile::SCOPE_PLATFORM,
-            'scopeId' => null,
-            'scopeName' => 'Project Default',
-        ];
+        return new ThemeActorScopeData(
+            scopeType: ThemeProfile::SCOPE_PLATFORM,
+            scopeId: null,
+            scopeName: 'Project Default',
+        );
     }
 
-    /**
-     * @return array{config: ThemeConfig, profileVersion: int}
-     */
-    public function resolveEffectiveConfig(?int $tenantId, ?string $userThemeSchema = null): array
+    public function resolveEffectiveConfig(?int $tenantId, ?string $userThemeSchema = null): EffectiveThemeConfigData
     {
         $defaults = $this->defaultConfig();
         $platformScope = $this->scopePayload(ThemeProfile::SCOPE_PLATFORM, null);
@@ -78,43 +76,36 @@ class ThemeConfigService
             $sanitized['themeScheme'] = $this->normalizeThemeScheme($themeSchema, $sanitized['themeScheme']);
         }
 
-        return [
-            'config' => $sanitized,
-            'profileVersion' => (int) $platformScope['version'],
-        ];
+        return new EffectiveThemeConfigData(
+            config: $sanitized,
+            profileVersion: (int) $platformScope['version'],
+        );
     }
 
-    /**
-     * @return ThemeScopeConfig
-     */
-    public function describeScopeConfig(string $scopeType, ?int $scopeId, string $scopeName): array
+    public function describeScopeConfig(string $scopeType, ?int $scopeId, string $scopeName): ThemeScopeConfigData
     {
         $scopeType = $this->normalizeScopeType($scopeType);
         $payload = $this->scopePayload($scopeType, $scopeId);
 
-        return [
-            'scopeType' => $scopeType,
-            'scopeId' => $scopeId,
-            'scopeName' => $scopeName,
-            'config' => $this->sanitizeConfig($payload['config']),
-            'version' => (int) $payload['version'],
-        ];
+        return new ThemeScopeConfigData(
+            scopeType: $scopeType,
+            scopeId: $scopeId,
+            scopeName: $scopeName,
+            config: $this->sanitizeConfig($payload['config']),
+            version: (int) $payload['version'],
+        );
     }
 
-    /**
-     * @param  array<string, mixed>  $changes
-     * @return ThemeScopeConfig
-     */
     public function updateScopeConfig(
         string $scopeType,
         ?int $scopeId,
         string $scopeName,
-        array $changes,
+        UpdateThemeConfigInputDTO $changes,
         int $actorUserId
-    ): array {
+    ): ThemeScopeConfigData {
         $scopeType = $this->normalizeScopeType($scopeType);
         $scopeKey = ThemeProfile::scopeKey($scopeType, $scopeId);
-        $normalizedChanges = $this->extractEditableConfig($changes);
+        $normalizedChanges = $this->extractEditableConfig($changes->toArray());
 
         $profile = DB::transaction(function () use ($scopeType, $scopeId, $scopeKey, $normalizedChanges, $actorUserId, $scopeName): ThemeProfile {
             $existing = ThemeProfile::query()
@@ -162,19 +153,16 @@ class ThemeConfigService
 
         $this->forgetScopeCache($scopeType, $scopeId);
 
-        return [
-            'scopeType' => $scopeType,
-            'scopeId' => $scopeId,
-            'scopeName' => $scopeName,
-            'config' => $this->sanitizeConfig($this->normalizeStoredConfig($profile->getAttribute('config'))),
-            'version' => (int) $profile->version,
-        ];
+        return new ThemeScopeConfigData(
+            scopeType: $scopeType,
+            scopeId: $scopeId,
+            scopeName: $scopeName,
+            config: $this->sanitizeConfig($this->normalizeStoredConfig($profile->getAttribute('config'))),
+            version: (int) $profile->version,
+        );
     }
 
-    /**
-     * @return ThemeScopeConfig
-     */
-    public function resetScopeConfig(string $scopeType, ?int $scopeId, string $scopeName, int $actorUserId): array
+    public function resetScopeConfig(string $scopeType, ?int $scopeId, string $scopeName, int $actorUserId): ThemeScopeConfigData
     {
         $scopeType = $this->normalizeScopeType($scopeType);
         $scopeKey = ThemeProfile::scopeKey($scopeType, $scopeId);
@@ -212,13 +200,13 @@ class ThemeConfigService
 
         $this->forgetScopeCache($scopeType, $scopeId);
 
-        return [
-            'scopeType' => $scopeType,
-            'scopeId' => $scopeId,
-            'scopeName' => $scopeName,
-            'config' => $this->sanitizeConfig([]),
-            'version' => (int) $profile->version,
-        ];
+        return new ThemeScopeConfigData(
+            scopeType: $scopeType,
+            scopeId: $scopeId,
+            scopeName: $scopeName,
+            config: $this->sanitizeConfig([]),
+            version: (int) $profile->version,
+        );
     }
 
     /**

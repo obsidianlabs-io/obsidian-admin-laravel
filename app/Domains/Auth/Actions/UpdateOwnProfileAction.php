@@ -8,6 +8,7 @@ use App\Domains\Access\Models\User;
 use App\Domains\Access\Models\UserPreference;
 use App\Domains\Access\Services\UserService;
 use App\Domains\Auth\Actions\Results\UpdateOwnProfileResult;
+use App\Domains\Auth\Actions\Results\UserProfileSnapshot;
 use App\DTOs\User\UpdateOwnProfileDTO;
 use App\DTOs\User\UpdateUserDTO;
 use App\Support\ApiDateTime;
@@ -28,12 +29,12 @@ final class UpdateOwnProfileAction
             ? ApiDateTime::normalizeTimezone($dto->timezone)
             : $oldTimezone;
 
-        $oldValues = [
-            'userName' => (string) $user->name,
-            'email' => (string) $user->email,
-            'timezone' => $oldTimezone,
-            'themeSchema' => $oldThemeSchema,
-        ];
+        $oldProfile = new UserProfileSnapshot(
+            userName: (string) $user->name,
+            email: (string) $user->email,
+            timezone: $oldTimezone,
+            themeSchema: $oldThemeSchema,
+        );
 
         DB::transaction(function () use ($user, $dto, $nextTimezone, $oldTimezone): void {
             $this->userService->update($user, new UpdateUserDTO(
@@ -58,13 +59,13 @@ final class UpdateOwnProfileAction
         $user->refresh();
         $this->resolveUserContext->invalidateUserContextCache();
 
-        $newValues = [
-            'userName' => (string) $user->name,
-            'email' => (string) $user->email,
-            'timezone' => $nextTimezone,
-            'themeSchema' => $this->resolveUserContext->resolveThemeSchema($user),
-        ];
+        $newProfile = new UserProfileSnapshot(
+            userName: (string) $user->name,
+            email: (string) $user->email,
+            timezone: $nextTimezone,
+            themeSchema: $this->resolveUserContext->resolveThemeSchema($user),
+        );
 
-        return UpdateOwnProfileResult::success($oldValues, $newValues);
+        return UpdateOwnProfileResult::success($oldProfile, $newProfile);
     }
 }

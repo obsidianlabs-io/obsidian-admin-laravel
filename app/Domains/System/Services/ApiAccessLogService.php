@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\System\Services;
 
+use App\Domains\System\Data\ApiAccessLogPruneResultData;
 use App\Domains\System\Models\ApiAccessLog;
 use App\Support\RequestContext;
 use Illuminate\Http\Request;
@@ -46,14 +47,7 @@ class ApiAccessLogService
         ]);
     }
 
-    /**
-     * @return array{
-     *   dryRun: bool,
-     *   retentionDays: int,
-     *   totalDeleted: int
-     * }
-     */
-    public function pruneExpiredLogs(bool $dryRun = false): array
+    public function pruneExpiredLogs(bool $dryRun = false): ApiAccessLogPruneResultData
     {
         $retentionDays = $this->retentionDays();
         $cutoff = now()->subDays($retentionDays);
@@ -61,11 +55,11 @@ class ApiAccessLogService
 
         $totalDeleted = $dryRun ? (int) $query->count() : (int) $query->delete();
 
-        return [
-            'dryRun' => $dryRun,
-            'retentionDays' => $retentionDays,
-            'totalDeleted' => $totalDeleted,
-        ];
+        return new ApiAccessLogPruneResultData(
+            dryRun: $dryRun,
+            retentionDays: $retentionDays,
+            totalDeleted: $totalDeleted,
+        );
     }
 
     private function shouldRecord(Request $request, Response $response): bool

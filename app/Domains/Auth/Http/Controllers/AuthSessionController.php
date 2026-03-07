@@ -6,28 +6,31 @@ namespace App\Domains\Auth\Http\Controllers;
 
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Services\UserService;
+use App\Domains\Auth\Actions\LogoutCurrentSessionAction;
+use App\Domains\Auth\Actions\RefreshTokenAction;
 use App\Domains\Auth\Actions\ResolveUserContextAction;
+use App\Domains\Auth\Actions\RevokeSessionAction;
+use App\Domains\Auth\Actions\UpdateSessionAliasAction;
 use App\Domains\Auth\Events\UserLoggedInEvent;
 use App\Domains\Auth\Events\UserLoggedOutEvent;
 use App\Domains\Auth\Http\Controllers\Concerns\ResolvesRoleScope;
 use App\Domains\Auth\Http\Controllers\Concerns\ThrottlesLogins;
 use App\Domains\Auth\Http\Controllers\Concerns\VerifiesTotpCode;
 use App\Domains\Auth\Services\AuthSessionContextService;
-use App\Domains\Auth\Services\AuthTokenService;
+use App\Domains\Auth\Services\AuthUserStateGuard;
 use App\Domains\Auth\Services\Results\TokenPairResult;
 use App\Domains\Auth\Services\SessionClientContextData;
+use App\Domains\Auth\Services\SessionProjector;
+use App\Domains\Auth\Services\TokenIssuer;
 use App\Domains\Auth\Services\TotpService;
+use App\Domains\Auth\Services\UserAgentParser;
 use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Contracts\ActiveTenantResolver;
-use App\DTOs\Auth\LoginInputDTO;
-use App\DTOs\Auth\RefreshTokenInputDTO;
-use App\DTOs\Auth\RegisterInputDTO;
-use App\DTOs\Auth\RevokeSessionInputDTO;
-use App\DTOs\Auth\UpdateSessionAliasInputDTO;
 use App\DTOs\User\CreateUserDTO;
 use App\Http\Requests\Api\Auth\LoginRequest;
+use App\Http\Requests\Api\Auth\LogoutRequest;
 use App\Http\Requests\Api\Auth\RefreshTokenRequest;
 use App\Http\Requests\Api\Auth\RegisterRequest;
 use App\Http\Requests\Api\Auth\RevokeSessionRequest;
@@ -35,7 +38,6 @@ use App\Http\Requests\Api\Auth\UpdateSessionAliasRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthSessionController extends ApiController
 {
@@ -45,17 +47,24 @@ class AuthSessionController extends ApiController
 
     public function __construct(
         private readonly UserService $userService,
-        private readonly AuthTokenService $authTokenService,
+        private readonly TokenIssuer $tokenIssuer,
+        private readonly SessionProjector $sessionProjector,
+        private readonly UserAgentParser $userAgentParser,
+        private readonly AuthUserStateGuard $authUserStateGuard,
         private readonly AuthSessionContextService $authSessionContextService,
         private readonly AuditLogService $auditLogService,
         protected readonly TotpService $totpService,
         private readonly ResolveUserContextAction $resolveUserContext,
-        private readonly ActiveTenantResolver $activeTenantResolver
+        private readonly ActiveTenantResolver $activeTenantResolver,
+        private readonly RefreshTokenAction $refreshTokenAction,
+        private readonly LogoutCurrentSessionAction $logoutCurrentSessionAction,
+        private readonly UpdateSessionAliasAction $updateSessionAliasAction,
+        private readonly RevokeSessionAction $revokeSessionAction,
     ) {}
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        $input = RegisterInputDTO::fromValidated($request->validated());
+        $input = $request->toDTO();
 
         $defaultTenantId = $this->activeTenantResolver->findActiveTenantIdByCode('TENANT_MAIN');
         $defaultRoleLookup = $this->findActiveRoleByCode('R_USER', $defaultTenantId);
@@ -100,7 +109,7 @@ class AuthSessionController extends ApiController
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $input = LoginInputDTO::fromValidated($request->validated());
+        $input = $request->toDTO();
         $throttleKey = $this->resolveLoginThrottleKey($request, $input->loginKey());
         if ($this->tooManyLoginAttempts($throttleKey)) {
             return $this->error(
@@ -128,13 +137,13 @@ class AuthSessionController extends ApiController
             return $this->error(self::UNAUTHORIZED_CODE, 'User is inactive');
         }
 
-        if ($this->isTenantUserWithInactiveTenant($user)) {
+        if ($this->authUserStateGuard->isTenantUserWithInactiveTenant($user)) {
             $this->incrementLoginAttempts($throttleKey);
 
             return $this->error(self::UNAUTHORIZED_CODE, 'Tenant is inactive');
         }
 
-        if ($this->isUserWithInactiveRole($user)) {
+        if ($this->authUserStateGuard->isUserWithInactiveRole($user)) {
             $this->incrementLoginAttempts($throttleKey);
 
             return $this->error(self::UNAUTHORIZED_CODE, 'Role is inactive');
@@ -177,51 +186,18 @@ class AuthSessionController extends ApiController
 
     public function refreshToken(RefreshTokenRequest $request): JsonResponse
     {
-        $input = RefreshTokenInputDTO::fromValidated($request->validated());
-        $plainRefreshToken = $input->refreshToken;
-
-        $token = PersonalAccessToken::findToken($plainRefreshToken);
-
-        if (! $token || ! $token->can('refresh-token')) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Refresh token is invalid');
-        }
-
-        if ($token->expires_at !== null && $token->expires_at->isPast()) {
-            $token->delete();
-
-            return $this->error(self::UNAUTHORIZED_CODE, 'Refresh token has expired');
-        }
-
-        $tokenable = $token->tokenable;
-        if (! $tokenable instanceof User || $tokenable->status !== '1') {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Refresh token is invalid');
-        }
-
-        if ($this->isTenantUserWithInactiveTenant($tokenable)) {
-            $token->delete();
-
-            return $this->error(self::UNAUTHORIZED_CODE, 'Tenant is inactive');
-        }
-
-        if ($this->isUserWithInactiveRole($tokenable)) {
-            $token->delete();
-
-            return $this->error(self::UNAUTHORIZED_CODE, 'Role is inactive');
-        }
-
-        $sessionClientContext = $this->authTokenService->resolveSessionClientContextMetadata($token);
-
-        // One-time refresh token usage.
-        $token->delete();
-
-        $rememberMe = $token->can('remember-me');
-        $tokens = $this->issueTokenPair(
-            $tokenable,
-            $rememberMe,
-            $this->authTokenService->resolveSessionId($token),
-            $request,
-            $sessionClientContext
+        $input = $request->toDTO();
+        $result = $this->refreshTokenAction->handle(
+            $input,
+            $request->userAgent(),
+            $request->ip()
         );
+
+        if ($result->failed()) {
+            return $this->error($result->code(), $result->message());
+        }
+
+        $tokens = $result->requireTokens();
 
         return $this->success($tokens->toArray(), 'Refresh token success');
     }
@@ -236,10 +212,8 @@ class AuthSessionController extends ApiController
         $accessToken = $sessionContext->requireToken();
         $user = $sessionContext->requireUser();
 
-        $records = $this->authSessionContextService->mapSessionRecordsForResponse(
-            $this->authTokenService->listSessions($user, $accessToken),
-            $request
-        );
+        $sessionRecords = $this->sessionProjector->listSessions($user, $accessToken);
+        $records = $this->authSessionContextService->mapSessionRecordsForResponse($sessionRecords, $request);
 
         return $this->success([
             'singleDeviceLogin' => (bool) config('security.auth_tokens.single_device_login', true),
@@ -256,26 +230,21 @@ class AuthSessionController extends ApiController
 
         $accessToken = $sessionContext->requireToken();
         $user = $sessionContext->requireUser();
-        $input = UpdateSessionAliasInputDTO::fromValidated($request->validated());
+        $input = $request->toDTO();
         $validatedSessionId = $input->sessionId;
 
-        $result = $this->authTokenService->updateSessionAlias(
+        $result = $this->updateSessionAliasAction->handle(
             $user,
             $validatedSessionId,
             $input->deviceAlias,
             $accessToken
         );
 
-        if ($result->updatedTokenCount() <= 0) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Session not found');
+        if ($result->failed()) {
+            return $this->error($result->code(), $result->message());
         }
 
-        return $this->success([
-            'sessionId' => $validatedSessionId,
-            'deviceAlias' => (string) ($result->deviceAlias() ?? ''),
-            'updatedTokenCount' => $result->updatedTokenCount(),
-            'updatedCurrentSession' => $result->updatedCurrentSession(),
-        ], 'Session alias updated');
+        return $this->success($result->payload(), $result->message());
     }
 
     public function revokeSession(RevokeSessionRequest $request, string $sessionId): JsonResponse
@@ -287,27 +256,23 @@ class AuthSessionController extends ApiController
 
         $accessToken = $sessionContext->requireToken();
         $user = $sessionContext->requireUser();
-        $input = RevokeSessionInputDTO::fromValidated($request->validated());
+        $input = $request->toDTO();
         $validatedSessionId = $input->sessionId;
 
-        $result = $this->authTokenService->revokeSession($user, $validatedSessionId, $accessToken);
+        $result = $this->revokeSessionAction->handle($user, $validatedSessionId, $accessToken);
 
-        if ($result->deletedTokenCount() <= 0) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Session not found');
+        if ($result->failed()) {
+            return $this->error($result->code(), $result->message());
         }
 
         if ($result->revokedCurrentSession()) {
             event(UserLoggedOutEvent::fromRequest($user, $request));
         }
 
-        return $this->success([
-            'sessionId' => $validatedSessionId,
-            'deletedTokenCount' => $result->deletedTokenCount(),
-            'revokedCurrentSession' => $result->revokedCurrentSession(),
-        ], 'Session revoked');
+        return $this->success($result->payload(), $result->message());
     }
 
-    public function logout(Request $request): JsonResponse
+    public function logout(LogoutRequest $request): JsonResponse
     {
         $sessionContext = $this->resolveSessionContext($request);
         if ($sessionContext->failed()) {
@@ -316,26 +281,9 @@ class AuthSessionController extends ApiController
 
         $accessToken = $sessionContext->requireToken();
         $user = $sessionContext->requireUser();
+        $input = $request->toDTO();
 
-        $sessionId = $this->authTokenService->resolveSessionId($accessToken);
-
-        if ($sessionId !== null) {
-            $this->authTokenService->revokeSession($user, $sessionId, $accessToken);
-        } else {
-            $accessToken->delete();
-
-            $refreshToken = $request->input('refreshToken');
-            if (is_string($refreshToken) && $refreshToken !== '') {
-                $refreshTokenRecord = PersonalAccessToken::findToken($refreshToken);
-                if (
-                    $refreshTokenRecord
-                    && $refreshTokenRecord->tokenable_type === User::class
-                    && $refreshTokenRecord->tokenable_id === $user->id
-                ) {
-                    $refreshTokenRecord->delete();
-                }
-            }
-        }
+        $this->logoutCurrentSessionAction->handle($user, $accessToken, $input->refreshToken);
 
         event(UserLoggedOutEvent::fromRequest($user, $request));
 
@@ -376,7 +324,7 @@ class AuthSessionController extends ApiController
         ?Request $request = null,
         ?SessionClientContextData $baseSessionClientContext = null
     ): TokenPairResult {
-        $requestSessionClientContext = $this->authTokenService->buildSessionClientContext(
+        $requestSessionClientContext = $this->userAgentParser->parse(
             $request?->userAgent(),
             $request?->ip()
         );
@@ -384,7 +332,7 @@ class AuthSessionController extends ApiController
         $sessionClientContext = $baseSessionClientContext?->merge($requestSessionClientContext)
             ?? $requestSessionClientContext;
 
-        return $this->authTokenService->issueTokenPair($user, $rememberMe, $sessionId, $sessionClientContext);
+        return $this->tokenIssuer->issueTokenPair($user, $rememberMe, $sessionId, $sessionClientContext);
     }
 
     private function resolveSessionContext(Request $request): ApiAuthResult
@@ -397,32 +345,5 @@ class AuthSessionController extends ApiController
     private function resolveAuthenticatedUser(Request $request): ApiAuthResult
     {
         return $this->authenticate($request, 'access-api');
-    }
-
-    private function isTenantUserWithInactiveTenant(User $user): bool
-    {
-        $tenantId = $user->tenant_id ? (int) $user->tenant_id : 0;
-        if ($tenantId <= 0) {
-            return false;
-        }
-
-        $user->loadMissing('tenant:id,status');
-
-        if (! $user->tenant) {
-            return true;
-        }
-
-        return (string) $user->tenant->status !== '1';
-    }
-
-    private function isUserWithInactiveRole(User $user): bool
-    {
-        $user->loadMissing('role:id,code,level,status,tenant_id');
-
-        if (! $user->role) {
-            return true;
-        }
-
-        return (string) $user->role->status !== '1';
     }
 }

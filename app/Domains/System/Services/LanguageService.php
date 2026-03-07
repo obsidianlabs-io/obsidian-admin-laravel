@@ -6,22 +6,21 @@ namespace App\Domains\System\Services;
 
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Models\LanguageTranslation;
+use App\DTOs\Language\CreateLanguageTranslationDTO;
+use App\DTOs\Language\UpdateLanguageTranslationDTO;
 
 class LanguageService
 {
     public function __construct(private readonly ApiCacheService $apiCacheService) {}
 
-    /**
-     * @param  array{language_id: int, translation_key: string, translation_value: string, description?: string, status?: string}  $payload
-     */
-    public function createTranslation(array $payload): LanguageTranslation
+    public function createTranslation(CreateLanguageTranslationDTO $dto): LanguageTranslation
     {
         $translation = LanguageTranslation::query()->create([
-            'language_id' => $payload['language_id'],
-            'translation_key' => $payload['translation_key'],
-            'translation_value' => $payload['translation_value'],
-            'description' => (string) ($payload['description'] ?? ''),
-            'status' => (string) ($payload['status'] ?? '1'),
+            'language_id' => $dto->languageId,
+            'translation_key' => $dto->translationKey,
+            'translation_value' => $dto->translationValue,
+            'description' => $dto->description,
+            'status' => $dto->status,
         ]);
 
         $this->apiCacheService->bump('languages');
@@ -29,17 +28,14 @@ class LanguageService
         return $translation;
     }
 
-    /**
-     * @param  array{language_id?: int, translation_key?: string, translation_value?: string, description?: string, status?: string}  $payload
-     */
-    public function updateTranslation(LanguageTranslation $translation, array $payload): LanguageTranslation
+    public function updateTranslation(LanguageTranslation $translation, UpdateLanguageTranslationDTO $dto): LanguageTranslation
     {
         $translation->forceFill([
-            'language_id' => (int) ($payload['language_id'] ?? $translation->language_id),
-            'translation_key' => (string) ($payload['translation_key'] ?? $translation->translation_key),
-            'translation_value' => (string) ($payload['translation_value'] ?? $translation->translation_value),
-            'description' => (string) ($payload['description'] ?? $translation->description ?? ''),
-            'status' => (string) ($payload['status'] ?? $translation->status),
+            'language_id' => $dto->languageId,
+            'translation_key' => $dto->translationKey,
+            'translation_value' => $dto->translationValue,
+            'description' => $dto->description,
+            'status' => $dto->status,
         ])->save();
         $this->apiCacheService->bump('languages');
 

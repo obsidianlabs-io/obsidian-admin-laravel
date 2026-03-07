@@ -6,7 +6,6 @@ namespace App\Http\Middleware;
 
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Services\IdempotencyService;
-use App\Domains\System\Models\IdempotencyKey;
 use App\Support\ApiErrorResponse;
 use Closure;
 use Illuminate\Http\JsonResponse;
@@ -45,22 +44,22 @@ class HandleIdempotentRequests
         $user = $this->resolveActor($request);
         $state = $this->idempotencyService->begin($request, $user);
 
-        if (isset($state['error'])) {
+        if ($state->hasError()) {
             return ApiErrorResponse::json(
                 $request,
                 '1002',
-                (string) $state['error'],
+                (string) $state->errorMessage(),
                 [],
                 409
             );
         }
 
-        if (isset($state['replayResponse'])) {
-            return $state['replayResponse'];
+        if ($state->hasReplayResponse()) {
+            return $state->requireReplayResponse();
         }
 
-        $record = $state['record'] ?? null;
-        if (! $record instanceof IdempotencyKey) {
+        $record = $state->record();
+        if ($record === null) {
             return $next($request);
         }
 

@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domains\Access\Http\Controllers;
 
+use App\Domains\Access\Actions\ListUsersQueryAction;
 use App\Domains\Access\Http\Resources\UserListResource;
 use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Services\UserTenantScopeService;
 use App\Domains\Auth\Http\Controllers\AbstractUserController;
-use App\DTOs\User\CreateUserDTO;
-use App\DTOs\User\UpdateUserDTO;
 use App\Http\Requests\Api\User\AssignUserRoleRequest;
 use App\Http\Requests\Api\User\CreateUserRequest;
 use App\Http\Requests\Api\User\ListUsersRequest;
@@ -21,7 +20,7 @@ use Illuminate\Http\Request;
 
 class UserManagementController extends AbstractUserController
 {
-    public function listUsers(ListUsersRequest $request, UserTenantScopeService $userTenantScopeService): JsonResponse
+    public function listUsers(ListUsersRequest $request, ListUsersQueryAction $listUsersQuery): JsonResponse
     {
         $context = $this->resolveUserManagementContext($request, ['user.view', 'user.manage']);
         if ($context->failed()) {
@@ -33,38 +32,30 @@ class UserManagementController extends AbstractUserController
         $tenantId = $context->tenantId();
         $isSuper = $context->isSuper();
 
-        $validated = $request->validated();
+        $input = $request->toDTO();
 
-        $current = (int) ($validated['current'] ?? 1);
-        $size = (int) ($validated['size'] ?? 10);
-        $keyword = trim((string) ($validated['keyword'] ?? ''));
-        $userName = trim((string) ($validated['userName'] ?? ''));
-        $userEmail = trim((string) ($validated['userEmail'] ?? ''));
-        $roleCode = trim((string) ($validated['roleCode'] ?? ''));
-        $status = (string) ($validated['status'] ?? '');
+        $query = $listUsersQuery->handle(
+            $authUser,
+            $actorLevel,
+            $tenantId,
+            $isSuper,
+            $input,
+        );
 
-        $query = $userTenantScopeService->buildListQuery($authUser, $actorLevel, $tenantId, $isSuper);
-        $userTenantScopeService->applyListFilters($query, $keyword, $userName, $userEmail, $roleCode, $status);
-
-        if ($this->hasCursorPagination($validated)) {
+        if ($input->usesCursorPagination((string) $request->input('paginationMode', ''))) {
             $page = $this->cursorPaginateById(
                 clone $query,
-                $size,
-                (string) ($validated['cursor'] ?? ''),
+                $input->size,
+                $input->cursor,
                 true
             );
 
             $request->attributes->set('actorRoleLevel', $actorLevel);
             $records = UserListResource::collection($page['records'])->resolve($request);
 
-            return $this->success([
-                'paginationMode' => 'cursor',
-                'actorLevel' => $actorLevel,
-                'size' => $page['size'],
-                'hasMore' => $page['hasMore'],
-                'nextCursor' => $page['nextCursor'],
-                'records' => $records,
-            ]);
+            return $this->success(
+                $this->cursorPaginationPayload($page, $records, ['actorLevel' => $actorLevel])->toArray()
+            );
         }
 
         $total = (clone $query)->count();
@@ -72,17 +63,19 @@ class UserManagementController extends AbstractUserController
         $request->attributes->set('actorRoleLevel', $actorLevel);
         $records = UserListResource::collection(
             $query->orderByDesc('id')
-                ->forPage($current, $size)
+                ->forPage($input->current, $input->size)
                 ->get()
         )->resolve($request);
 
-        return $this->success([
-            'actorLevel' => $actorLevel,
-            'current' => $current,
-            'size' => $size,
-            'total' => $total,
-            'records' => $records,
-        ]);
+        return $this->success(
+            $this->offsetPaginationPayload(
+                $input->current,
+                $input->size,
+                $total,
+                $records,
+                ['actorLevel' => $actorLevel],
+            )->toArray()
+        );
     }
 
     public function assignUserRole(AssignUserRoleRequest $request, int $id, UserTenantScopeService $userTenantScopeService): JsonResponse
@@ -112,8 +105,8 @@ class UserManagementController extends AbstractUserController
             return $optimisticLockError;
         }
 
-        $roleCode = (string) $request->validated()['roleCode'];
-        $roleLookup = $this->findActiveRoleByCode($roleCode, $tenantId, (int) ($user->tenant_id ?? 0));
+        $input = $request->toDTO();
+        $roleLookup = $this->findActiveRoleByCode($input->roleCode, $tenantId, (int) ($user->tenant_id ?? 0));
         if ($roleLookup->failed()) {
             return $this->error(self::PARAM_ERROR_CODE, $roleLookup->message());
         }
@@ -162,13 +155,12 @@ class UserManagementController extends AbstractUserController
             return $this->error($context->code(), $context->message());
         }
 
+        $input = $request->toDTO();
         $actorLevel = $context->actorLevel();
         $tenantId = $context->tenantId();
         $authUser = $context->requireUser();
-        $validated = $request->validated();
-        $roleCode = (string) $validated['roleCode'];
 
-        $roleLookup = $this->findActiveRoleByCode($roleCode, $tenantId);
+        $roleLookup = $this->findActiveRoleByCode($input->roleCode, $tenantId);
         if ($roleLookup->failed()) {
             return $this->error(self::PARAM_ERROR_CODE, $roleLookup->message());
         }
@@ -183,8 +175,8 @@ class UserManagementController extends AbstractUserController
         $targetTenantId = $roleModel->tenant_id !== null ? (int) $roleModel->tenant_id : null;
         $bindingResult = $userTenantScopeService->resolveOrganizationTeamBinding(
             $targetTenantId,
-            $validated['organizationId'] ?? null,
-            $validated['teamId'] ?? null
+            $input->organizationId,
+            $input->teamId
         );
         if ($bindingResult->failed()) {
             return $this->error(self::PARAM_ERROR_CODE, $bindingResult->message());
@@ -192,17 +184,10 @@ class UserManagementController extends AbstractUserController
         $organizationId = $bindingResult->organizationId();
         $teamId = $bindingResult->teamId();
 
-        return $this->withIdempotency($request, $authUser, function () use ($validated, $roleModel, $targetTenantId, $organizationId, $teamId, $authUser, $request): JsonResponse {
-            $user = $this->userService->create(new CreateUserDTO(
-                name: trim((string) $validated['userName']),
-                email: trim((string) $validated['email']),
-                password: (string) $validated['password'],
-                status: (string) ($validated['status'] ?? '1'),
-                roleId: $roleModel->id,
-                tenantId: $targetTenantId,
-                organizationId: $organizationId,
-                teamId: $teamId,
-            ));
+        return $this->withIdempotency($request, $authUser, function () use ($input, $roleModel, $targetTenantId, $organizationId, $teamId, $authUser, $request): JsonResponse {
+            $user = $this->userService->create(
+                $input->toCreateUserDTO($roleModel->id, $targetTenantId, $organizationId, $teamId)
+            );
             $this->auditLogService->record(
                 action: 'user.create',
                 auditable: $user,
@@ -259,10 +244,9 @@ class UserManagementController extends AbstractUserController
             return $optimisticLockError;
         }
 
-        $validated = $request->validated();
-        $roleCode = (string) $validated['roleCode'];
+        $input = $request->toDTO();
 
-        $roleLookup = $this->findActiveRoleByCode($roleCode, $tenantId, (int) ($user->tenant_id ?? 0));
+        $roleLookup = $this->findActiveRoleByCode($input->roleCode, $tenantId, (int) ($user->tenant_id ?? 0));
         if ($roleLookup->failed()) {
             return $this->error(self::PARAM_ERROR_CODE, $roleLookup->message());
         }
@@ -277,16 +261,14 @@ class UserManagementController extends AbstractUserController
         }
         $bindingResult = $userTenantScopeService->resolveOrganizationTeamBinding(
             $targetTenantId,
-            $validated['organizationId'] ?? null,
-            $validated['teamId'] ?? null
+            $input->organizationId,
+            $input->teamId
         );
         if ($bindingResult->failed()) {
             return $this->error(self::PARAM_ERROR_CODE, $bindingResult->message());
         }
         $organizationId = $bindingResult->organizationId();
         $teamId = $bindingResult->teamId();
-
-        $password = (string) ($validated['password'] ?? '');
 
         $oldValues = [
             'userName' => $user->name,
@@ -296,16 +278,10 @@ class UserManagementController extends AbstractUserController
             'organizationId' => $user->organization_id ? (int) $user->organization_id : null,
             'teamId' => $user->team_id ? (int) $user->team_id : null,
         ];
-        $this->userService->update($user, new UpdateUserDTO(
-            name: trim((string) $validated['userName']),
-            email: trim((string) $validated['email']),
-            password: $password !== '' ? $password : null,
-            status: (string) ($validated['status'] ?? $user->status),
-            roleId: $roleModel->id,
-            tenantId: $targetTenantId,
-            organizationId: $organizationId,
-            teamId: $teamId,
-        ));
+        $this->userService->update(
+            $user,
+            $input->toUpdateUserDTO($roleModel->id, $targetTenantId, $organizationId, $teamId, (string) $user->status)
+        );
         $this->auditLogService->record(
             action: 'user.update',
             auditable: $user,

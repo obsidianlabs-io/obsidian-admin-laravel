@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Api\Language;
 
 use App\Domains\System\Models\Language;
+use App\DTOs\Language\UpdateLanguageTranslationInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 use Illuminate\Validation\Rule;
 
@@ -40,6 +41,19 @@ class UpdateLanguageTranslationRequest extends BaseApiRequest
             'updatedAt' => ['nullable', 'string', 'max:64'],
             'updateTime' => ['nullable', 'string', 'max:64'],
         ];
+    }
+
+    public function toDTO(): UpdateLanguageTranslationInputDTO
+    {
+        $validated = $this->validated();
+
+        return new UpdateLanguageTranslationInputDTO(
+            locale: trim((string) $validated['locale']),
+            translationKey: trim((string) $validated['translationKey']),
+            translationValue: (string) $validated['translationValue'],
+            description: trim((string) ($validated['description'] ?? '')),
+            status: array_key_exists('status', $validated) ? (string) $validated['status'] : null,
+        );
     }
 
     private function resolveLanguageId(): int

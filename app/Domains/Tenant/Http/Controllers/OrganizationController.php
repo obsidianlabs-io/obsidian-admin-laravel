@@ -8,6 +8,9 @@ use App\Domains\Shared\Auth\TenantScopedContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
+use App\Domains\Tenant\Actions\ListOrganizationsQueryAction;
+use App\Domains\Tenant\Data\OrganizationResponseData;
+use App\Domains\Tenant\Data\OrganizationSnapshot;
 use App\Domains\Tenant\Http\Controllers\Concerns\ResolvesTenantScopedContext;
 use App\Domains\Tenant\Http\Resources\OrganizationListResource;
 use App\Domains\Tenant\Models\Organization;
@@ -16,8 +19,6 @@ use App\Domains\Tenant\Services\TenantContextService;
 use App\Http\Requests\Api\Organization\ListOrganizationsRequest;
 use App\Http\Requests\Api\Organization\StoreOrganizationRequest;
 use App\Http\Requests\Api\Organization\UpdateOrganizationRequest;
-use App\Support\ApiDateTime;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -32,7 +33,7 @@ class OrganizationController extends ApiController
         private readonly ApiCacheService $apiCacheService,
     ) {}
 
-    public function list(ListOrganizationsRequest $request): JsonResponse
+    public function list(ListOrganizationsRequest $request, ListOrganizationsQueryAction $listOrganizationsQuery): JsonResponse
     {
         $context = $this->resolveOrganizationContext($request, ['organization.view', 'organization.manage'], 'viewAny');
         if ($context->failed()) {
@@ -43,54 +44,34 @@ class OrganizationController extends ApiController
         if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
-        $validated = $request->validated();
+        $input = $request->toDTO();
 
-        $current = (int) ($validated['current'] ?? 1);
-        $size = (int) ($validated['size'] ?? 10);
-        $keyword = trim((string) ($validated['keyword'] ?? ''));
-        $status = (string) ($validated['status'] ?? '');
+        $query = $listOrganizationsQuery->handle($tenantId, $input);
 
-        $query = Organization::query()
-            ->with('tenant:id,name')
-            ->withCount(['teams', 'users'])
-            ->select(['id', 'tenant_id', 'code', 'name', 'description', 'status', 'sort', 'created_at', 'updated_at'])
-            ->where('tenant_id', $tenantId);
-
-        $this->applyOrganizationListFilters($query, $keyword, $status);
-
-        if ($this->hasCursorPagination($validated)) {
+        if ($input->usesCursorPagination((string) $request->input('paginationMode', ''))) {
             $page = $this->cursorPaginateById(
                 clone $query,
-                $size,
-                (string) ($validated['cursor'] ?? ''),
+                $input->size,
+                $input->cursor,
                 false
             );
 
             $records = OrganizationListResource::collection($page['records'])->resolve($request);
 
-            return $this->success([
-                'paginationMode' => 'cursor',
-                'size' => $page['size'],
-                'hasMore' => $page['hasMore'],
-                'nextCursor' => $page['nextCursor'],
-                'records' => $records,
-            ]);
+            return $this->success($this->cursorPaginationPayload($page, $records)->toArray());
         }
 
         $total = (clone $query)->count();
         $records = OrganizationListResource::collection(
             $query->orderBy('sort')
                 ->orderBy('id')
-                ->forPage($current, $size)
+                ->forPage($input->current, $input->size)
                 ->get()
         )->resolve($request);
 
-        return $this->success([
-            'current' => $current,
-            'size' => $size,
-            'total' => $total,
-            'records' => $records,
-        ]);
+        return $this->success(
+            $this->offsetPaginationPayload($input->current, $input->size, $total, $records)->toArray()
+        );
     }
 
     public function all(Request $request): JsonResponse
@@ -159,13 +140,13 @@ class OrganizationController extends ApiController
                 actor: $user,
                 request: $request,
                 newValues: [
-                    ...$this->organizationSnapshot($organization),
+                    ...OrganizationSnapshot::fromModel($organization)->toArray(),
                     'tenantId' => (int) $organization->tenant_id,
                 ],
                 tenantId: $tenantId,
             );
 
-            return $this->success($this->organizationResponse($organization), 'Organization created');
+            return $this->success(OrganizationResponseData::fromModel($organization)->toArray(), 'Organization created');
         });
     }
 
@@ -197,7 +178,7 @@ class OrganizationController extends ApiController
             return $this->error(self::PARAM_ERROR_CODE, $uniqueError);
         }
 
-        $oldValues = $this->organizationSnapshot($organization);
+        $oldValues = OrganizationSnapshot::fromModel($organization)->toArray();
 
         $organization = $this->organizationService->update($organization, $dto);
 
@@ -207,11 +188,11 @@ class OrganizationController extends ApiController
             actor: $user,
             request: $request,
             oldValues: $oldValues,
-            newValues: $this->organizationSnapshot($organization),
+            newValues: OrganizationSnapshot::fromModel($organization)->toArray(),
             tenantId: $tenantId,
         );
 
-        return $this->success($this->organizationResponse($organization, $request), 'Organization updated');
+        return $this->success(OrganizationResponseData::fromModel($organization, $request)->toArray(), 'Organization updated');
     }
 
     public function destroy(Request $request, int $id): JsonResponse
@@ -231,7 +212,7 @@ class OrganizationController extends ApiController
             return $this->organizationScopeErrorResponse($id);
         }
 
-        $oldValues = $this->organizationSnapshot($organization);
+        $oldValues = OrganizationSnapshot::fromModel($organization)->toArray();
 
         if ((string) $organization->status === '1') {
             $organization->forceFill(['status' => '2'])->save();
@@ -243,7 +224,7 @@ class OrganizationController extends ApiController
                 actor: $user,
                 request: $request,
                 oldValues: $oldValues,
-                newValues: $this->organizationSnapshot($organization),
+                newValues: OrganizationSnapshot::fromModel($organization)->toArray(),
                 tenantId: $tenantId,
             );
 
@@ -326,23 +307,6 @@ class OrganizationController extends ApiController
     }
 
     /**
-     * @param  Builder<Organization>  $query
-     */
-    private function applyOrganizationListFilters(Builder $query, string $keyword, string $status): void
-    {
-        if ($keyword !== '') {
-            $query->where(function (Builder $builder) use ($keyword): void {
-                $builder->where('code', 'like', '%'.$keyword.'%')
-                    ->orWhere('name', 'like', '%'.$keyword.'%');
-            });
-        }
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
-    }
-
-    /**
      * @param  list<string>  $withCount
      */
     private function resolveTenantOrganization(int $tenantId, int $id, array $withCount = []): ?Organization
@@ -367,49 +331,5 @@ class OrganizationController extends ApiController
         return Organization::query()->whereKey($id)->exists()
             ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
             : $this->error(self::PARAM_ERROR_CODE, 'Organization not found');
-    }
-
-    /**
-     * @return array{
-     *   organizationCode: string,
-     *   organizationName: string,
-     *   status: string,
-     *   sort: int
-     * }
-     */
-    private function organizationSnapshot(Organization $organization): array
-    {
-        return [
-            'organizationCode' => (string) $organization->code,
-            'organizationName' => (string) $organization->name,
-            'status' => (string) $organization->status,
-            'sort' => (int) ($organization->sort ?? 0),
-        ];
-    }
-
-    /**
-     * @return array{
-     *   id: int,
-     *   organizationCode: string,
-     *   organizationName: string,
-     *   status: string,
-     *   sort: int,
-     *   version?: string,
-     *   updateTime?: string
-     * }
-     */
-    private function organizationResponse(Organization $organization, ?Request $request = null): array
-    {
-        $response = [
-            'id' => $organization->id,
-            ...$this->organizationSnapshot($organization),
-        ];
-
-        if ($request instanceof Request) {
-            $response['version'] = (string) ($organization->updated_at?->copy()->setTimezone('UTC')->timestamp ?? 0);
-            $response['updateTime'] = ApiDateTime::formatForRequest($organization->updated_at, $request);
-        }
-
-        return $response;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Auth;
 
+use App\DTOs\Auth\LoginInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 use App\Support\AppLocale;
 use Illuminate\Validation\Rule;
@@ -45,5 +46,10 @@ class LoginRequest extends BaseApiRequest
                 }),
             ],
         ];
+    }
+
+    public function toDTO(): LoginInputDTO
+    {
+        return LoginInputDTO::fromValidated($this->validated());
     }
 }

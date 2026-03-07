@@ -35,6 +35,6 @@ final class CrudSchemaController extends ApiController
             return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
         }
 
-        return $this->success($schema);
+        return $this->success($schema->toArray());
     }
 }

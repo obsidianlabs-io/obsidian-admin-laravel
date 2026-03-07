@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\System\Services;
 
 use App\Domains\Shared\Services\ApiCacheService;
+use App\Domains\System\Data\FeatureFlagScopeData;
 use Illuminate\Support\Facades\DB;
 use Laravel\Pennant\Feature;
 
@@ -153,13 +154,7 @@ class FeatureFlagService
         );
     }
 
-    /**
-     * @return array{
-     *   tenantId: int,
-     *   roleCodes: list<string>
-     * }
-     */
-    public function parseScopeKey(string $scopeKey): array
+    public function parseScopeKey(string $scopeKey): FeatureFlagScopeData
     {
         $tenantId = 0;
         $roleCodes = [];
@@ -175,10 +170,10 @@ class FeatureFlagService
             }
         }
 
-        return [
-            'tenantId' => $tenantId,
-            'roleCodes' => $roleCodes,
-        ];
+        return new FeatureFlagScopeData(
+            tenantId: $tenantId,
+            roleCodes: $roleCodes,
+        );
     }
 
     /**
@@ -215,8 +210,8 @@ class FeatureFlagService
         }
 
         $scope = $this->parseScopeKey($scopeKey);
-        $tenantId = (int) $scope['tenantId'];
-        $roleCodes = $scope['roleCodes'];
+        $tenantId = $scope->tenantId;
+        $roleCodes = $scope->roleCodes;
 
         if ((bool) ($definition['platform_only'] ?? false) && $tenantId > 0) {
             return false;

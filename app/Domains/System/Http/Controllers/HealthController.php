@@ -26,7 +26,7 @@ class HealthController extends ApiController
     {
         $snapshot = $this->healthStatusService->snapshot();
         $exposeChecks = (bool) config('observability.health.expose_checks', true);
-        $isReady = $snapshot['status'] !== 'fail';
+        $isReady = $snapshot->isReady();
 
         return response()->json($this->responseFactory()->withTrace([
             'name' => config('app.name'),
@@ -34,8 +34,8 @@ class HealthController extends ApiController
             'status' => $isReady ? 'ready' : 'not_ready',
             'ready' => $isReady,
             'timestamp' => now()->toIso8601String(),
-            'context' => $snapshot['context'],
-            'checks' => $exposeChecks ? $snapshot['checks'] : [],
+            'context' => $snapshot->context->toArray(),
+            'checks' => $exposeChecks ? $snapshot->checksToArray() : [],
         ]), $isReady ? 200 : 503);
     }
 
@@ -47,10 +47,10 @@ class HealthController extends ApiController
         return response()->json($this->responseFactory()->withTrace([
             'name' => config('app.name'),
             'service' => 'obsidian-admin-laravel',
-            'status' => $snapshot['status'],
+            'status' => $snapshot->status,
             'timestamp' => now()->toIso8601String(),
-            'context' => $snapshot['context'],
-            'checks' => $exposeChecks ? $snapshot['checks'] : [],
+            'context' => $snapshot->context->toArray(),
+            'checks' => $exposeChecks ? $snapshot->checksToArray() : [],
         ]));
     }
 }

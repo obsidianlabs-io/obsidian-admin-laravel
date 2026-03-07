@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\User;
 
+use App\DTOs\User\AssignUserRoleInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 
 class AssignUserRoleRequest extends BaseApiRequest
@@ -19,5 +20,14 @@ class AssignUserRoleRequest extends BaseApiRequest
             'updatedAt' => ['nullable', 'string', 'max:64'],
             'updateTime' => ['nullable', 'string', 'max:64'],
         ];
+    }
+
+    public function toDTO(): AssignUserRoleInputDTO
+    {
+        $validated = $this->validated();
+
+        return new AssignUserRoleInputDTO(
+            roleCode: trim((string) $validated['roleCode'])
+        );
     }
 }

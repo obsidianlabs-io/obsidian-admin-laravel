@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\User;
 
+use App\DTOs\User\UpdateUserInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 use App\Support\Validation\PasswordPolicy;
 use Illuminate\Validation\Rule;
@@ -29,5 +30,23 @@ class UpdateUserRequest extends BaseApiRequest
             'updatedAt' => ['nullable', 'string', 'max:64'],
             'updateTime' => ['nullable', 'string', 'max:64'],
         ];
+    }
+
+    public function toDTO(): UpdateUserInputDTO
+    {
+        $validated = $this->validated();
+        $password = array_key_exists('password', $validated) && is_string($validated['password']) && $validated['password'] !== ''
+            ? $validated['password']
+            : null;
+
+        return new UpdateUserInputDTO(
+            userName: trim((string) $validated['userName']),
+            email: trim((string) $validated['email']),
+            roleCode: trim((string) $validated['roleCode']),
+            organizationId: array_key_exists('organizationId', $validated) ? (int) $validated['organizationId'] : null,
+            teamId: array_key_exists('teamId', $validated) ? (int) $validated['teamId'] : null,
+            status: array_key_exists('status', $validated) ? (string) $validated['status'] : null,
+            password: $password,
+        );
     }
 }

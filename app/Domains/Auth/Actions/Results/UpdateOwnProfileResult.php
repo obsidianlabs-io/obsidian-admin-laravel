@@ -6,26 +6,18 @@ namespace App\Domains\Auth\Actions\Results;
 
 final readonly class UpdateOwnProfileResult
 {
-    /**
-     * @param  array{userName: string, email: string, timezone: string, themeSchema: string|null}  $oldValues
-     * @param  array{userName: string, email: string, timezone: string, themeSchema: string|null}  $newValues
-     */
     private function __construct(
         private bool $ok,
-        private array $oldValues,
-        private array $newValues
+        private UserProfileSnapshot $oldProfile,
+        private UserProfileSnapshot $newProfile,
     ) {}
 
-    /**
-     * @param  array{userName: string, email: string, timezone: string, themeSchema: string|null}  $oldValues
-     * @param  array{userName: string, email: string, timezone: string, themeSchema: string|null}  $newValues
-     */
-    public static function success(array $oldValues, array $newValues): self
+    public static function success(UserProfileSnapshot $oldProfile, UserProfileSnapshot $newProfile): self
     {
         return new self(
             ok: true,
-            oldValues: $oldValues,
-            newValues: $newValues
+            oldProfile: $oldProfile,
+            newProfile: $newProfile,
         );
     }
 
@@ -34,24 +26,18 @@ final readonly class UpdateOwnProfileResult
         return ! $this->ok;
     }
 
-    /**
-     * @return array{userName: string, email: string, timezone: string, themeSchema: string|null}
-     */
-    public function oldValues(): array
+    public function oldProfile(): UserProfileSnapshot
     {
-        return $this->oldValues;
+        return $this->oldProfile;
     }
 
-    /**
-     * @return array{userName: string, email: string, timezone: string, themeSchema: string|null}
-     */
-    public function newValues(): array
+    public function newProfile(): UserProfileSnapshot
     {
-        return $this->newValues;
+        return $this->newProfile;
     }
 
     public function timezone(): string
     {
-        return $this->newValues['timezone'];
+        return $this->newProfile->timezone;
     }
 }

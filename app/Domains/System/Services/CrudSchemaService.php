@@ -4,34 +4,11 @@ declare(strict_types=1);
 
 namespace App\Domains\System\Services;
 
+use App\Domains\System\Data\CrudSchemaData;
+
 final class CrudSchemaService
 {
-    /**
-     * @return array{
-     *   resource: string,
-     *   permission: string,
-     *   searchFields: list<array{
-     *     key: string,
-     *     type: string,
-     *     labelKey: string,
-     *     placeholderKey?: string,
-     *     clearable?: bool,
-     *     filterable?: bool,
-     *     optionSource?: string
-     *   }>,
-     *   columns: list<array{
-     *     key: string,
-     *     type: string,
-     *     titleKey: string,
-     *     align: string,
-     *     width?: int,
-     *     minWidth?: int,
-     *     emptyLabelKey?: string
-     *   }>,
-     *   scrollX: int
-     * }|null
-     */
-    public function find(string $resource): ?array
+    public function find(string $resource): ?CrudSchemaData
     {
         $resourceKey = trim($resource);
         if ($resourceKey === '') {
@@ -45,33 +22,7 @@ final class CrudSchemaService
             return null;
         }
 
-        /** @var array{
-         *   resource: string,
-         *   permission: string,
-         *   searchFields: list<array{
-         *     key: string,
-         *     type: string,
-         *     labelKey: string,
-         *     placeholderKey?: string,
-         *     clearable?: bool,
-         *     filterable?: bool,
-         *     optionSource?: string
-         *   }>,
-         *   columns: list<array{
-         *     key: string,
-         *     type: string,
-         *     titleKey: string,
-         *     align: string,
-         *     width?: int,
-         *     minWidth?: int,
-         *     emptyLabelKey?: string
-         *   }>,
-         *   scrollX: int
-         * } $schema
-         */
-        $schema = $schema;
-
-        return $schema;
+        return CrudSchemaData::fromArray($schema);
     }
 
     public function requiredPermissionCode(string $resource): ?string
@@ -81,7 +32,7 @@ final class CrudSchemaService
             return null;
         }
 
-        $permission = trim((string) $schema['permission']);
+        $permission = trim($schema->permission);
 
         return $permission !== '' ? $permission : null;
     }

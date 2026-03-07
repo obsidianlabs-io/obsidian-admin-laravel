@@ -6,7 +6,6 @@ namespace App\Domains\Auth\Http\Controllers;
 
 use App\Domains\Access\Models\UserPreference;
 use App\Domains\Auth\Actions\UpdateOwnProfileAction;
-use App\DTOs\User\UpdateOwnProfileDTO;
 use App\Http\Requests\Api\Auth\UpdatePreferredLocaleRequest;
 use App\Http\Requests\Api\Auth\UpdateProfileRequest;
 use App\Http\Requests\Api\Auth\UpdateUserPreferencesRequest;
@@ -31,40 +30,7 @@ class UserProfileController extends AbstractUserController
             return $this->error($tenantContext->code(), $tenantContext->message());
         }
 
-        $roles = $this->resolveRoles($user);
-        $permissionCodes = $user->permissionCodes();
-        $navigation = $this->menuMetadataService->resolveForUser(
-            user: $user,
-            tenantId: $tenantContext->tenantId(),
-            roleCodes: $roles,
-            permissionCodes: $permissionCodes
-        );
-        $locale = $this->resolveLocale($user);
-        $timezone = $this->resolveTimezone($user);
-        $themeSchema = $this->resolveThemeSchema($user);
-        $themeConfig = $this->themeConfigService->resolveEffectiveConfig(
-            null,
-            $themeSchema
-        );
-
-        return $this->success([
-            'userId' => (string) $user->id,
-            'userName' => $user->name,
-            'locale' => $locale,
-            'preferredLocale' => $locale,
-            'timezone' => $timezone,
-            'themeSchema' => $themeSchema,
-            'themeConfig' => $themeConfig['config'],
-            'themeProfileVersion' => (int) $themeConfig['profileVersion'],
-            'roles' => $roles,
-            'buttons' => $permissionCodes,
-            'currentTenantId' => (string) ($tenantContext->tenantId() ?? ''),
-            'currentTenantName' => $tenantContext->tenantName(),
-            'tenants' => $tenantContext->tenants(),
-            'menuScope' => $navigation['menuScope'],
-            'menus' => $navigation['menus'],
-            'routeRules' => $navigation['routeRules'],
-        ]);
+        return $this->success($this->resolveUserInfo->handle($user, $tenantContext)->toArray());
     }
 
     public function menus(Request $request): JsonResponse
@@ -86,15 +52,11 @@ class UserProfileController extends AbstractUserController
         $navigation = $this->menuMetadataService->resolveForUser(
             user: $user,
             tenantId: $tenantContext->tenantId(),
-            roleCodes: $roles,
+            roleCodes: $roles->codes(),
             permissionCodes: $permissionCodes
         );
 
-        return $this->success([
-            'menuScope' => $navigation['menuScope'],
-            'menus' => $navigation['menus'],
-            'routeRules' => $navigation['routeRules'],
-        ]);
+        return $this->success($navigation->toArray());
     }
 
     public function me(Request $request): JsonResponse
@@ -111,7 +73,7 @@ class UserProfileController extends AbstractUserController
 
         $user = $authResult->requireUser();
 
-        return $this->success($this->resolveProfile($user));
+        return $this->success($this->resolveProfile($user)->toArray());
     }
 
     public function updateProfile(UpdateProfileRequest $request, UpdateOwnProfileAction $updateOwnProfile): JsonResponse
@@ -128,21 +90,12 @@ class UserProfileController extends AbstractUserController
             return $optimisticLockError;
         }
 
-        $validated = $request->validated();
-        $password = (string) ($validated['password'] ?? '');
-        if ($password !== '') {
-            $currentPassword = (string) ($validated['currentPassword'] ?? '');
-            if (! Hash::check($currentPassword, $user->password)) {
-                return $this->error(self::PARAM_ERROR_CODE, 'Current password is incorrect');
-            }
+        $input = $request->toDTO();
+        if ($input->password !== null && ! Hash::check((string) $input->currentPassword, $user->password)) {
+            return $this->error(self::PARAM_ERROR_CODE, 'Current password is incorrect');
         }
 
-        $result = $updateOwnProfile->handle($user, new UpdateOwnProfileDTO(
-            userName: trim((string) $validated['userName']),
-            email: trim((string) $validated['email']),
-            password: $password !== '' ? $password : null,
-            timezone: array_key_exists('timezone', $validated) ? (string) $validated['timezone'] : null,
-        ));
+        $result = $updateOwnProfile->handle($user, $input->toUpdateOwnProfileDTO());
         ApiDateTime::assignRequestTimezone($request, $result->timezone());
 
         $this->auditLogService->record(
@@ -150,12 +103,12 @@ class UserProfileController extends AbstractUserController
             auditable: $user,
             actor: $user,
             request: $request,
-            oldValues: $result->oldValues(),
-            newValues: $result->newValues(),
+            oldValues: $result->oldProfile()->toArray(),
+            newValues: $result->newProfile()->toArray(),
             tenantId: $user->tenant_id ? (int) $user->tenant_id : null
         );
 
-        return $this->success($this->resolveProfile($user), 'Profile updated');
+        return $this->success($this->resolveProfile($user)->toArray(), 'Profile updated');
     }
 
     public function updatePreferredLocale(UpdatePreferredLocaleRequest $request): JsonResponse
@@ -167,7 +120,8 @@ class UserProfileController extends AbstractUserController
 
         $user = $authResult->requireUser();
 
-        $locale = (string) $request->validated()['locale'];
+        $input = $request->toDTO();
+        $locale = $input->locale;
         $oldLocale = $this->resolveLocale($user);
         if ($oldLocale === $locale) {
             return $this->success([
@@ -202,14 +156,12 @@ class UserProfileController extends AbstractUserController
         }
 
         $user = $authResult->requireUser();
-        $validated = $request->validated();
+        $input = $request->toDTO();
         $oldThemeSchema = $this->resolveThemeSchema($user);
         $oldTimezone = $this->resolveTimezone($user);
-        $hasThemeSchema = array_key_exists('themeSchema', $validated) && $validated['themeSchema'] !== null;
-        $hasTimezone = array_key_exists('timezone', $validated) && $validated['timezone'] !== null;
-        $themeSchema = $hasThemeSchema ? (string) $validated['themeSchema'] : $oldThemeSchema;
-        $timezone = $hasTimezone
-            ? ApiDateTime::normalizeTimezone((string) $validated['timezone'])
+        $themeSchema = $input->hasThemeSchema ? $input->themeSchema : $oldThemeSchema;
+        $timezone = $input->hasTimezone
+            ? ApiDateTime::normalizeTimezone((string) $input->timezone)
             : $oldTimezone;
 
         if (($oldThemeSchema ?? '') === ($themeSchema ?? '') && $oldTimezone === $timezone) {
@@ -220,10 +172,10 @@ class UserProfileController extends AbstractUserController
         }
 
         $payload = [];
-        if ($hasThemeSchema) {
+        if ($input->hasThemeSchema) {
             $payload['theme_schema'] = $themeSchema;
         }
-        if ($hasTimezone) {
+        if ($input->hasTimezone) {
             $payload['timezone'] = $timezone;
         }
 

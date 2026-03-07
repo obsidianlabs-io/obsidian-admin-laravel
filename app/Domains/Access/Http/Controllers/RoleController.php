@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domains\Access\Http\Controllers;
 
+use App\Domains\Access\Actions\ListRolesQueryAction;
+use App\Domains\Access\Data\RoleResponseData;
+use App\Domains\Access\Data\RoleSnapshot;
 use App\Domains\Access\Http\Resources\RoleListResource;
 use App\Domains\Access\Models\Permission;
 use App\Domains\Access\Models\Role;
@@ -18,12 +21,12 @@ use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Services\TenantContextService;
+use App\DTOs\Role\SyncRolePermissionsDTO;
+use App\DTOs\Role\UpdateRoleDTO;
 use App\Http\Requests\Api\Role\ListRolesRequest;
 use App\Http\Requests\Api\Role\StoreRoleRequest;
 use App\Http\Requests\Api\Role\SyncRolePermissionsRequest;
 use App\Http\Requests\Api\Role\UpdateRoleRequest;
-use App\Support\ApiDateTime;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -86,7 +89,7 @@ class RoleController extends ApiController
         ]);
     }
 
-    public function list(ListRolesRequest $request): JsonResponse
+    public function list(ListRolesRequest $request, ListRolesQueryAction $listRolesQuery): JsonResponse
     {
         $context = $this->resolveRoleConsoleContext(
             $request,
@@ -96,43 +99,30 @@ class RoleController extends ApiController
             return $this->error($context->code(), $context->message());
         }
 
-        $validated = $request->validated();
-
-        $current = (int) ($validated['current'] ?? 1);
-        $size = (int) ($validated['size'] ?? 10);
-        $keyword = trim((string) ($validated['keyword'] ?? ''));
-        $status = (string) ($validated['status'] ?? '');
-        $level = isset($validated['level']) ? (int) $validated['level'] : null;
+        $input = $request->toDTO();
         $actorLevel = $context->actorLevel();
 
-        $query = Role::query()
-            ->with('tenant:id,name')
-            ->with('permissions:id,code,status')
-            ->withCount('users')
-            ->select(['id', 'code', 'name', 'description', 'status', 'tenant_id', 'level', 'created_at', 'updated_at'])
-            ->where('level', '<=', $actorLevel);
-        $this->roleScopeGuardService->applyRoleVisibilityScope($query, $context->tenantId(), $context->isSuper());
-        $this->applyRoleFilters($query, $keyword, $status, $level);
+        $query = $listRolesQuery->handle(
+            $input,
+            $actorLevel,
+            $context->tenantId(),
+            $context->isSuper(),
+        );
 
-        if ($this->hasCursorPagination($validated)) {
+        if ($input->usesCursorPagination((string) $request->input('paginationMode', ''))) {
             $page = $this->cursorPaginateById(
                 clone $query,
-                $size,
-                (string) ($validated['cursor'] ?? ''),
+                $input->size,
+                $input->cursor,
                 false
             );
 
             $request->attributes->set('actorRoleLevel', $actorLevel);
             $records = RoleListResource::collection($page['records'])->resolve($request);
 
-            return $this->success([
-                'paginationMode' => 'cursor',
-                'actorLevel' => $actorLevel,
-                'size' => $page['size'],
-                'hasMore' => $page['hasMore'],
-                'nextCursor' => $page['nextCursor'],
-                'records' => $records,
-            ]);
+            return $this->success(
+                $this->cursorPaginationPayload($page, $records, ['actorLevel' => $actorLevel])->toArray()
+            );
         }
 
         $total = (clone $query)->count();
@@ -140,17 +130,19 @@ class RoleController extends ApiController
         $request->attributes->set('actorRoleLevel', $actorLevel);
         $records = RoleListResource::collection(
             $query->orderBy('id')
-                ->forPage($current, $size)
+                ->forPage($input->current, $input->size)
                 ->get()
         )->resolve($request);
 
-        return $this->success([
-            'actorLevel' => $actorLevel,
-            'current' => $current,
-            'size' => $size,
-            'total' => $total,
-            'records' => $records,
-        ]);
+        return $this->success(
+            $this->offsetPaginationPayload(
+                $input->current,
+                $input->size,
+                $total,
+                $records,
+                ['actorLevel' => $actorLevel],
+            )->toArray()
+        );
     }
 
     public function all(Request $request): JsonResponse
@@ -231,26 +223,26 @@ class RoleController extends ApiController
         $targetTenantId = $context->tenantId();
         $isSuper = $context->isSuper();
 
-        $validated = $request->validated();
-        $reservedRoleCodeError = $this->validateReservedRoleCode((string) $validated['roleCode']);
+        $input = $request->toDTO();
+        $reservedRoleCodeError = $this->validateReservedRoleCode($input->roleCode);
         if ($reservedRoleCodeError instanceof JsonResponse) {
             return $reservedRoleCodeError;
         }
         $roleUniquenessError = $this->validateRoleUniqueness(
-            roleCode: (string) $validated['roleCode'],
-            roleName: (string) $validated['roleName'],
+            roleCode: $input->roleCode,
+            roleName: $input->roleName,
             tenantId: $targetTenantId
         );
         if ($roleUniquenessError instanceof JsonResponse) {
             return $roleUniquenessError;
         }
-        $requestedRoleLevel = (int) ($validated['level'] ?? self::DEFAULT_ROLE_LEVEL);
+        $requestedRoleLevel = $input->level;
         $roleLevelError = $this->validateRequestedRoleLevel($requestedRoleLevel, $actorLevel);
         if ($roleLevelError instanceof JsonResponse) {
             return $roleLevelError;
         }
         $permissionResolution = $this->resolveAssignablePermissions(
-            $this->normalizePermissionCodes($validated['permissionCodes'] ?? []),
+            $input->permissionCodes,
             $targetTenantId,
             $isSuper
         );
@@ -259,32 +251,19 @@ class RoleController extends ApiController
         }
         $permissionIds = $permissionResolution->permissionIds();
 
-        return $this->withIdempotency($request, $user, function () use ($validated, $targetTenantId, $permissionIds, $requestedRoleLevel, $user, $request): JsonResponse {
-            $role = $this->roleService->create([
-                'code' => (string) $validated['roleCode'],
-                'name' => (string) $validated['roleName'],
-                'description' => (string) ($validated['description'] ?? ''),
-                'status' => (string) ($validated['status'] ?? '1'),
-                'tenant_id' => $targetTenantId,
-                'level' => $requestedRoleLevel,
-            ], $permissionIds);
+        return $this->withIdempotency($request, $user, function () use ($input, $targetTenantId, $permissionIds, $user, $request): JsonResponse {
+            $role = $this->roleService->create($input->toCreateRoleDTO($targetTenantId), $permissionIds);
 
             $this->auditLogService->record(
                 action: 'role.create',
                 auditable: $role,
                 actor: $user,
                 request: $request,
-                newValues: [
-                    'roleCode' => $role->code,
-                    'roleName' => $role->name,
-                    'tenantId' => $targetTenantId,
-                    'level' => (int) $role->level,
-                    'permissionCount' => count($permissionIds),
-                ],
+                newValues: RoleSnapshot::forCreateAudit($role, $targetTenantId, count($permissionIds))->toArray(),
                 tenantId: $targetTenantId
             );
 
-            return $this->success($this->roleResponse($role), 'Role created');
+            return $this->success(RoleResponseData::fromModel($role)->toArray(), 'Role created');
         });
     }
 
@@ -314,50 +293,45 @@ class RoleController extends ApiController
 
         $targetTenantId = $role->tenant_id !== null ? (int) $role->tenant_id : null;
 
-        $validated = $request->validated();
-        $reservedRoleCodeError = $this->validateReservedRoleCode((string) $validated['roleCode'], $role);
+        $input = $request->toDTO();
+        $reservedRoleCodeError = $this->validateReservedRoleCode($input->roleCode, $role);
         if ($reservedRoleCodeError instanceof JsonResponse) {
             return $reservedRoleCodeError;
         }
         $roleUniquenessError = $this->validateRoleUniqueness(
-            roleCode: (string) $validated['roleCode'],
-            roleName: (string) $validated['roleName'],
+            roleCode: $input->roleCode,
+            roleName: $input->roleName,
             tenantId: $targetTenantId,
             ignoreRoleId: (int) $role->id
         );
         if ($roleUniquenessError instanceof JsonResponse) {
             return $roleUniquenessError;
         }
-        $requestedRoleLevel = (int) ($validated['level'] ?? $role->level ?? self::DEFAULT_ROLE_LEVEL);
+        $requestedRoleLevel = $input->level;
         $roleLevelError = $this->validateRequestedRoleLevel($requestedRoleLevel, $actorLevel);
         if ($roleLevelError instanceof JsonResponse) {
             return $roleLevelError;
         }
-        $permissionResolution = $this->resolveAssignablePermissions(
-            $this->normalizePermissionCodes($validated['permissionCodes'] ?? []),
-            $targetTenantId,
-            $context->isSuper()
-        );
-        if ($permissionResolution->failed()) {
-            return $this->error(self::FORBIDDEN_CODE, $permissionResolution->message());
+        $permissionIds = null;
+        if ($input->hasPermissionCodes) {
+            $permissionResolution = $this->resolveAssignablePermissions(
+                $input->permissionCodes,
+                $targetTenantId,
+                $context->isSuper()
+            );
+            if ($permissionResolution->failed()) {
+                return $this->error(self::FORBIDDEN_CODE, $permissionResolution->message());
+            }
+            $permissionIds = $permissionResolution->permissionIds();
         }
-        $permissionIds = $permissionResolution->permissionIds();
 
-        $oldValues = [
-            'roleCode' => $role->code,
-            'roleName' => $role->name,
-            'description' => (string) ($role->description ?? ''),
-            'status' => (string) $role->status,
-            'level' => (int) ($role->level ?? 0),
-        ];
+        $oldValues = RoleSnapshot::forUpdateAudit($role)->toArray();
 
-        $this->roleService->update($role, [
-            'code' => (string) $validated['roleCode'],
-            'name' => (string) $validated['roleName'],
-            'description' => (string) ($validated['description'] ?? ''),
-            'status' => (string) ($validated['status'] ?? $role->status),
-            'level' => $requestedRoleLevel,
-        ], array_key_exists('permissionCodes', $validated) ? $permissionIds : null);
+        $this->roleService->update(
+            $role,
+            $input->toUpdateRoleDTO((string) $role->status),
+            $permissionIds
+        );
 
         $this->auditLogService->record(
             action: 'role.update',
@@ -365,17 +339,11 @@ class RoleController extends ApiController
             actor: $user,
             request: $request,
             oldValues: $oldValues,
-            newValues: [
-                'roleCode' => $role->code,
-                'roleName' => $role->name,
-                'description' => (string) ($role->description ?? ''),
-                'status' => (string) $role->status,
-                'level' => (int) ($role->level ?? 0),
-            ],
+            newValues: RoleSnapshot::forUpdateAudit($role)->toArray(),
             tenantId: $targetTenantId
         );
 
-        return $this->success($this->roleResponse($role, $request), 'Role updated');
+        return $this->success(RoleResponseData::fromModel($role, $request)->toArray(), 'Role updated');
     }
 
     public function destroy(Request $request, int $id): JsonResponse
@@ -401,21 +369,16 @@ class RoleController extends ApiController
             return $this->error(self::FORBIDDEN_CODE, 'Super role cannot be deleted');
         }
 
-        $oldValues = [
-            'roleCode' => $role->code,
-            'roleName' => $role->name,
-            'tenantId' => $role->tenant_id ? (int) $role->tenant_id : null,
-            'status' => (string) $role->status,
-        ];
+        $oldValues = RoleSnapshot::forStatusAudit($role)->toArray();
 
         if ((string) $role->status === '1') {
-            $this->roleService->update($role, [
-                'code' => (string) $role->code,
-                'name' => (string) $role->name,
-                'description' => (string) ($role->description ?? ''),
-                'status' => '2',
-                'level' => (int) ($role->level ?? self::DEFAULT_ROLE_LEVEL),
-            ]);
+            $this->roleService->update($role, new UpdateRoleDTO(
+                code: (string) $role->code,
+                name: (string) $role->name,
+                description: (string) ($role->description ?? ''),
+                status: '2',
+                level: (int) ($role->level ?? self::DEFAULT_ROLE_LEVEL),
+            ));
 
             $this->auditLogService->record(
                 action: 'role.deactivate',
@@ -423,12 +386,7 @@ class RoleController extends ApiController
                 actor: $user,
                 request: $request,
                 oldValues: $oldValues,
-                newValues: [
-                    'roleCode' => (string) $role->code,
-                    'roleName' => (string) $role->name,
-                    'tenantId' => $role->tenant_id ? (int) $role->tenant_id : null,
-                    'status' => (string) $role->status,
-                ],
+                newValues: RoleSnapshot::forStatusAudit($role)->toArray(),
                 tenantId: $role->tenant_id ? (int) $role->tenant_id : null
             );
 
@@ -482,8 +440,9 @@ class RoleController extends ApiController
             return $optimisticLockError;
         }
 
+        $input = $request->toDTO();
         $permissionResolution = $this->resolveAssignablePermissions(
-            $this->normalizePermissionCodes($request->validated()['permissionCodes']),
+            $input->permissionCodes,
             $role->tenant_id !== null ? (int) $role->tenant_id : null,
             $context->isSuper()
         );
@@ -492,7 +451,7 @@ class RoleController extends ApiController
         }
         $permissionIds = $permissionResolution->permissionIds();
 
-        $this->roleService->syncPermissions($role, $permissionIds);
+        $this->roleService->syncPermissions($role, new SyncRolePermissionsDTO($permissionIds));
         $this->auditLogService->record(
             action: 'role.sync_permissions',
             auditable: $role,
@@ -537,36 +496,6 @@ class RoleController extends ApiController
     }
 
     /**
-     * @param  Builder<Role>  $query
-     */
-    private function applyRoleFilters(Builder $query, string $keyword, string $status, ?int $level): void
-    {
-        if ($keyword !== '') {
-            $query->where(function (Builder $builder) use ($keyword): void {
-                $builder->where('code', 'like', '%'.$keyword.'%')
-                    ->orWhere('name', 'like', '%'.$keyword.'%');
-            });
-        }
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
-
-        if ($level !== null && $level > 0) {
-            $query->where('level', $level);
-        }
-    }
-
-    /**
-     * @param  array<int, mixed>  $permissionCodes
-     * @return list<string>
-     */
-    private function normalizePermissionCodes(array $permissionCodes): array
-    {
-        return array_values(array_map(static fn (mixed $code): string => (string) $code, $permissionCodes));
-    }
-
-    /**
      * @param  list<string>  $permissionCodes
      */
     private function resolveAssignablePermissions(
@@ -591,33 +520,6 @@ class RoleController extends ApiController
         return Role::query()->whereKey($id)->exists()
             ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
             : $this->error(self::PARAM_ERROR_CODE, 'Role not found');
-    }
-
-    /**
-     * @return array{
-     *   id: int,
-     *   roleCode: string,
-     *   roleName: string,
-     *   level: int,
-     *   version?: string,
-     *   updateTime?: string
-     * }
-     */
-    private function roleResponse(Role $role, ?Request $request = null): array
-    {
-        $response = [
-            'id' => $role->id,
-            'roleCode' => (string) $role->code,
-            'roleName' => (string) $role->name,
-            'level' => (int) ($role->level ?? 0),
-        ];
-
-        if ($request instanceof Request) {
-            $response['version'] = (string) ($role->updated_at?->copy()->setTimezone('UTC')->timestamp ?? 0);
-            $response['updateTime'] = ApiDateTime::formatForRequest($role->updated_at, $request);
-        }
-
-        return $response;
     }
 
     private function resolveRoleScope(Request $request, User $user): RoleScopeContext

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Api\Auth;
 
 use App\Domains\Access\Models\User;
+use App\DTOs\Auth\UpdateProfileInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 use App\Support\Validation\PasswordPolicy;
 use Illuminate\Validation\Rule;
@@ -35,5 +36,24 @@ class UpdateProfileRequest extends BaseApiRequest
             'updatedAt' => ['nullable', 'string', 'max:64'],
             'updateTime' => ['nullable', 'string', 'max:64'],
         ];
+    }
+
+    public function toDTO(): UpdateProfileInputDTO
+    {
+        $validated = $this->validated();
+        $password = array_key_exists('password', $validated) && is_string($validated['password']) && $validated['password'] !== ''
+            ? $validated['password']
+            : null;
+        $currentPassword = array_key_exists('currentPassword', $validated) && is_string($validated['currentPassword']) && $validated['currentPassword'] !== ''
+            ? $validated['currentPassword']
+            : null;
+
+        return new UpdateProfileInputDTO(
+            userName: trim((string) $validated['userName']),
+            email: trim((string) $validated['email']),
+            currentPassword: $currentPassword,
+            password: $password,
+            timezone: array_key_exists('timezone', $validated) ? (string) $validated['timezone'] : null,
+        );
     }
 }

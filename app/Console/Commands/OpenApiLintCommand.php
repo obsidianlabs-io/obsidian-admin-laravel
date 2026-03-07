@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Support\OpenApiDocumentData;
 use App\Support\OpenApiSpecInspector;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
@@ -56,74 +57,62 @@ class OpenApiLintCommand extends Command
 
         $this->info(sprintf(
             'OpenAPI lint passed (%d operations).',
-            count($document['operations'])
+            count($document->operations)
         ));
 
         return self::SUCCESS;
     }
 
     /**
-     * @param  array{
-     *   openapiVersion: string,
-     *   infoTitle: string,
-     *   infoVersion: string,
-     *   serverUrls: list<string>,
-     *   operations: list<array{
-     *     path: string,
-     *     method: string,
-     *     summary: string,
-     *     has2xxResponse: bool
-     *   }>
-     * }  $document
      * @return list<string>
      */
-    private function collectErrors(array $document): array
+    private function collectErrors(OpenApiDocumentData $document): array
     {
         $errors = [];
 
         if (
-            $document['openapiVersion'] === ''
-            || preg_match('/^3\.\d+(\.\d+)?$/', $document['openapiVersion']) !== 1
+            $document->openapiVersion === ''
+            || preg_match('/^3\.\d+(\.\d+)?$/', $document->openapiVersion) !== 1
         ) {
             $errors[] = sprintf(
                 'openapi version must be 3.x (found: %s)',
-                $document['openapiVersion'] === '' ? 'empty' : $document['openapiVersion']
+                $document->openapiVersion === '' ? 'empty' : $document->openapiVersion
             );
         }
 
-        if ($document['infoTitle'] === '') {
+        if ($document->infoTitle === '') {
             $errors[] = 'info.title is required';
         }
 
-        if ($document['infoVersion'] === '') {
+        if ($document->infoVersion === '') {
             $errors[] = 'info.version is required';
         }
 
-        if ($document['serverUrls'] === []) {
+        if ($document->serverUrls === []) {
             $errors[] = 'at least one server url is required under servers';
         }
 
-        if ($document['operations'] === []) {
+        if ($document->operations === []) {
             $errors[] = 'no operations found under paths';
 
             return $errors;
         }
 
-        foreach ($document['operations'] as $operation) {
-            $operationLabel = sprintf('%s %s', $operation['method'], $operation['path']);
+        foreach ($document->operations as $operation) {
+            $operationLabel = sprintf('%s %s', $operation->method, $operation->path);
 
             if (
-                $operation['path'] !== '/'
-                && str_ends_with($operation['path'], '/')
+                $operation->path !== '/'
+                && str_ends_with($operation->path, '/')
             ) {
                 $errors[] = sprintf('%s path should not end with "/"', $operationLabel);
             }
 
-            if ($operation['summary'] === '') {
+            if ($operation->summary === '') {
                 $errors[] = sprintf('%s must define summary', $operationLabel);
             }
 
-            if (! $operation['has2xxResponse']) {
+            if (! $operation->has2xxResponse) {
                 $errors[] = sprintf('%s must define at least one 2xx response', $operationLabel);
             }
         }

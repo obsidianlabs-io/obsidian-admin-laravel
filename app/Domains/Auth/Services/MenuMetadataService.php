@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Domains\Auth\Services;
 
 use App\Domains\Access\Models\User;
+use App\Domains\Auth\Services\Results\ResolvedMenuItem;
+use App\Domains\Auth\Services\Results\ResolvedRouteRule;
+use App\Domains\Auth\Services\Results\ResolvedUserNavigation;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\FeatureFlagService;
 
@@ -12,7 +15,7 @@ class MenuMetadataService
 {
     public function __construct(
         private readonly FeatureFlagService $featureFlagService,
-        private readonly ApiCacheService $apiCacheService
+        private readonly ApiCacheService $apiCacheService,
     ) {}
 
     /**
@@ -37,19 +40,8 @@ class MenuMetadataService
     /**
      * @param  list<string>  $roleCodes
      * @param  list<string>  $permissionCodes
-     * @return array{
-     *   menuScope: 'platform'|'tenant',
-     *   menus: list<array<string, mixed>>,
-     *   routeRules: array<string, array{
-     *      enabled: bool,
-     *      permissions: list<string>,
-     *      roles: list<string>,
-     *      noTenantOnly: bool,
-     *      tenantOnly: bool
-     *   }>
-     * }
      */
-    public function resolveForUser(User $user, ?int $tenantId, array $roleCodes, array $permissionCodes): array
+    public function resolveForUser(User $user, ?int $tenantId, array $roleCodes, array $permissionCodes): ResolvedUserNavigation
     {
         $normalizedRoleCodes = $this->normalizeStringList($roleCodes);
         sort($normalizedRoleCodes);
@@ -69,31 +61,19 @@ class MenuMetadataService
             $this->apiCacheService->version('tenants')
         );
 
-        /** @var array{
-         *   menuScope: 'platform'|'tenant',
-         *   menus: list<array<string, mixed>>,
-         *   routeRules: array<string, array{
-         *      enabled: bool,
-         *      permissions: list<string>,
-         *      roles: list<string>,
-         *      noTenantOnly: bool,
-         *      tenantOnly: bool
-         *   }>
-         * } $resolved
-         */
         $resolved = $this->apiCacheService->remember(
             namespace: 'auth.menu',
             signature: $signature,
-            resolver: function () use ($tenantId, $normalizedRoleCodes, $normalizedPermissionCodes): array {
+            resolver: function () use ($tenantId, $normalizedRoleCodes, $normalizedPermissionCodes): ResolvedUserNavigation {
                 $items = $this->menuItems();
 
-                return [
-                    'menuScope' => $tenantId === null ? 'platform' : 'tenant',
-                    'menus' => $this->filterMenuItems($items, $tenantId, $normalizedRoleCodes, $normalizedPermissionCodes),
-                    'routeRules' => $this->buildRouteRules($items, $tenantId, $normalizedRoleCodes),
-                ];
+                return new ResolvedUserNavigation(
+                    menuScope: $tenantId === null ? 'platform' : 'tenant',
+                    menus: $this->filterMenuItems($items, $tenantId, $normalizedRoleCodes, $normalizedPermissionCodes),
+                    routeRules: $this->buildRouteRules($items, $tenantId, $normalizedRoleCodes),
+                );
             },
-            ttlSeconds: max(1, (int) config('api.auth_menu_cache_ttl_seconds', 300))
+            ttlSeconds: max(1, (int) config('api.auth_menu_cache_ttl_seconds', 300)),
         );
 
         return $resolved;
@@ -111,7 +91,7 @@ class MenuMetadataService
      * @param  list<array<string, mixed>>  $items
      * @param  list<string>  $roleCodes
      * @param  list<string>  $permissionCodes
-     * @return list<array<string, mixed>>
+     * @return list<ResolvedMenuItem>
      */
     private function filterMenuItems(array $items, ?int $tenantId, array $roleCodes, array $permissionCodes): array
     {
@@ -138,21 +118,21 @@ class MenuMetadataService
 
             $resolvedI18nKey = $this->resolveMenuI18nKey($item);
 
-            $filtered[] = [
-                'key' => (string) ($item['key'] ?? ''),
-                'routeKey' => $routeKey,
-                'routePath' => (string) ($item['routePath'] ?? ''),
-                'label' => (string) ($item['label'] ?? ''),
-                'i18nKey' => $resolvedI18nKey,
-                'icon' => isset($item['icon']) ? (string) $item['icon'] : null,
-                'order' => (int) ($item['order'] ?? 0),
-                'scope' => (string) ($item['scope'] ?? 'both'),
-                'featureFlag' => isset($item['featureFlag']) ? (string) $item['featureFlag'] : null,
-                'children' => $children,
-            ];
+            $filtered[] = new ResolvedMenuItem(
+                key: (string) ($item['key'] ?? ''),
+                routeKey: $routeKey,
+                routePath: (string) ($item['routePath'] ?? ''),
+                label: (string) ($item['label'] ?? ''),
+                i18nKey: $resolvedI18nKey,
+                icon: isset($item['icon']) ? (string) $item['icon'] : null,
+                order: (int) ($item['order'] ?? 0),
+                scope: (string) ($item['scope'] ?? 'both'),
+                featureFlag: isset($item['featureFlag']) ? (string) $item['featureFlag'] : null,
+                children: $children,
+            );
         }
 
-        usort($filtered, static fn (array $a, array $b): int => ((int) $a['order']) <=> ((int) $b['order']));
+        usort($filtered, static fn (ResolvedMenuItem $a, ResolvedMenuItem $b): int => $a->order <=> $b->order);
 
         return $filtered;
     }
@@ -188,13 +168,7 @@ class MenuMetadataService
     /**
      * @param  list<array<string, mixed>>  $items
      * @param  list<string>  $roleCodes
-     * @return array<string, array{
-     *    enabled: bool,
-     *    permissions: list<string>,
-     *    roles: list<string>,
-     *    noTenantOnly: bool,
-     *    tenantOnly: bool
-     * }>
+     * @return array<string, ResolvedRouteRule>
      */
     private function buildRouteRules(array $items, ?int $tenantId, array $roleCodes): array
     {
@@ -205,13 +179,7 @@ class MenuMetadataService
     }
 
     /**
-     * @param array<string, array{
-     *    enabled: bool,
-     *    permissions: list<string>,
-     *    roles: list<string>,
-     *    noTenantOnly: bool,
-     *    tenantOnly: bool
-     * }> $rules
+     * @param  array<string, ResolvedRouteRule>  $rules
      * @param  list<array<string, mixed>>  $items
      * @param  list<string>  $roleCodes
      */
@@ -223,13 +191,13 @@ class MenuMetadataService
             $requiredPermissions = $this->normalizePermissionList($item['permission'] ?? []);
 
             if ($routeKey !== '') {
-                $rules[$routeKey] = [
-                    'enabled' => $this->isFeatureEnabled($item, $tenantId, $roleCodes),
-                    'permissions' => $requiredPermissions,
-                    'roles' => $this->normalizeStringList($item['roles'] ?? []),
-                    'noTenantOnly' => $scope === 'platform',
-                    'tenantOnly' => $scope === 'tenant',
-                ];
+                $rules[$routeKey] = new ResolvedRouteRule(
+                    enabled: $this->isFeatureEnabled($item, $tenantId, $roleCodes),
+                    permissions: $requiredPermissions,
+                    roles: $this->normalizeStringList($item['roles'] ?? []),
+                    noTenantOnly: $scope === 'platform',
+                    tenantOnly: $scope === 'tenant',
+                );
             }
 
             $this->fillRouteRules($rules, $this->normalizeChildren($item['children'] ?? []), $tenantId, $roleCodes);
@@ -268,12 +236,15 @@ class MenuMetadataService
             return [];
         }
 
-        return array_values(
+        $normalized = array_values(
             array_filter(
                 array_map(static fn (mixed $item): string => trim((string) $item), $value),
-                static fn (string $item): bool => $item !== ''
-            )
+                static fn (string $item): bool => $item !== '',
+            ),
         );
+
+        /** @var list<string> $normalized */
+        return $normalized;
     }
 
     /**

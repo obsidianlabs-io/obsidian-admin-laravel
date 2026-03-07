@@ -8,6 +8,8 @@ use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
+use App\Domains\System\Actions\ListLanguageTranslationsQueryAction;
+use App\Domains\System\Data\LanguageTranslationSnapshot;
 use App\Domains\System\Http\Resources\LanguageTranslationListResource;
 use App\Domains\System\Models\Language;
 use App\Domains\System\Models\LanguageTranslation;
@@ -28,73 +30,41 @@ class LanguageController extends ApiController
         private readonly ApiCacheService $apiCacheService
     ) {}
 
-    public function list(ListLanguageTranslationsRequest $request): JsonResponse
-    {
+    public function list(
+        ListLanguageTranslationsRequest $request,
+        ListLanguageTranslationsQueryAction $listLanguageTranslationsQuery,
+    ): JsonResponse {
         $authResult = $this->authorizeLanguageConsole($request, 'language.view');
         if ($authResult->failed()) {
             return $this->error($authResult->code(), $authResult->message());
         }
 
-        $validated = $request->validated();
-        $current = (int) ($validated['current'] ?? 1);
-        $size = (int) ($validated['size'] ?? 10);
-        $locale = trim((string) ($validated['locale'] ?? ''));
-        $keyword = trim((string) ($validated['keyword'] ?? ''));
-        $status = (string) ($validated['status'] ?? '');
+        $input = $request->toDTO();
+        $query = $listLanguageTranslationsQuery->handle($input);
 
-        $query = LanguageTranslation::query()
-            ->with('language:id,code,name,status')
-            ->select(['id', 'language_id', 'translation_key', 'translation_value', 'description', 'status', 'created_at', 'updated_at']);
-
-        if ($locale !== '') {
-            $query->whereHas('language', static function ($builder) use ($locale): void {
-                $builder->where('code', $locale);
-            });
-        }
-
-        if ($keyword !== '') {
-            $query->where(static function ($builder) use ($keyword): void {
-                $builder->where('translation_key', 'like', '%'.$keyword.'%')
-                    ->orWhere('translation_value', 'like', '%'.$keyword.'%');
-            });
-        }
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
-
-        if ($this->hasCursorPagination($validated)) {
+        if ($input->usesCursorPagination((string) $request->input('paginationMode', ''))) {
             $page = $this->cursorPaginateById(
                 clone $query,
-                $size,
-                (string) ($validated['cursor'] ?? ''),
+                $input->size,
+                $input->cursor,
                 false
             );
             $records = LanguageTranslationListResource::collection($page['records'])->resolve($request);
 
-            return $this->success([
-                'paginationMode' => 'cursor',
-                'size' => $page['size'],
-                'hasMore' => $page['hasMore'],
-                'nextCursor' => $page['nextCursor'],
-                'records' => $records,
-            ]);
+            return $this->success($this->cursorPaginationPayload($page, $records)->toArray());
         }
 
         $total = (clone $query)->count();
         $records = LanguageTranslationListResource::collection(
             $query->orderBy('language_id')
                 ->orderBy('translation_key')
-                ->forPage($current, $size)
+                ->forPage($input->current, $input->size)
                 ->get()
         )->resolve($request);
 
-        return $this->success([
-            'current' => $current,
-            'size' => $size,
-            'total' => $total,
-            'records' => $records,
-        ]);
+        return $this->success(
+            $this->offsetPaginationPayload($input->current, $input->size, $total, $records)->toArray()
+        );
     }
 
     public function options(Request $request): JsonResponse
@@ -235,31 +205,21 @@ class LanguageController extends ApiController
         if (! $user instanceof User) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
-        $validated = $request->validated();
-        $language = Language::query()->where('code', (string) $validated['locale'])->first();
+        $input = $request->toDTO();
+        $language = Language::query()->where('code', $input->locale)->first();
         if (! $language) {
             return $this->error(self::PARAM_ERROR_CODE, 'Language locale not found');
         }
 
-        return $this->withIdempotency($request, $user, function () use ($language, $validated, $user, $request): JsonResponse {
-            $translation = $this->languageService->createTranslation([
-                'language_id' => (int) $language->id,
-                'translation_key' => (string) $validated['translationKey'],
-                'translation_value' => (string) $validated['translationValue'],
-                'description' => (string) ($validated['description'] ?? ''),
-                'status' => (string) ($validated['status'] ?? '1'),
-            ]);
+        return $this->withIdempotency($request, $user, function () use ($language, $input, $user, $request): JsonResponse {
+            $translation = $this->languageService->createTranslation($input->toCreateLanguageTranslationDTO((int) $language->id));
 
             $this->auditLogService->record(
                 action: 'language.translation.create',
                 auditable: $translation,
                 actor: $user,
                 request: $request,
-                newValues: [
-                    'locale' => $language->code,
-                    'translationKey' => $translation->translation_key,
-                    'status' => (string) $translation->status,
-                ]
+                newValues: LanguageTranslationSnapshot::forCreateAudit($translation, (string) $language->code)->toArray()
             );
 
             return $this->success([
@@ -289,27 +249,21 @@ class LanguageController extends ApiController
         if (! $user instanceof User) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
-        $validated = $request->validated();
-
-        $language = Language::query()->where('code', (string) $validated['locale'])->first();
+        $input = $request->toDTO();
+        $language = Language::query()->where('code', $input->locale)->first();
         if (! $language) {
             return $this->error(self::PARAM_ERROR_CODE, 'Language locale not found');
         }
 
-        $oldValues = [
-            'locale' => $this->resolveTranslationLocale($translation),
-            'translationKey' => $translation->translation_key,
-            'translationValue' => $translation->translation_value,
-            'status' => (string) $translation->status,
-        ];
+        $oldValues = LanguageTranslationSnapshot::forContentAudit(
+            $translation,
+            $this->resolveTranslationLocale($translation)
+        )->toArray();
 
-        $translation = $this->languageService->updateTranslation($translation, [
-            'language_id' => (int) $language->id,
-            'translation_key' => (string) $validated['translationKey'],
-            'translation_value' => (string) $validated['translationValue'],
-            'description' => (string) ($validated['description'] ?? ''),
-            'status' => (string) ($validated['status'] ?? $translation->status),
-        ]);
+        $translation = $this->languageService->updateTranslation(
+            $translation,
+            $input->toUpdateLanguageTranslationDTO((int) $language->id, (string) $translation->status)
+        );
 
         $this->auditLogService->record(
             action: 'language.translation.update',
@@ -317,12 +271,7 @@ class LanguageController extends ApiController
             actor: $user,
             request: $request,
             oldValues: $oldValues,
-            newValues: [
-                'locale' => $language->code,
-                'translationKey' => $translation->translation_key,
-                'translationValue' => $translation->translation_value,
-                'status' => (string) $translation->status,
-            ]
+            newValues: LanguageTranslationSnapshot::forContentAudit($translation, (string) $language->code)->toArray()
         );
 
         return $this->success([
@@ -346,12 +295,10 @@ class LanguageController extends ApiController
         if (! $user instanceof User) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
-        $oldValues = [
-            'locale' => $this->resolveTranslationLocale($translation),
-            'translationKey' => (string) $translation->translation_key,
-            'translationValue' => (string) $translation->translation_value,
-            'status' => (string) $translation->status,
-        ];
+        $oldValues = LanguageTranslationSnapshot::forContentAudit(
+            $translation,
+            $this->resolveTranslationLocale($translation)
+        )->toArray();
 
         $this->languageService->deleteTranslation($translation);
         $this->auditLogService->record(

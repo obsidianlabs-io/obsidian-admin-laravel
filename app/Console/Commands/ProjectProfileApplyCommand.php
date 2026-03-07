@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domains\System\Services\AuditPolicyService;
+use App\DTOs\Audit\UpdateAuditPolicyRecordInputDTO;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -119,12 +120,12 @@ class ProjectProfileApplyCommand extends Command
                 continue;
             }
 
-            $records[] = [
-                'action' => (string) $action,
-                'enabled' => (bool) ($override['enabled'] ?? true),
-                'samplingRate' => (float) ($override['samplingRate'] ?? 1.0),
-                'retentionDays' => (int) ($override['retentionDays'] ?? 90),
-            ];
+            $records[] = new UpdateAuditPolicyRecordInputDTO(
+                action: (string) $action,
+                enabled: (bool) ($override['enabled'] ?? true),
+                samplingRate: (float) ($override['samplingRate'] ?? 1.0),
+                retentionDays: (int) ($override['retentionDays'] ?? 90),
+            );
         }
 
         if ($records === []) {
@@ -136,7 +137,7 @@ class ProjectProfileApplyCommand extends Command
         $result = $this->auditPolicyService->updatePolicies(null, $records);
         $this->line(sprintf(
             'Audit overrides applied: %d action(s) updated.',
-            (int) $result['updated']
+            $result->updated
         ));
     }
 

@@ -31,8 +31,8 @@ class PruneApiAccessLogsCommand extends Command
 
         $mode = $dryRun ? 'DRY-RUN' : 'DELETE';
         $this->info(sprintf('[%s] API access log prune completed.', $mode));
-        $this->line(sprintf('Retention days: %d', (int) $result['retentionDays']));
-        $this->line(sprintf('Total deleted: %d', (int) $result['totalDeleted']));
+        $this->line(sprintf('Retention days: %d', $result->retentionDays));
+        $this->line(sprintf('Total deleted: %d', $result->totalDeleted));
 
         return self::SUCCESS;
     }

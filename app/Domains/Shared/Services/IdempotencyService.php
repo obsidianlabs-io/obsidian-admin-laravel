@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Shared\Services;
 
 use App\Domains\Access\Models\User;
+use App\Domains\Shared\Services\Results\IdempotencyBeginResult;
 use App\Domains\System\Models\IdempotencyKey;
 use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
@@ -15,26 +16,15 @@ class IdempotencyService
 {
     private const HEADER_NAME = 'Idempotency-Key';
 
-    /**
-     * @return array{
-     *   enabled: bool,
-     *   error?: string,
-     *   replayResponse?: \Illuminate\Http\JsonResponse,
-     *   record?: \App\Domains\System\Models\IdempotencyKey
-     * }
-     */
-    public function begin(Request $request, ?User $user): array
+    public function begin(Request $request, ?User $user): IdempotencyBeginResult
     {
         $idempotencyKey = trim((string) $request->header(self::HEADER_NAME, ''));
         if ($idempotencyKey === '') {
-            return ['enabled' => false];
+            return IdempotencyBeginResult::disabled();
         }
 
         if (strlen($idempotencyKey) > 128) {
-            return [
-                'enabled' => true,
-                'error' => self::HEADER_NAME.' is too long',
-            ];
+            return IdempotencyBeginResult::error(self::HEADER_NAME.' is too long');
         }
 
         $actorKey = $this->resolveActorKey($request, $user);
@@ -81,33 +71,21 @@ class IdempotencyService
         }
 
         if (! $record) {
-            return [
-                'enabled' => true,
-                'error' => 'Unable to acquire idempotency key lock',
-            ];
+            return IdempotencyBeginResult::error('Unable to acquire idempotency key lock');
         }
 
         if (! hash_equals((string) $record->request_hash, $requestHash)) {
-            return [
-                'enabled' => true,
-                'error' => 'Idempotency-Key has been used with a different request payload',
-            ];
+            return IdempotencyBeginResult::error('Idempotency-Key has been used with a different request payload');
         }
 
         if ($record->status === 'completed' && $this->extractPayload($record) !== null) {
-            return [
-                'enabled' => true,
-                'replayResponse' => $this->buildReplayResponse($record),
-            ];
+            return IdempotencyBeginResult::replay($this->buildReplayResponse($record));
         }
 
         if (! $createdNow && $record->status === 'processing') {
             $lockTimeoutSeconds = max(5, (int) config('observability.idempotency_lock_timeout_seconds', 30));
             if ($record->updated_at && $record->updated_at->gt(now()->subSeconds($lockTimeoutSeconds))) {
-                return [
-                    'enabled' => true,
-                    'error' => 'Request with this Idempotency-Key is already being processed',
-                ];
+                return IdempotencyBeginResult::error('Request with this Idempotency-Key is already being processed');
             }
         }
 
@@ -118,10 +96,7 @@ class IdempotencyService
             'expires_at' => null,
         ])->save();
 
-        return [
-            'enabled' => true,
-            'record' => $record,
-        ];
+        return IdempotencyBeginResult::acquired($record);
     }
 
     public function complete(IdempotencyKey $record, JsonResponse $response): void

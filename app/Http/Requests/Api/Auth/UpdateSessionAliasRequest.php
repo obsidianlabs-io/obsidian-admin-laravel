@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Auth;
 
+use App\DTOs\Auth\UpdateSessionAliasInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 
 class UpdateSessionAliasRequest extends BaseApiRequest
@@ -24,5 +25,10 @@ class UpdateSessionAliasRequest extends BaseApiRequest
             'sessionId' => ['required', 'string', 'max:128'],
             'deviceAlias' => ['nullable', 'string', 'max:80'],
         ];
+    }
+
+    public function toDTO(): UpdateSessionAliasInputDTO
+    {
+        return UpdateSessionAliasInputDTO::fromValidated($this->validated());
     }
 }

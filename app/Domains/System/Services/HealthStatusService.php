@@ -4,26 +4,15 @@ declare(strict_types=1);
 
 namespace App\Domains\System\Services;
 
+use App\Domains\System\Data\HealthCheckData;
+use App\Domains\System\Data\HealthContextData;
+use App\Domains\System\Data\HealthSnapshotData;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class HealthStatusService
 {
-    /**
-     * @return array{
-     *   status: 'ok'|'warn'|'fail',
-     *   checks: list<array{name: string, status: 'ok'|'warn'|'fail', detail: string}>,
-     *   context: array{
-     *     environment: string,
-     *     timezone: string,
-     *     database: string,
-     *     cache_store: string,
-     *     queue_connection: string,
-     *     log_channel: string
-     *   }
-     * }
-     */
-    public function snapshot(): array
+    public function snapshot(): HealthSnapshotData
     {
         $checks = [];
 
@@ -33,78 +22,69 @@ class HealthStatusService
 
         $status = 'ok';
         foreach ($checks as $check) {
-            if ($check['status'] === 'fail') {
+            if ($check->isFail()) {
                 $status = 'fail';
                 break;
             }
 
-            if ($check['status'] === 'warn') {
+            if ($check->isWarn()) {
                 $status = 'warn';
             }
         }
 
-        return [
-            'status' => $status,
-            'checks' => $checks,
-            'context' => [
-                'environment' => (string) app()->environment(),
-                'timezone' => (string) config('app.timezone', 'UTC'),
-                'database' => (string) config('database.default', 'unknown'),
-                'cache_store' => (string) config('cache.default', 'unknown'),
-                'queue_connection' => (string) config('queue.default', 'unknown'),
-                'log_channel' => (string) config('logging.default', 'unknown'),
-            ],
-        ];
+        return new HealthSnapshotData(
+            status: $status,
+            checks: $checks,
+            context: new HealthContextData(
+                environment: (string) app()->environment(),
+                timezone: (string) config('app.timezone', 'UTC'),
+                database: (string) config('database.default', 'unknown'),
+                cacheStore: (string) config('cache.default', 'unknown'),
+                queueConnection: (string) config('queue.default', 'unknown'),
+                logChannel: (string) config('logging.default', 'unknown'),
+            ),
+        );
     }
 
-    /**
-     * @return array{name: string, status: 'ok'|'warn'|'fail', detail: string}
-     */
-    private function checkAppKey(): array
+    private function checkAppKey(): HealthCheckData
     {
         $keyConfigured = trim((string) config('app.key', '')) !== '';
 
-        return [
-            'name' => 'app.key',
-            'status' => $keyConfigured ? 'ok' : 'fail',
-            'detail' => $keyConfigured ? 'Application key is configured' : 'APP_KEY is missing',
-        ];
+        return new HealthCheckData(
+            name: 'app.key',
+            status: $keyConfigured ? 'ok' : 'fail',
+            detail: $keyConfigured ? 'Application key is configured' : 'APP_KEY is missing',
+        );
     }
 
-    /**
-     * @return array{name: string, status: 'ok'|'warn'|'fail', detail: string}
-     */
-    private function checkDatabaseConnection(): array
+    private function checkDatabaseConnection(): HealthCheckData
     {
         try {
             DB::connection()->getPdo();
             DB::select('SELECT 1');
         } catch (Throwable $exception) {
-            return [
-                'name' => 'database.connection',
-                'status' => 'fail',
-                'detail' => 'Database connection failed: '.$exception->getMessage(),
-            ];
+            return new HealthCheckData(
+                name: 'database.connection',
+                status: 'fail',
+                detail: 'Database connection failed: '.$exception->getMessage(),
+            );
         }
 
-        return [
-            'name' => 'database.connection',
-            'status' => 'ok',
-            'detail' => 'Database connection is healthy',
-        ];
+        return new HealthCheckData(
+            name: 'database.connection',
+            status: 'ok',
+            detail: 'Database connection is healthy',
+        );
     }
 
-    /**
-     * @return array{name: string, status: 'ok'|'warn'|'fail', detail: string}
-     */
-    private function checkProductionGuards(): array
+    private function checkProductionGuards(): HealthCheckData
     {
         if (! app()->environment('production')) {
-            return [
-                'name' => 'production.guards',
-                'status' => 'ok',
-                'detail' => 'Production guard checks are informational outside production',
-            ];
+            return new HealthCheckData(
+                name: 'production.guards',
+                status: 'ok',
+                detail: 'Production guard checks are informational outside production',
+            );
         }
 
         $warnings = [];
@@ -126,17 +106,17 @@ class HealthStatusService
         }
 
         if ($warnings === []) {
-            return [
-                'name' => 'production.guards',
-                'status' => 'ok',
-                'detail' => 'Production guardrails look good',
-            ];
+            return new HealthCheckData(
+                name: 'production.guards',
+                status: 'ok',
+                detail: 'Production guardrails look good',
+            );
         }
 
-        return [
-            'name' => 'production.guards',
-            'status' => 'warn',
-            'detail' => implode('; ', $warnings),
-        ];
+        return new HealthCheckData(
+            name: 'production.guards',
+            status: 'warn',
+            detail: implode('; ', $warnings),
+        );
     }
 }

@@ -8,21 +8,7 @@ use Illuminate\Support\Facades\File;
 
 class OpenApiSpecInspector
 {
-    /**
-     * @return array{
-     *   openapiVersion: string,
-     *   infoTitle: string,
-     *   infoVersion: string,
-     *   serverUrls: list<string>,
-     *   operations: list<array{
-     *     path: string,
-     *     method: string,
-     *     summary: string,
-     *     has2xxResponse: bool
-     *   }>
-     * }
-     */
-    public function inspect(string $specPath): array
+    public function inspect(string $specPath): OpenApiDocumentData
     {
         $content = File::get($specPath);
         $lines = preg_split('/\R/', $content) ?: [];
@@ -39,13 +25,7 @@ class OpenApiSpecInspector
         $currentPath = null;
         $currentMethod = null;
 
-        /** @var array<string, array{
-         *   path: string,
-         *   method: string,
-         *   summary: string,
-         *   has2xxResponse: bool
-         * }> $operations
-         */
+        /** @var array<string, OpenApiOperationData> $operations */
         $operations = [];
 
         foreach ($lines as $line) {
@@ -134,12 +114,12 @@ class OpenApiSpecInspector
                 $currentMethod = strtoupper($matches[1]);
                 $operationKey = $this->operationKey($currentPath, $currentMethod);
 
-                $operations[$operationKey] = [
-                    'path' => $currentPath,
-                    'method' => $currentMethod,
-                    'summary' => '',
-                    'has2xxResponse' => false,
-                ];
+                $operations[$operationKey] = new OpenApiOperationData(
+                    path: $currentPath,
+                    method: $currentMethod,
+                    summary: '',
+                    has2xxResponse: false,
+                );
 
                 continue;
             }
@@ -154,7 +134,13 @@ class OpenApiSpecInspector
             }
 
             if (preg_match('/^\s{6}summary:\s*(.*)\s*$/', $line, $matches) === 1) {
-                $operations[$operationKey]['summary'] = $this->normalizeScalar($matches[1]);
+                $existing = $operations[$operationKey];
+                $operations[$operationKey] = new OpenApiOperationData(
+                    path: $existing->path,
+                    method: $existing->method,
+                    summary: $this->normalizeScalar($matches[1]),
+                    has2xxResponse: $existing->has2xxResponse,
+                );
 
                 continue;
             }
@@ -162,26 +148,38 @@ class OpenApiSpecInspector
             if (preg_match('/^\s{6}responses:\s*(.*)\s*$/', $line, $matches) === 1) {
                 $inlineValue = trim((string) $matches[1]);
                 if ($inlineValue !== '' && preg_match('/["\']?2\d\d["\']?\s*:/', $inlineValue) === 1) {
-                    $operations[$operationKey]['has2xxResponse'] = true;
+                    $existing = $operations[$operationKey];
+                    $operations[$operationKey] = new OpenApiOperationData(
+                        path: $existing->path,
+                        method: $existing->method,
+                        summary: $existing->summary,
+                        has2xxResponse: true,
+                    );
                 }
 
                 continue;
             }
 
             if (preg_match('/^\s{8}["\']?(2\d\d)["\']?\s*:/', $line) === 1) {
-                $operations[$operationKey]['has2xxResponse'] = true;
+                $existing = $operations[$operationKey];
+                $operations[$operationKey] = new OpenApiOperationData(
+                    path: $existing->path,
+                    method: $existing->method,
+                    summary: $existing->summary,
+                    has2xxResponse: true,
+                );
 
                 continue;
             }
         }
 
-        return [
-            'openapiVersion' => $openapiVersion,
-            'infoTitle' => $infoTitle,
-            'infoVersion' => $infoVersion,
-            'serverUrls' => array_values(array_unique($serverUrls)),
-            'operations' => array_values($operations),
-        ];
+        return new OpenApiDocumentData(
+            openapiVersion: $openapiVersion,
+            infoTitle: $infoTitle,
+            infoVersion: $infoVersion,
+            serverUrls: array_values(array_unique($serverUrls)),
+            operations: array_values($operations),
+        );
     }
 
     private function operationKey(string $path, string $method): string

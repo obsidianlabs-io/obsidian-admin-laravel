@@ -31,9 +31,9 @@ class PruneAuditLogsCommand extends Command
 
         $mode = $dryRun ? 'DRY-RUN' : 'DELETE';
         $this->info(sprintf('[%s] Audit prune completed.', $mode));
-        $this->line(sprintf('Known actions: %d', (int) $result['actionCount']));
-        $this->line(sprintf('Unknown-action deletions: %d', (int) $result['unknownDeleted']));
-        $this->line(sprintf('Total deleted: %d', (int) $result['totalDeleted']));
+        $this->line(sprintf('Known actions: %d', $result->actionCount));
+        $this->line(sprintf('Unknown-action deletions: %d', $result->unknownDeleted));
+        $this->line(sprintf('Total deleted: %d', $result->totalDeleted));
 
         return self::SUCCESS;
     }

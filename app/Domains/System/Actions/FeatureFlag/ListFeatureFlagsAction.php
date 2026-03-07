@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domains\System\Actions\FeatureFlag;
 
+use App\Domains\System\Data\FeatureFlagListPageData;
+use App\Domains\System\Data\FeatureFlagRecordData;
 use App\Domains\System\Services\FeatureFlagService;
 use App\DTOs\FeatureFlag\ListFeatureFlagsDTO;
 
@@ -13,34 +15,18 @@ readonly class ListFeatureFlagsAction
         private FeatureFlagService $featureFlagService,
     ) {}
 
-    /**
-     * @return array{
-     *   current:int,
-     *   size:int,
-     *   total:int,
-     *   records:list<array{
-     *     key:string,
-     *     enabled:bool,
-     *     percentage:int,
-     *     platform_only:bool,
-     *     tenant_only:bool,
-     *     role_codes:list<string>,
-     *     global_override:?bool
-     *   }>
-     * }
-     */
-    public function __invoke(ListFeatureFlagsDTO $dto): array
+    public function __invoke(ListFeatureFlagsDTO $dto): FeatureFlagListPageData
     {
         $definitions = config('features.definitions', []);
         $flags = [];
 
         if (! is_array($definitions)) {
-            return [
-                'current' => $dto->current,
-                'size' => $dto->size,
-                'total' => 0,
-                'records' => [],
-            ];
+            return new FeatureFlagListPageData(
+                current: $dto->current,
+                size: $dto->size,
+                total: 0,
+                records: [],
+            );
         }
 
         foreach ($definitions as $key => $definition) {
@@ -67,26 +53,26 @@ readonly class ListFeatureFlagsAction
                 is_array($definition['role_codes'] ?? null) ? $definition['role_codes'] : []
             ), static fn (string $code): bool => $code !== ''));
 
-            $flags[] = [
-                'key' => $featureKey,
-                'enabled' => (bool) ($definition['enabled'] ?? true),
-                'percentage' => (int) ($definition['percentage'] ?? 100),
-                'platform_only' => (bool) ($definition['platform_only'] ?? false),
-                'tenant_only' => (bool) ($definition['tenant_only'] ?? false),
-                'role_codes' => $roleCodes,
-                'global_override' => $globalOverride,
-            ];
+            $flags[] = new FeatureFlagRecordData(
+                key: $featureKey,
+                enabled: (bool) ($definition['enabled'] ?? true),
+                percentage: (int) ($definition['percentage'] ?? 100),
+                platformOnly: (bool) ($definition['platform_only'] ?? false),
+                tenantOnly: (bool) ($definition['tenant_only'] ?? false),
+                roleCodes: $roleCodes,
+                globalOverride: $globalOverride,
+            );
         }
 
         $total = count($flags);
         $offset = ($dto->current - 1) * $dto->size;
         $records = array_slice($flags, $offset, $dto->size);
 
-        return [
-            'current' => $dto->current,
-            'size' => $dto->size,
-            'total' => $total,
-            'records' => $records,
-        ];
+        return new FeatureFlagListPageData(
+            current: $dto->current,
+            size: $dto->size,
+            total: $total,
+            records: $records,
+        );
     }
 }

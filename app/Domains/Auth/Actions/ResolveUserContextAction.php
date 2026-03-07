@@ -7,6 +7,8 @@ namespace App\Domains\Auth\Actions;
 use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Models\UserPreference;
+use App\Domains\Auth\Actions\Results\ResolvedUserProfile;
+use App\Domains\Auth\Actions\Results\ResolvedUserRoles;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Models\Language;
 use App\Support\ApiDateTime;
@@ -21,40 +23,17 @@ final class ResolveUserContextAction
      */
     private ?array $activeLocaleCodes = null;
 
-    /**
-     * @return list<string>
-     */
-    public function resolveRoles(User $user): array
+    public function resolveRoles(User $user): ResolvedUserRoles
     {
         $user->loadMissing('role');
 
         $role = $user->role;
         $roleCode = $role instanceof Role ? (string) $role->code : 'R_USER';
 
-        return [$roleCode];
+        return new ResolvedUserRoles([$roleCode]);
     }
 
-    /**
-     * @return array{
-     *   userId: string,
-     *   userName: string,
-     *   locale: string,
-     *   preferredLocale: string,
-     *   timezone: string,
-     *   themeSchema: string|null,
-     *   email: string,
-     *   roleCode: string,
-     *   roleName: string,
-     *   tenantId: string,
-     *   tenantName: string,
-     *   twoFactorEnabled: bool,
-     *   status: string,
-     *   version: string,
-     *   createTime: string,
-     *   updateTime: string
-     * }
-     */
-    public function resolveProfile(User $user): array
+    public function resolveProfile(User $user): ResolvedUserProfile
     {
         $user->loadMissing('role:id,code,name', 'tenant:id,name', 'preference');
         $preference = $user->preference;
@@ -72,29 +51,10 @@ final class ResolveUserContextAction
             $this->apiCacheService->version('languages'),
         );
 
-        /** @var array{
-         *   userId: string,
-         *   userName: string,
-         *   locale: string,
-         *   preferredLocale: string,
-         *   timezone: string,
-         *   themeSchema: string|null,
-         *   email: string,
-         *   roleCode: string,
-         *   roleName: string,
-         *   tenantId: string,
-         *   tenantName: string,
-         *   twoFactorEnabled: bool,
-         *   status: string,
-         *   version: string,
-         *   createTime: string,
-         *   updateTime: string
-         * } $resolved
-         */
         $resolved = $this->apiCacheService->remember(
             namespace: 'auth.profile',
             signature: $signature,
-            resolver: fn (): array => $this->buildProfilePayload($user),
+            resolver: fn (): ResolvedUserProfile => $this->buildProfile($user),
             ttlSeconds: max(1, (int) config('api.user_profile_cache_ttl_seconds', 180))
         );
 
@@ -186,27 +146,7 @@ final class ResolveUserContextAction
         return in_array($normalizedLocale, $this->activeLocaleCodes, true);
     }
 
-    /**
-     * @return array{
-     *   userId: string,
-     *   userName: string,
-     *   locale: string,
-     *   preferredLocale: string,
-     *   timezone: string,
-     *   themeSchema: string|null,
-     *   email: string,
-     *   roleCode: string,
-     *   roleName: string,
-     *   tenantId: string,
-     *   tenantName: string,
-     *   twoFactorEnabled: bool,
-     *   status: string,
-     *   version: string,
-     *   createTime: string,
-     *   updateTime: string
-     * }
-     */
-    private function buildProfilePayload(User $user): array
+    private function buildProfile(User $user): ResolvedUserProfile
     {
         $locale = $this->resolveLocale($user);
         $timezone = $this->resolveTimezone($user);
@@ -215,23 +155,23 @@ final class ResolveUserContextAction
         $tenant = $user->tenant;
         $tenantName = is_object($tenant) && isset($tenant->name) ? (string) $tenant->name : 'No Tenant';
 
-        return [
-            'userId' => (string) $user->id,
-            'userName' => (string) $user->name,
-            'locale' => $locale,
-            'preferredLocale' => $locale,
-            'timezone' => $timezone,
-            'themeSchema' => $themeSchema,
-            'email' => (string) $user->email,
-            'roleCode' => $role instanceof Role ? (string) $role->code : '',
-            'roleName' => $role instanceof Role ? (string) $role->name : 'No Role',
-            'tenantId' => $user->tenant_id ? (string) $user->tenant_id : '',
-            'tenantName' => $tenantName,
-            'twoFactorEnabled' => (bool) $user->two_factor_enabled,
-            'status' => in_array((string) $user->status, ['1', '2'], true) ? (string) $user->status : '1',
-            'version' => (string) ($user->updated_at?->copy()->setTimezone('UTC')->timestamp ?? 0),
-            'createTime' => ApiDateTime::format($user->created_at, $timezone),
-            'updateTime' => ApiDateTime::format($user->updated_at, $timezone),
-        ];
+        return new ResolvedUserProfile(
+            userId: (string) $user->id,
+            userName: (string) $user->name,
+            locale: $locale,
+            preferredLocale: $locale,
+            timezone: $timezone,
+            themeSchema: $themeSchema,
+            email: (string) $user->email,
+            roleCode: $role instanceof Role ? (string) $role->code : '',
+            roleName: $role instanceof Role ? (string) $role->name : 'No Role',
+            tenantId: $user->tenant_id ? (string) $user->tenant_id : '',
+            tenantName: $tenantName,
+            twoFactorEnabled: (bool) $user->two_factor_enabled,
+            status: in_array((string) $user->status, ['1', '2'], true) ? (string) $user->status : '1',
+            version: (string) ($user->updated_at?->copy()->setTimezone('UTC')->timestamp ?? 0),
+            createTime: ApiDateTime::format($user->created_at, $timezone),
+            updateTime: ApiDateTime::format($user->updated_at, $timezone),
+        );
     }
 }

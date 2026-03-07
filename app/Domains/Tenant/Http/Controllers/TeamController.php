@@ -8,6 +8,9 @@ use App\Domains\Shared\Auth\TenantScopedContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
+use App\Domains\Tenant\Actions\ListTeamsQueryAction;
+use App\Domains\Tenant\Data\TeamResponseData;
+use App\Domains\Tenant\Data\TeamSnapshot;
 use App\Domains\Tenant\Http\Controllers\Concerns\ResolvesTenantScopedContext;
 use App\Domains\Tenant\Http\Resources\TeamListResource;
 use App\Domains\Tenant\Models\Organization;
@@ -17,8 +20,6 @@ use App\Domains\Tenant\Services\TenantContextService;
 use App\Http\Requests\Api\Team\ListTeamsRequest;
 use App\Http\Requests\Api\Team\StoreTeamRequest;
 use App\Http\Requests\Api\Team\UpdateTeamRequest;
-use App\Support\ApiDateTime;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -33,7 +34,7 @@ class TeamController extends ApiController
         private readonly ApiCacheService $apiCacheService,
     ) {}
 
-    public function list(ListTeamsRequest $request): JsonResponse
+    public function list(ListTeamsRequest $request, ListTeamsQueryAction $listTeamsQuery): JsonResponse
     {
         $context = $this->resolveTeamContext($request, ['team.view', 'team.manage'], 'viewAny');
         if ($context->failed()) {
@@ -44,59 +45,39 @@ class TeamController extends ApiController
         if (! is_int($tenantId)) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
-        $validated = $request->validated();
-
-        $current = (int) ($validated['current'] ?? 1);
-        $size = (int) ($validated['size'] ?? 10);
-        $keyword = trim((string) ($validated['keyword'] ?? ''));
-        $status = (string) ($validated['status'] ?? '');
-        $organizationId = isset($validated['organizationId']) ? (int) $validated['organizationId'] : null;
+        $input = $request->toDTO();
+        $organizationId = $input->organizationId;
 
         if ($organizationId !== null && ! $this->organizationExistsInTenant($tenantId, $organizationId)) {
             return $this->error(self::PARAM_ERROR_CODE, 'Organization not found');
         }
 
-        $query = Team::query()
-            ->with('organization:id,name')
-            ->withCount('users')
-            ->select(['id', 'tenant_id', 'organization_id', 'code', 'name', 'description', 'status', 'sort', 'created_at', 'updated_at'])
-            ->where('tenant_id', $tenantId);
+        $query = $listTeamsQuery->handle($tenantId, $input);
 
-        $this->applyTeamListFilters($query, $keyword, $status, $organizationId);
-
-        if ($this->hasCursorPagination($validated)) {
+        if ($input->usesCursorPagination((string) $request->input('paginationMode', ''))) {
             $page = $this->cursorPaginateById(
                 clone $query,
-                $size,
-                (string) ($validated['cursor'] ?? ''),
+                $input->size,
+                $input->cursor,
                 false
             );
 
             $records = TeamListResource::collection($page['records'])->resolve($request);
 
-            return $this->success([
-                'paginationMode' => 'cursor',
-                'size' => $page['size'],
-                'hasMore' => $page['hasMore'],
-                'nextCursor' => $page['nextCursor'],
-                'records' => $records,
-            ]);
+            return $this->success($this->cursorPaginationPayload($page, $records)->toArray());
         }
 
         $total = (clone $query)->count();
         $records = TeamListResource::collection(
             $query->orderBy('sort')
                 ->orderBy('id')
-                ->forPage($current, $size)
+                ->forPage($input->current, $input->size)
                 ->get()
         )->resolve($request);
 
-        return $this->success([
-            'current' => $current,
-            'size' => $size,
-            'total' => $total,
-            'records' => $records,
-        ]);
+        return $this->success(
+            $this->offsetPaginationPayload($input->current, $input->size, $total, $records)->toArray()
+        );
     }
 
     public function all(Request $request): JsonResponse
@@ -180,11 +161,11 @@ class TeamController extends ApiController
                 auditable: $team,
                 actor: $user,
                 request: $request,
-                newValues: $this->teamSnapshot($team),
+                newValues: TeamSnapshot::fromModel($team)->toArray(),
                 tenantId: $tenantId,
             );
 
-            return $this->success($this->teamResponse($team), 'Team created');
+            return $this->success(TeamResponseData::fromModel($team)->toArray(), 'Team created');
         });
     }
 
@@ -225,7 +206,7 @@ class TeamController extends ApiController
             return $this->error(self::PARAM_ERROR_CODE, $uniqueError);
         }
 
-        $oldValues = $this->teamSnapshot($team);
+        $oldValues = TeamSnapshot::fromModel($team)->toArray();
 
         $team = $this->teamService->update($team, $dto);
 
@@ -235,11 +216,11 @@ class TeamController extends ApiController
             actor: $user,
             request: $request,
             oldValues: $oldValues,
-            newValues: $this->teamSnapshot($team),
+            newValues: TeamSnapshot::fromModel($team)->toArray(),
             tenantId: $tenantId,
         );
 
-        return $this->success($this->teamResponse($team, $request), 'Team updated');
+        return $this->success(TeamResponseData::fromModel($team, $request)->toArray(), 'Team updated');
     }
 
     public function destroy(Request $request, int $id): JsonResponse
@@ -259,7 +240,7 @@ class TeamController extends ApiController
             return $this->teamScopeErrorResponse($id);
         }
 
-        $oldValues = $this->teamSnapshot($team);
+        $oldValues = TeamSnapshot::fromModel($team)->toArray();
 
         if ((string) $team->status === '1') {
             $team->forceFill(['status' => '2'])->save();
@@ -271,7 +252,7 @@ class TeamController extends ApiController
                 actor: $user,
                 request: $request,
                 oldValues: $oldValues,
-                newValues: $this->teamSnapshot($team),
+                newValues: TeamSnapshot::fromModel($team)->toArray(),
                 tenantId: $tenantId,
             );
 
@@ -357,27 +338,6 @@ class TeamController extends ApiController
     }
 
     /**
-     * @param  Builder<Team>  $query
-     */
-    private function applyTeamListFilters(Builder $query, string $keyword, string $status, ?int $organizationId): void
-    {
-        if ($keyword !== '') {
-            $query->where(function (Builder $builder) use ($keyword): void {
-                $builder->where('code', 'like', '%'.$keyword.'%')
-                    ->orWhere('name', 'like', '%'.$keyword.'%');
-            });
-        }
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
-
-        if ($organizationId !== null && $organizationId > 0) {
-            $query->where('organization_id', $organizationId);
-        }
-    }
-
-    /**
      * @param  list<string>  $withCount
      */
     private function resolveTenantTeam(int $tenantId, int $id, array $withCount = []): ?Team
@@ -402,56 +362,5 @@ class TeamController extends ApiController
         return Team::query()->whereKey($id)->exists()
             ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
             : $this->error(self::PARAM_ERROR_CODE, 'Team not found');
-    }
-
-    /**
-     * @return array{
-     *   organizationId: int,
-     *   teamCode: string,
-     *   teamName: string,
-     *   status: string,
-     *   sort: int
-     * }
-     */
-    private function teamSnapshot(Team $team): array
-    {
-        return [
-            'organizationId' => (int) $team->organization_id,
-            'teamCode' => (string) $team->code,
-            'teamName' => (string) $team->name,
-            'status' => (string) $team->status,
-            'sort' => (int) ($team->sort ?? 0),
-        ];
-    }
-
-    /**
-     * @return array{
-     *   id: int,
-     *   organizationId: string,
-     *   teamCode: string,
-     *   teamName: string,
-     *   status: string,
-     *   sort: int,
-     *   version?: string,
-     *   updateTime?: string
-     * }
-     */
-    private function teamResponse(Team $team, ?Request $request = null): array
-    {
-        $response = [
-            'id' => $team->id,
-            'organizationId' => (string) $team->organization_id,
-            'teamCode' => (string) $team->code,
-            'teamName' => (string) $team->name,
-            'status' => (string) $team->status,
-            'sort' => (int) ($team->sort ?? 0),
-        ];
-
-        if ($request instanceof Request) {
-            $response['version'] = (string) ($team->updated_at?->copy()->setTimezone('UTC')->timestamp ?? 0);
-            $response['updateTime'] = ApiDateTime::formatForRequest($team->updated_at, $request);
-        }
-
-        return $response;
     }
 }

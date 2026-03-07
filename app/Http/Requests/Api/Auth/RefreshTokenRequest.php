@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Auth;
 
+use App\DTOs\Auth\RefreshTokenInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 
 class RefreshTokenRequest extends BaseApiRequest
@@ -18,5 +19,10 @@ class RefreshTokenRequest extends BaseApiRequest
         return [
             'refreshToken' => ['required', 'string'],
         ];
+    }
+
+    public function toDTO(): RefreshTokenInputDTO
+    {
+        return RefreshTokenInputDTO::fromValidated($this->validated());
     }
 }

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domains\Access\Http\Controllers;
 
+use App\Domains\Access\Actions\ListPermissionsQueryAction;
+use App\Domains\Access\Data\PermissionResponseData;
+use App\Domains\Access\Data\PermissionSnapshot;
 use App\Domains\Access\Http\Resources\PermissionListResource;
 use App\Domains\Access\Models\Permission;
 use App\Domains\Access\Services\PermissionService;
@@ -12,11 +15,10 @@ use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Http\Controllers\Concerns\ResolvesPlatformConsoleContext;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
+use App\DTOs\Permission\UpdatePermissionDTO;
 use App\Http\Requests\Api\Permission\ListPermissionsRequest;
 use App\Http\Requests\Api\Permission\StorePermissionRequest;
 use App\Http\Requests\Api\Permission\UpdatePermissionRequest;
-use App\Support\ApiDateTime;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -30,7 +32,7 @@ class PermissionController extends ApiController
         private readonly ApiCacheService $apiCacheService
     ) {}
 
-    public function list(ListPermissionsRequest $request): JsonResponse
+    public function list(ListPermissionsRequest $request, ListPermissionsQueryAction $listPermissionsQuery): JsonResponse
     {
         $authResult = $this->resolvePermissionConsoleContext($request, 'permission.view');
 
@@ -38,35 +40,19 @@ class PermissionController extends ApiController
             return $this->error($authResult->code(), $authResult->message());
         }
 
-        $validated = $request->validated();
+        $input = $request->toDTO();
+        $query = $listPermissionsQuery->handle($input);
 
-        $current = (int) ($validated['current'] ?? 1);
-        $size = (int) ($validated['size'] ?? 10);
-        $keyword = trim((string) ($validated['keyword'] ?? ''));
-        $status = (string) ($validated['status'] ?? '');
-        $group = trim((string) ($validated['group'] ?? ''));
-
-        $query = Permission::query()
-            ->withCount('roles')
-            ->select(['id', 'code', 'name', 'group', 'description', 'status', 'created_at', 'updated_at']);
-        $this->applyPermissionFilters($query, $keyword, $status, $group);
-
-        if ($this->hasCursorPagination($validated)) {
+        if ($input->usesCursorPagination((string) $request->input('paginationMode', ''))) {
             $page = $this->cursorPaginateById(
                 clone $query,
-                $size,
-                (string) ($validated['cursor'] ?? ''),
+                $input->size,
+                $input->cursor,
                 false
             );
             $records = PermissionListResource::collection($page['records'])->resolve($request);
 
-            return $this->success([
-                'paginationMode' => 'cursor',
-                'size' => $page['size'],
-                'hasMore' => $page['hasMore'],
-                'nextCursor' => $page['nextCursor'],
-                'records' => $records,
-            ]);
+            return $this->success($this->cursorPaginationPayload($page, $records)->toArray());
         }
 
         $total = (clone $query)->count();
@@ -74,16 +60,13 @@ class PermissionController extends ApiController
         $records = PermissionListResource::collection(
             $query->orderBy('group')
                 ->orderBy('id')
-                ->forPage($current, $size)
+                ->forPage($input->current, $input->size)
                 ->get()
         )->resolve($request);
 
-        return $this->success([
-            'current' => $current,
-            'size' => $size,
-            'total' => $total,
-            'records' => $records,
-        ]);
+        return $this->success(
+            $this->offsetPaginationPayload($input->current, $input->size, $total, $records)->toArray()
+        );
     }
 
     public function all(Request $request): JsonResponse
@@ -129,26 +112,20 @@ class PermissionController extends ApiController
             return $this->error($authResult->code(), $authResult->message());
         }
         $user = $authResult->requireUser();
-        $validated = $request->validated();
+        $input = $request->toDTO();
 
-        return $this->withIdempotency($request, $user, function () use ($validated, $user, $request): JsonResponse {
-            $permission = $this->permissionService->create([
-                'code' => (string) $validated['permissionCode'],
-                'name' => (string) $validated['permissionName'],
-                'group' => (string) ($validated['group'] ?? ''),
-                'description' => (string) ($validated['description'] ?? ''),
-                'status' => (string) ($validated['status'] ?? '1'),
-            ]);
+        return $this->withIdempotency($request, $user, function () use ($input, $user, $request): JsonResponse {
+            $permission = $this->permissionService->create($input->toCreatePermissionDTO());
 
             $this->auditLogService->record(
                 action: 'permission.create',
                 auditable: $permission,
                 actor: $user,
                 request: $request,
-                newValues: $this->permissionSnapshot($permission)
+                newValues: PermissionSnapshot::fromModel($permission)->toArray()
             );
 
-            return $this->success($this->permissionResponse($permission), 'Permission created');
+            return $this->success(PermissionResponseData::fromModel($permission)->toArray(), 'Permission created');
         });
     }
 
@@ -171,19 +148,13 @@ class PermissionController extends ApiController
         }
 
         $user = $authResult->requireUser();
-        $oldValues = $this->permissionSnapshot($permission);
-        $validated = $request->validated();
-        if ((string) $validated['permissionCode'] !== (string) $permission->code) {
+        $oldValues = PermissionSnapshot::fromModel($permission)->toArray();
+        $input = $request->toDTO();
+        if ($input->permissionCode !== (string) $permission->code) {
             return $this->error(self::PARAM_ERROR_CODE, 'Permission code cannot be modified');
         }
 
-        $permission = $this->permissionService->update($permission, [
-            'code' => (string) $validated['permissionCode'],
-            'name' => (string) $validated['permissionName'],
-            'group' => (string) ($validated['group'] ?? ''),
-            'description' => (string) ($validated['description'] ?? ''),
-            'status' => (string) ($validated['status'] ?? $permission->status),
-        ]);
+        $permission = $this->permissionService->update($permission, $input->toUpdatePermissionDTO((string) $permission->status));
 
         $this->auditLogService->record(
             action: 'permission.update',
@@ -191,10 +162,10 @@ class PermissionController extends ApiController
             actor: $user,
             request: $request,
             oldValues: $oldValues,
-            newValues: $this->permissionSnapshot($permission)
+            newValues: PermissionSnapshot::fromModel($permission)->toArray()
         );
 
-        return $this->success($this->permissionResponse($permission, $request), 'Permission updated');
+        return $this->success(PermissionResponseData::fromModel($permission, $request)->toArray(), 'Permission updated');
     }
 
     public function destroy(Request $request, int $id): JsonResponse
@@ -211,16 +182,16 @@ class PermissionController extends ApiController
         }
 
         $user = $authResult->requireUser();
-        $oldValues = $this->permissionSnapshot($permission);
+        $oldValues = PermissionSnapshot::fromModel($permission)->toArray();
 
         if ((string) $permission->status === '1') {
-            $permission = $this->permissionService->update($permission, [
-                'code' => (string) $permission->code,
-                'name' => (string) $permission->name,
-                'group' => (string) ($permission->group ?? ''),
-                'description' => (string) ($permission->description ?? ''),
-                'status' => '2',
-            ]);
+            $permission = $this->permissionService->update($permission, new UpdatePermissionDTO(
+                code: (string) $permission->code,
+                name: (string) $permission->name,
+                group: (string) ($permission->group ?? ''),
+                description: (string) ($permission->description ?? ''),
+                status: '2',
+            ));
 
             $this->auditLogService->record(
                 action: 'permission.deactivate',
@@ -228,7 +199,7 @@ class PermissionController extends ApiController
                 actor: $user,
                 request: $request,
                 oldValues: $oldValues,
-                newValues: $this->permissionSnapshot($permission)
+                newValues: PermissionSnapshot::fromModel($permission)->toArray()
             );
 
             return $this->deletionActionSuccess('permission', (int) $permission->id, 'deactivated', 'Permission deactivated');
@@ -270,27 +241,6 @@ class PermissionController extends ApiController
     }
 
     /**
-     * @param  Builder<Permission>  $query
-     */
-    private function applyPermissionFilters(Builder $query, string $keyword, string $status, string $group): void
-    {
-        if ($keyword !== '') {
-            $query->where(function (Builder $builder) use ($keyword): void {
-                $builder->where('code', 'like', '%'.$keyword.'%')
-                    ->orWhere('name', 'like', '%'.$keyword.'%');
-            });
-        }
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
-
-        if ($group !== '') {
-            $query->where('group', $group);
-        }
-    }
-
-    /**
      * @param  list<string>  $withCount
      */
     private function resolvePermission(int $id, array $withCount = []): ?Permission
@@ -306,46 +256,5 @@ class PermissionController extends ApiController
     private function permissionNotFoundResponse(): JsonResponse
     {
         return $this->error(self::PARAM_ERROR_CODE, 'Permission not found');
-    }
-
-    /**
-     * @return array{
-     *   permissionCode: string,
-     *   permissionName: string,
-     *   status: string
-     * }
-     */
-    private function permissionSnapshot(Permission $permission): array
-    {
-        return [
-            'permissionCode' => (string) $permission->code,
-            'permissionName' => (string) $permission->name,
-            'status' => (string) $permission->status,
-        ];
-    }
-
-    /**
-     * @return array{
-     *   id: int,
-     *   permissionCode: string,
-     *   permissionName: string,
-     *   version?: string,
-     *   updateTime?: string
-     * }
-     */
-    private function permissionResponse(Permission $permission, ?Request $request = null): array
-    {
-        $response = [
-            'id' => $permission->id,
-            'permissionCode' => (string) $permission->code,
-            'permissionName' => (string) $permission->name,
-        ];
-
-        if ($request instanceof Request) {
-            $response['version'] = (string) ($permission->updated_at?->copy()->setTimezone('UTC')->timestamp ?? 0);
-            $response['updateTime'] = ApiDateTime::formatForRequest($permission->updated_at, $request);
-        }
-
-        return $response;
     }
 }

@@ -9,6 +9,7 @@ use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Actions\FeatureFlag\ListFeatureFlagsAction;
 use App\Domains\System\Actions\FeatureFlag\PurgeFeatureFlagAction;
 use App\Domains\System\Actions\FeatureFlag\ToggleFeatureFlagAction;
+use App\Domains\System\Data\FeatureFlagOverrideResponseData;
 use App\Domains\System\Events\SystemRealtimeUpdated;
 use App\Http\Requests\Api\FeatureFlag\ListFeatureFlagsRequest;
 use App\Http\Requests\Api\FeatureFlag\PurgeFeatureFlagRequest;
@@ -28,7 +29,7 @@ class FeatureFlagController extends ApiController
      */
     public function index(ListFeatureFlagsRequest $request): JsonResponse
     {
-        return $this->success(($this->listFeatureFlagsAction)($request->toDTO()));
+        return $this->success((($this->listFeatureFlagsAction)($request->toDTO()))->toArray());
     }
 
     /**
@@ -54,10 +55,10 @@ class FeatureFlagController extends ApiController
             actorUserId: $actorUserId,
         ));
 
-        return $this->success([
-            'key' => $dto->key,
-            'global_override' => $dto->enabled,
-        ], 'Feature flag override updated.');
+        return $this->success(
+            FeatureFlagOverrideResponseData::forToggle($dto->key, $dto->enabled)->toArray(),
+            'Feature flag override updated.'
+        );
     }
 
     /**
@@ -82,9 +83,9 @@ class FeatureFlagController extends ApiController
             actorUserId: $actorUserId,
         ));
 
-        return $this->success([
-            'key' => $dto->key,
-            'global_override' => null,
-        ], 'Feature flag overrides purged.');
+        return $this->success(
+            FeatureFlagOverrideResponseData::forPurge($dto->key)->toArray(),
+            'Feature flag overrides purged.'
+        );
     }
 }

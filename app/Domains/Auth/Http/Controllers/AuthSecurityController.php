@@ -19,10 +19,10 @@ class AuthSecurityController extends AbstractUserController
 {
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $email = (string) $request->validated()['email'];
+        $input = $request->toDTO();
         $responseData = [];
 
-        $user = User::query()->where('email', $email)->first();
+        $user = User::query()->where('email', $input->email)->first();
         if ($user) {
             $token = Password::broker()->createToken($user);
             if (app()->environment('local', 'testing')) {
@@ -35,15 +35,10 @@ class AuthSecurityController extends AbstractUserController
 
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $validated = $request->validated();
+        $input = $request->toDTO();
 
         $status = Password::reset(
-            [
-                'email' => (string) $validated['email'],
-                'password' => (string) $validated['password'],
-                'password_confirmation' => (string) $request->input('password_confirmation'),
-                'token' => (string) $validated['token'],
-            ],
+            $input->toBrokerPayload(),
             function (User $user, string $password): void {
                 $user->forceFill([
                     'password' => $password,
@@ -121,9 +116,9 @@ class AuthSecurityController extends AbstractUserController
         }
 
         $user = $authResult->requireUser();
-        $otpCode = (string) $request->validated()['otpCode'];
+        $input = $request->toDTO();
 
-        if (! $this->verifyUserTotpCode($user, $otpCode)) {
+        if (! $this->verifyUserTotpCode($user, $input->otpCode)) {
             return $this->error(self::PARAM_ERROR_CODE, 'Two-factor code is invalid');
         }
 
@@ -146,9 +141,9 @@ class AuthSecurityController extends AbstractUserController
         }
 
         $user = $authResult->requireUser();
-        $otpCode = (string) $request->validated()['otpCode'];
+        $input = $request->toDTO();
 
-        if (! $this->verifyUserTotpCode($user, $otpCode)) {
+        if (! $this->verifyUserTotpCode($user, $input->otpCode)) {
             return $this->error(self::PARAM_ERROR_CODE, 'Two-factor code is invalid');
         }
 

@@ -7,6 +7,8 @@ namespace App\Domains\System\Http\Controllers;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Http\Controllers\ApiController;
+use App\Domains\System\Data\AuditPolicyPoliciesResponseData;
+use App\Domains\System\Data\AuditPolicyUpdateResponseData;
 use App\Domains\System\Events\AuditPolicyUpdatedEvent;
 use App\Domains\System\Events\SystemRealtimeUpdated;
 use App\Domains\System\Services\AuditPolicyService;
@@ -33,9 +35,9 @@ class AuditPolicyController extends ApiController
             return $this->error($authResult->code(), $authResult->message());
         }
 
-        return $this->success([
-            'records' => $this->auditPolicyService->listEffectivePolicies(null),
-        ]);
+        return $this->success(
+            AuditPolicyPoliciesResponseData::fromRecords($this->auditPolicyService->listEffectivePolicies(null))->toArray()
+        );
     }
 
     public function history(ListAuditPolicyHistoryRequest $request): JsonResponse
@@ -45,12 +47,12 @@ class AuditPolicyController extends ApiController
             return $this->error($authResult->code(), $authResult->message());
         }
 
-        $validated = $request->validated();
-        $current = (int) ($validated['current'] ?? 1);
-        $size = (int) ($validated['size'] ?? 10);
+        $input = $request->toDTO();
         $timezone = ApiDateTime::requestTimezone($request);
 
-        return $this->success($this->auditPolicyService->listRevisionHistory($current, $size, $timezone));
+        return $this->success(
+            $this->auditPolicyService->listRevisionHistory($input->current, $input->size, $timezone)->toArray()
+        );
     }
 
     public function update(UpdateAuditPoliciesRequest $request): JsonResponse
@@ -64,15 +66,12 @@ class AuditPolicyController extends ApiController
         if (! $user instanceof User) {
             return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
         }
-        $validated = $request->validated();
-        $changeReason = trim((string) ($validated['changeReason'] ?? ''));
-
-        /** @var list<array{action?: mixed, enabled?: mixed, samplingRate?: mixed, retentionDays?: mixed}> $records */
-        $records = $validated['records'];
+        $input = $request->toDTO();
+        $changeReason = $input->changeReason;
 
         try {
             $result = $this->auditPolicyService->updateGlobalPolicies(
-                records: $records,
+                records: $input->records,
                 changedByUserId: (int) $user->id,
                 changeReason: $changeReason
             );
@@ -85,19 +84,20 @@ class AuditPolicyController extends ApiController
             topic: 'audit-policy',
             action: 'audit-policy.update',
             context: [
-                'updated' => $result['updated'],
-                'revisionId' => $result['revisionId'],
+                'updated' => $result->updated,
+                'revisionId' => $result->revisionId,
             ],
             actorUserId: (int) $user->id,
             tenantId: null,
         ));
 
-        return $this->success([
-            'updated' => $result['updated'],
-            'clearedTenantOverrides' => $result['clearedTenantOverrides'],
-            'revisionId' => $result['revisionId'],
-            'records' => $this->auditPolicyService->listEffectivePolicies(null),
-        ], 'Audit policy updated');
+        return $this->success(
+            AuditPolicyUpdateResponseData::fromResult(
+                $result,
+                $this->auditPolicyService->listEffectivePolicies(null)
+            )->toArray(),
+            'Audit policy updated'
+        );
     }
 
     private function authorizeAuditPolicyConsole(Request $request, string $permissionCode): ApiAuthResult

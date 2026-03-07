@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domains\Shared\Auth;
 
-/**
- * @phpstan-type TenantOption array{tenantId: string, tenantName: string}
- */
 final readonly class TenantContext
 {
     /**
-     * @param  list<TenantOption>  $tenants
+     * @param  list<TenantOptionData>  $tenants
      */
     private function __construct(
         private bool $ok,
@@ -22,7 +19,7 @@ final readonly class TenantContext
     ) {}
 
     /**
-     * @param  list<TenantOption>  $tenants
+     * @param  list<TenantOptionData>  $tenants
      */
     public static function success(
         ?int $tenantId,
@@ -81,7 +78,7 @@ final readonly class TenantContext
     }
 
     /**
-     * @return list<TenantOption>
+     * @return list<TenantOptionData>
      */
     public function tenants(): array
     {

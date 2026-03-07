@@ -7,6 +7,9 @@ namespace App\Domains\Auth\Http\Controllers;
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Services\UserService;
 use App\Domains\Auth\Actions\ResolveUserContextAction;
+use App\Domains\Auth\Actions\ResolveUserInfoAction;
+use App\Domains\Auth\Actions\Results\ResolvedUserProfile;
+use App\Domains\Auth\Actions\Results\ResolvedUserRoles;
 use App\Domains\Auth\Http\Controllers\Concerns\ResolvesRoleScope;
 use App\Domains\Auth\Http\Controllers\Concerns\VerifiesTotpCode;
 use App\Domains\Auth\Services\MenuMetadataService;
@@ -32,38 +35,16 @@ abstract class AbstractUserController extends ApiController
         protected readonly ThemeConfigService $themeConfigService,
         protected readonly AuditLogService $auditLogService,
         protected readonly TotpService $totpService,
-        protected readonly ResolveUserContextAction $resolveUserContext
+        protected readonly ResolveUserContextAction $resolveUserContext,
+        protected readonly ResolveUserInfoAction $resolveUserInfo,
     ) {}
 
-    /**
-     * @return list<string>
-     */
-    protected function resolveRoles(User $user): array
+    protected function resolveRoles(User $user): ResolvedUserRoles
     {
         return $this->resolveUserContext->resolveRoles($user);
     }
 
-    /**
-     * @return array{
-     *   userId: string,
-     *   userName: string,
-     *   locale: string,
-     *   preferredLocale: string,
-     *   timezone: string,
-     *   themeSchema: string|null,
-     *   email: string,
-     *   roleCode: string,
-     *   roleName: string,
-     *   tenantId: string,
-     *   tenantName: string,
-     *   twoFactorEnabled: bool,
-     *   status: string,
-     *   version: string,
-     *   createTime: string,
-     *   updateTime: string
-     * }
-     */
-    protected function resolveProfile(User $user): array
+    protected function resolveProfile(User $user): ResolvedUserProfile
     {
         return $this->resolveUserContext->resolveProfile($user);
     }

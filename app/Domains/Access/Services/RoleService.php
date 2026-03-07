@@ -6,6 +6,9 @@ namespace App\Domains\Access\Services;
 
 use App\Domains\Access\Models\Role;
 use App\Domains\Shared\Services\ApiCacheService;
+use App\DTOs\Role\CreateRoleDTO;
+use App\DTOs\Role\SyncRolePermissionsDTO;
+use App\DTOs\Role\UpdateRoleDTO;
 use Illuminate\Support\Facades\DB;
 
 class RoleService
@@ -13,19 +16,18 @@ class RoleService
     public function __construct(private readonly ApiCacheService $apiCacheService) {}
 
     /**
-     * @param  array{code: string, name: string, description?: string, status?: string, tenant_id?: int|null, level?: int}  $payload
      * @param  list<int>  $permissionIds
      */
-    public function create(array $payload, array $permissionIds = []): Role
+    public function create(CreateRoleDTO $dto, array $permissionIds = []): Role
     {
-        $role = DB::transaction(function () use ($payload, $permissionIds): Role {
+        $role = DB::transaction(function () use ($dto, $permissionIds): Role {
             $role = Role::query()->create([
-                'code' => $payload['code'],
-                'name' => $payload['name'],
-                'description' => (string) ($payload['description'] ?? ''),
-                'status' => (string) ($payload['status'] ?? '1'),
-                'tenant_id' => $payload['tenant_id'] ?? null,
-                'level' => (int) ($payload['level'] ?? 10),
+                'code' => $dto->code,
+                'name' => $dto->name,
+                'description' => $dto->description,
+                'status' => $dto->status,
+                'tenant_id' => $dto->tenantId,
+                'level' => $dto->level,
             ]);
 
             $role->permissions()->sync($permissionIds);
@@ -39,18 +41,17 @@ class RoleService
     }
 
     /**
-     * @param  array{code: string, name: string, description?: string, status?: string, level?: int}  $payload
      * @param  list<int>|null  $permissionIds
      */
-    public function update(Role $role, array $payload, ?array $permissionIds = null): Role
+    public function update(Role $role, UpdateRoleDTO $dto, ?array $permissionIds = null): Role
     {
-        DB::transaction(function () use ($role, $payload, $permissionIds): void {
+        DB::transaction(function () use ($role, $dto, $permissionIds): void {
             $role->forceFill([
-                'code' => $payload['code'],
-                'name' => $payload['name'],
-                'description' => (string) ($payload['description'] ?? ''),
-                'status' => (string) ($payload['status'] ?? $role->status),
-                'level' => (int) ($payload['level'] ?? $role->level ?? 10),
+                'code' => $dto->code,
+                'name' => $dto->name,
+                'description' => $dto->description,
+                'status' => $dto->status,
+                'level' => $dto->level,
             ])->save();
 
             if ($permissionIds !== null) {
@@ -62,13 +63,10 @@ class RoleService
         return $role;
     }
 
-    /**
-     * @param  list<int>  $permissionIds
-     */
-    public function syncPermissions(Role $role, array $permissionIds): void
+    public function syncPermissions(Role $role, SyncRolePermissionsDTO $dto): void
     {
-        DB::transaction(function () use ($role, $permissionIds): void {
-            $role->permissions()->sync($permissionIds);
+        DB::transaction(function () use ($role, $dto): void {
+            $role->permissions()->sync($dto->permissionIds);
             $role->touch();
         });
         $this->apiCacheService->bump('roles');

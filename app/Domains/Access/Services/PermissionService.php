@@ -6,22 +6,21 @@ namespace App\Domains\Access\Services;
 
 use App\Domains\Access\Models\Permission;
 use App\Domains\Shared\Services\ApiCacheService;
+use App\DTOs\Permission\CreatePermissionDTO;
+use App\DTOs\Permission\UpdatePermissionDTO;
 
 class PermissionService
 {
     public function __construct(private readonly ApiCacheService $apiCacheService) {}
 
-    /**
-     * @param  array{code: string, name: string, group?: string, description?: string, status?: string}  $payload
-     */
-    public function create(array $payload): Permission
+    public function create(CreatePermissionDTO $dto): Permission
     {
         $permission = Permission::query()->create([
-            'code' => $payload['code'],
-            'name' => $payload['name'],
-            'group' => (string) ($payload['group'] ?? ''),
-            'description' => (string) ($payload['description'] ?? ''),
-            'status' => (string) ($payload['status'] ?? '1'),
+            'code' => $dto->code,
+            'name' => $dto->name,
+            'group' => $dto->group,
+            'description' => $dto->description,
+            'status' => $dto->status,
         ]);
 
         $this->apiCacheService->bump('permissions');
@@ -29,16 +28,13 @@ class PermissionService
         return $permission;
     }
 
-    /**
-     * @param  array{code: string, name: string, group?: string, description?: string, status?: string}  $payload
-     */
-    public function update(Permission $permission, array $payload): Permission
+    public function update(Permission $permission, UpdatePermissionDTO $dto): Permission
     {
         $permission->forceFill([
-            'name' => $payload['name'],
-            'group' => (string) ($payload['group'] ?? ''),
-            'description' => (string) ($payload['description'] ?? ''),
-            'status' => (string) ($payload['status'] ?? $permission->status),
+            'name' => $dto->name,
+            'group' => $dto->group,
+            'description' => $dto->description,
+            'status' => $dto->status,
         ])->save();
         $this->apiCacheService->bump('permissions');
 

@@ -7,6 +7,8 @@ namespace App\Domains\Shared\Http\Controllers;
 use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\ApiAuthResult;
+use App\Domains\Shared\Http\Pagination\CursorPaginationPayload;
+use App\Domains\Shared\Http\Pagination\OffsetPaginationPayload;
 use App\Domains\Shared\Services\IdempotencyService;
 use App\Http\Controllers\Controller;
 use App\Support\ApiDateTime;
@@ -68,16 +70,15 @@ abstract class ApiController extends Controller
         $idempotencyService = app(IdempotencyService::class);
         $state = $idempotencyService->begin($request, $actor);
 
-        if (isset($state['error'])) {
-            return $this->error(self::PARAM_ERROR_CODE, (string) $state['error']);
+        if ($state->hasError()) {
+            return $this->error(self::PARAM_ERROR_CODE, (string) $state->errorMessage());
         }
 
-        if (isset($state['replayResponse'])) {
-            return $state['replayResponse'];
+        if ($state->hasReplayResponse()) {
+            return $state->requireReplayResponse();
         }
 
-        /** @var \App\Domains\System\Models\IdempotencyKey|null $record */
-        $record = $state['record'] ?? null;
+        $record = $state->record();
 
         try {
             $response = $callback();
@@ -199,26 +200,39 @@ abstract class ApiController extends Controller
     }
 
     /**
-     * @param  array<string, mixed>  $validated
+     * @param  array{size: int, hasMore: bool, nextCursor: string}  $page
+     * @param  array<int, array<string, mixed>>  $records
+     * @param  array<string, mixed>  $extra
      */
-    protected function hasCursorPagination(array $validated): bool
+    protected function cursorPaginationPayload(array $page, array $records, array $extra = []): CursorPaginationPayload
     {
-        $paginationMode = strtolower(trim((string) request()->input('paginationMode', '')));
-        if ($paginationMode === 'cursor') {
-            return true;
-        }
+        return new CursorPaginationPayload(
+            size: $page['size'],
+            hasMore: $page['hasMore'],
+            nextCursor: $page['nextCursor'],
+            records: $records,
+            extra: $extra,
+        );
+    }
 
-        if (! array_key_exists('cursor', $validated)) {
-            return false;
-        }
-
-        $cursor = $validated['cursor'] ?? null;
-
-        if (is_string($cursor)) {
-            return trim($cursor) !== '';
-        }
-
-        return is_int($cursor) || is_float($cursor);
+    /**
+     * @param  array<int, array<string, mixed>>  $records
+     * @param  array<string, mixed>  $extra
+     */
+    protected function offsetPaginationPayload(
+        int $current,
+        int $size,
+        int $total,
+        array $records,
+        array $extra = [],
+    ): OffsetPaginationPayload {
+        return new OffsetPaginationPayload(
+            current: $current,
+            size: $size,
+            total: $total,
+            records: $records,
+            extra: $extra,
+        );
     }
 
     /**

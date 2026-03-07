@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\RoleScopeContext;
 use App\Domains\Shared\Auth\TenantContext;
+use App\Domains\Shared\Auth\TenantOptionData;
 use App\Domains\Tenant\Services\TenantContextService;
 use App\Support\ApiErrorResponse;
 use App\Support\RequestContext;
@@ -106,7 +107,10 @@ class ResolveTenantContext
             'msg' => $tenantContext->message(),
             'tenantId' => $tenantContext->tenantId(),
             'tenantName' => $tenantContext->tenantName(),
-            'tenants' => $tenantContext->tenants(),
+            'tenants' => array_map(
+                static fn (TenantOptionData $tenant): array => $tenant->toArray(),
+                $tenantContext->tenants(),
+            ),
         ];
     }
 
