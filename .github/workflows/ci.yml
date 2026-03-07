@@ -232,6 +232,9 @@ jobs:
             exit 1
           fi
 
+      - name: Probe Laravel bootstrap inside image
+        run: docker exec obsidian-admin-laravel-image-smoke php artisan about --only=environment
+
       - name: Probe Laravel live endpoint inside image
         run: |
           cat <<'PHP' > /tmp/image-smoke-probe.php
