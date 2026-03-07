@@ -1,0 +1,131 @@
+# Release SOP
+
+This document defines the release process for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
+
+目标是让每次 release 都遵循同一套流程，避免“代码通过了，但 tag、Release、GitHub 设置没跟上”的问题。
+
+## 1. Pre-Release Rules
+
+发布前先确认以下原则:
+
+- release tag 只指向代码发布提交
+- 文档补充提交不应该强行回写到已发布 tag
+- `main` 必须是绿色状态
+- working tree 必须干净
+
+## 2. Prepare Release Content
+
+在创建 tag 之前，先完成这些内容:
+
+- 更新 `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/CHANGELOG.md`
+- 准备当前版本 release note:
+  `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/releases/vX.Y.Z.md`
+- 如有需要，更新仓库元信息:
+  `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/repository-metadata.md`
+
+## 3. Required Release Gates
+
+在 backend release 之前，必须手动确认以下命令全部通过:
+
+```bash
+vendor/bin/pint --test
+vendor/bin/phpstan analyse --memory-limit=1G
+php artisan test
+```
+
+如果你修改了 workflow、OpenAPI、代理配置或安全策略，建议额外确认:
+
+```bash
+php artisan openapi:lint
+php artisan security:baseline
+php artisan http:proxy-trust-check --strict
+```
+
+## 4. Check Repository State
+
+确认当前仓库状态:
+
+```bash
+git status --short
+git log --oneline -3
+git tag --list --sort=version:refname
+```
+
+标准:
+
+- `git status --short` 必须为空
+- 当前 `HEAD` 必须是你要发布的提交
+
+## 5. Push Main First
+
+先推送 `main`，再打 release tag:
+
+```bash
+git push origin main
+```
+
+原因:
+
+- 让 CI 先对最新 `main` 生效
+- 避免 tag 指向一个还没推到远端的提交
+
+## 6. Create Release Tag
+
+创建 annotated tag:
+
+```bash
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push origin vX.Y.Z
+```
+
+规则:
+
+- 不要用 lightweight tag
+- 不要让 tag 指向后补的文档提交，除非你明确要把那次文档纳入版本产物
+
+## 7. Publish GitHub Release
+
+在 GitHub 上创建 Release 时:
+
+- Tag 选择: `vX.Y.Z`
+- Title 使用:
+  `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/repository-metadata.md`
+- Body 使用:
+  `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/releases/vX.Y.Z.md`
+
+## 8. Update Repository Metadata
+
+每次正式 release 前后，确认这些设置没有漂移:
+
+- About
+- Description
+- Topics
+- Branch protection
+- Required status checks
+- Actions permissions
+
+参考:
+
+- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/repository-setup-checklist.md`
+
+## 9. Post-Release Check
+
+发布完成后，至少确认:
+
+- `main` 和 tag 都已推送
+- GitHub Release 已可见
+- CI 没有在 `main` 或 tag 上出现新失败
+- 当前 release note 与 changelog 版本号一致
+
+## 10. Quick Checklist
+
+发布当天只看这一段也够用:
+
+1. 更新 `CHANGELOG.md`
+2. 准备 `docs/releases/vX.Y.Z.md`
+3. 跑 `pint + phpstan + test`
+4. 确认工作区干净
+5. 推 `main`
+6. 打 tag 并推
+7. 创建 GitHub Release
+8. 检查 About / Topics / protection rules
