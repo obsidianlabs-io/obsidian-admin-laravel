@@ -129,3 +129,9 @@ git push origin vX.Y.Z
 6. 打 tag 并推
 7. 创建 GitHub Release
 8. 检查 About / Topics / protection rules
+
+## 11. Final Sign-Off
+
+For the last pre-release pass, use:
+
+- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/release-final-checklist.md`
