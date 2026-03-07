@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-03-07
+
+### ✨ Added
+- Introduced typed request, action, service, and response boundaries across `Auth`, `Access`, `Tenant`, `Shared`, and `System` domains.
+- Added query action layer for high-value list endpoints and shared pagination payload builders.
+- Added architecture guard tests for controller/service boundary rules.
+- Added PostgreSQL CI support and improved quality workflow stability.
+
+### 🔧 Changed
+- Replaced remaining controller array contexts with DTOs, typed result objects, and explicit action orchestration.
+- Unified session projection, idempotency state handling, CRUD schema delivery, OpenAPI inspection, and tenant option payloads behind typed data objects.
+- Tightened auth/session behavior for inactive tenants, roles, organizations, and teams.
+- Improved deletion lifecycle, audit log classification, API access log safety, and platform hardening flows.
+
+### 🐞 Fixed
+- Fixed multiple quality workflow issues around CI contract checks and conditional execution.
+- Fixed backend boundary drift by locking high-value service and controller return types with architecture tests.
+
 ## [1.1.0] - 2026-03-03
 
 ### ✨ Added

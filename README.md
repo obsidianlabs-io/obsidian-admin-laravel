@@ -9,7 +9,15 @@
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
 > [!NOTE]
-> `Obsidian Admin Laravel` 是一个健壮的、生产可用的企业级后端模板，专为标准 Vue3/React 管理后台（如 Obsidian Admin Vue）提供可靠的 API 基础服务。
+> `Obsidian Admin Laravel` 是一个严格类型化、生产可用、面向企业后台与 SaaS 平台的 Laravel 12 API 基线。它专为标准 Vue3/React 管理后台（如 Obsidian Admin Vue）提供可靠、可扩展、可长期维护的后端能力。
+
+## 核心定位
+
+- **企业后台 API 基线**：适合作为管理后台、运营后台、内控平台、SaaS 控制台的后端起点。
+- **严格边界而不是传统胖 MVC**：通过 `DTO / Action / Service / Result Data` 降低无结构数组与隐式耦合。
+- **多租户优先**：内建租户上下文、租户安全边界、作用域切换与跨租户防泄漏约束。
+- **适合长期演进**：内置 OpenAPI、审计、幂等、健康检查、CI 质量门禁与架构测试。
+- **高并发友好**：默认设计兼容 `RoadRunner / Octane` 的长驻进程约束。
 
 ## 快速开始（先看这里）
 
@@ -96,7 +104,9 @@ composer run test:pgsql
 
 ## 简介
 
-[`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) 是一个基于 **Laravel 12** 构建的具有高度结构化、可扩展和安全的后端模板。与传统臃肿的单体应用不同，本项目严格执行 **Clean Architecture (整洁架构)** 模式，将业务逻辑下沉到专门的 Service 层，并使用 **Data Transfer Objects (DTOs)** 保证严格的类型安全。它原生支持真正的多租户架构、企业级基于角色的访问控制 (RBAC)、内置审计日志，并支持使用 **Laravel Octane (RoadRunner)** 提供极致的高并发运行环境。
+[`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) 是一个基于 **Laravel 12** 构建的、高度结构化且面向生产环境的后端模板。它不是传统“先堆功能、后补规范”的后台项目，而是从一开始就以 **清晰边界、严格类型、安全治理、多租户隔离、长期维护成本** 为核心目标来设计。
+
+项目采用模块化单体（Modular Monolith）结构，将业务拆分到 `app/Domains/*` 中，并通过 **DTO、Query Action、Result/Data Object、架构测试与静态分析** 收紧系统边界。对于需要承接企业后台、内部平台、SaaS 控制台、配置中心、审计中心的团队，它提供的是一个可以持续扩展、而不是很快失控的 Laravel 基线。
 
 ## 创始愿景
 
