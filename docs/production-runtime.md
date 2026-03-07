@@ -14,6 +14,13 @@ This profile is designed for backend-only deployment with queue and scheduler se
 
 Use `docker-compose.production.yml` for baseline orchestration.
 
+Production compose only publishes edge ports by default:
+
+- `nginx` on `8080` by default, configurable via `APP_HTTP_PORT`
+- `reverb` on `6001` by default, configurable via `REVERB_PUBLIC_PORT`
+
+`mysql` and `redis` stay internal to the Docker network unless you explicitly add host port bindings.
+
 ## 2) Start Stack
 
 ```bash

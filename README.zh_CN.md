@@ -304,13 +304,13 @@ docker compose -f docker-compose.production.yml down -v
 | 服务 | 说明 | 映射端口 |
 |---|---|---|
 | `app` | PHP-FPM 应用容器 | 9000 (内部) |
-| `nginx` | Web 服务器 / 反向代理 | **8080** |
-| `mysql` | MySQL 8.0 数据库 | 3306 |
-| `redis` | Redis 7 缓存与队列 | 6379 |
+| `nginx` | Web 服务器 / 反向代理 | **8080**（默认，可通过 `APP_HTTP_PORT` 调整） |
+| `mysql` | MySQL 8.0 数据库 | 仅容器内 |
+| `redis` | Redis 7 缓存与队列 | 仅容器内 |
 | `horizon` | Laravel Horizon 队列管理 | - |
 | `scheduler` | Laravel 任务调度器 | - |
 | `pulse-worker` | Laravel Pulse 监控Worker | - |
-| `reverb` | Laravel Reverb WebSocket 服务器 | 6001 |
+| `reverb` | Laravel Reverb WebSocket 服务器 | 6001（默认，可通过 `REVERB_PUBLIC_PORT` 调整） |
 
 ## 常用命令
 

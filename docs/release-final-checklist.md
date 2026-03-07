@@ -39,6 +39,14 @@ curl --fail --silent http://127.0.0.1:8000/api/health/live
 php artisan octane:stop --server=roadrunner
 ```
 
+If the release touched Docker, runtime images, compose files, or PHP extensions, also run:
+
+```bash
+APP_HTTP_PORT=18080 REVERB_PUBLIC_PORT=16001 docker compose -f docker-compose.production.yml up -d --build mysql redis app nginx
+curl --fail --silent http://127.0.0.1:18080/api/health/live
+docker compose -f docker-compose.production.yml down -v
+```
+
 ## 4. Runtime Truth
 
 Confirm documentation still matches reality:

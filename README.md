@@ -288,13 +288,13 @@ docker compose -f docker-compose.production.yml down -v
 | Service | Description | Exposed Port |
 |---|---|---|
 | `app` | PHP-FPM application container | 9000 (internal) |
-| `nginx` | Web server / reverse proxy | **8080** |
-| `mysql` | MySQL 8.0 database | 3306 |
-| `redis` | Redis 7 cache & queue | 6379 |
+| `nginx` | Web server / reverse proxy | **8080** (default, configurable via `APP_HTTP_PORT`) |
+| `mysql` | MySQL 8.0 database | internal only |
+| `redis` | Redis 7 cache & queue | internal only |
 | `horizon` | Laravel Horizon queue dashboard | - |
 | `scheduler` | Laravel task scheduler | - |
 | `pulse-worker` | Laravel Pulse monitoring worker | - |
-| `reverb` | Laravel Reverb WebSocket server | 6001 |
+| `reverb` | Laravel Reverb WebSocket server | 6001 (default, configurable via `REVERB_PUBLIC_PORT`) |
 
 ## Common Commands
 

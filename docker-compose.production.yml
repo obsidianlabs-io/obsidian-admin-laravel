@@ -25,7 +25,7 @@ services:
     depends_on:
       - app
     ports:
-      - "8080:80"
+      - "${APP_HTTP_PORT:-8080}:80"
 
   horizon:
     image: obsidian-admin-laravel:latest
@@ -76,7 +76,7 @@ services:
       - redis
     command: php artisan reverb:start --host="0.0.0.0" --port=8080
     ports:
-      - "6001:8080"
+      - "${REVERB_PUBLIC_PORT:-6001}:8080"
 
   mysql:
     image: mysql:8.0
@@ -86,8 +86,6 @@ services:
       MYSQL_USER: obsidian
       MYSQL_PASSWORD: obsidian
       MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot", "--silent"]
       interval: 10s
@@ -100,8 +98,6 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
