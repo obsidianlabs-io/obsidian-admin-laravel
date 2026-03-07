@@ -34,6 +34,9 @@ If the release touched infrastructure, platform hardening, or contract surfaces,
 php artisan openapi:lint
 php artisan security:baseline
 php artisan http:proxy-trust-check --strict
+php artisan octane:start --server=roadrunner
+curl --fail --silent http://127.0.0.1:8000/api/health/live
+php artisan octane:stop --server=roadrunner
 ```
 
 ## 4. Runtime Truth

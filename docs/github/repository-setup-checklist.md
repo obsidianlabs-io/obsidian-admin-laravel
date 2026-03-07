@@ -62,6 +62,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 建议至少勾选以下 checks:
 
 - `CI / quality`
+- `CI / octane-smoke`
 - `CI / tests-sqlite`
 - `CI / tests-mysql`
 - `CI / tests-pgsql`
@@ -82,6 +83,11 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 - `Quality Gate / Frontend API Contract Typecheck`
 
 但那样会放松 SQLite/MySQL/PostgreSQL 三套数据库回归测试，不建议。
+
+说明:
+
+- `CI / octane-smoke` 用于验证官方 Octane + RoadRunner 启动链路没有回退
+- 如果你的发布叙事继续包含 `official Octane integration`，建议把它设为 required
 
 对应 workflow:
 

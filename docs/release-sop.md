@@ -41,6 +41,14 @@ php artisan security:baseline
 php artisan http:proxy-trust-check --strict
 ```
 
+如果你修改了 Octane、RoadRunner、Docker、运行时扩展或 worker 生命周期相关逻辑，建议额外做一次本地 smoke：
+
+```bash
+php artisan octane:start --server=roadrunner
+curl --fail --silent http://127.0.0.1:8000/api/health/live
+php artisan octane:stop --server=roadrunner
+```
+
 ## 4. Check Repository State
 
 确认当前仓库状态:
@@ -129,12 +137,6 @@ git push origin vX.Y.Z
 6. 打 tag 并推
 7. 创建 GitHub Release
 8. 检查 About / Topics / protection rules
-
-## 11. Final Sign-Off
-
-For the last pre-release pass, use:
-
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/release-final-checklist.md`
 
 ## 11. Final Sign-Off
 
