@@ -24,6 +24,203 @@ x-error-catalog:
   '8888': Unauthorized
   '9999': Token expired
 paths:
+  /system/feature-flags:
+    get:
+      tags: [System]
+      summary: List feature flags
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - in: query
+          name: feature
+          schema: { type: string }
+        - in: query
+          name: tenantId
+          schema: { type: integer }
+        - in: query
+          name: roleCode
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, inactive] }
+      responses:
+        "200":
+          description: Feature flag list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlagListResponse"
+  /system/feature-flags/toggle:
+    put:
+      tags: [System]
+      summary: Toggle feature flag override
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeatureFlagToggleRequestBody"
+      responses:
+        "200":
+          description: Feature flag override updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlagOverrideResponse"
+  /system/feature-flags/purge:
+    delete:
+      tags: [System]
+      summary: Remove feature flag override
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeatureFlagPurgeRequestBody"
+      responses:
+        "200":
+          description: Feature flag override purged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlagOverrideResponse"
+  /audit/list:
+    get:
+      tags: [Audit]
+      summary: List audit logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - in: query
+          name: userId
+          schema: { type: integer }
+        - in: query
+          name: action
+          schema: { type: string }
+        - in: query
+          name: module
+          schema: { type: string }
+        - in: query
+          name: targetType
+          schema: { type: string }
+        - in: query
+          name: targetId
+          schema: { type: string }
+        - in: query
+          name: requestId
+          schema: { type: string }
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Audit log list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
+  /audit/policy/list:
+    get:
+      tags: [Audit]
+      summary: List effective audit policies
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: tenantId
+          schema: { type: integer }
+        - in: query
+          name: action
+          schema: { type: string }
+        - in: query
+          name: mandatoryOnly
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Audit policies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditPolicyPoliciesResponse"
+  /audit/policy:
+    put:
+      tags: [Audit]
+      summary: Update audit policies
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuditPolicyUpdateRequestBody"
+      responses:
+        "200":
+          description: Audit policy updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditPolicyUpdateResponse"
+  /audit/policy/history:
+    get:
+      tags: [Audit]
+      summary: List audit policy history
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - in: query
+          name: action
+          schema: { type: string }
+      responses:
+        "200":
+          description: Audit policy history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditPolicyHistoryResponse"
+  /system/ui/crud-schema/{resource}:
+    get:
+      tags: [System]
+      summary: Resolve CRUD schema
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: resource
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: CRUD schema
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrudSchemaResponse"
   /auth/login:
     post:
       summary: Login

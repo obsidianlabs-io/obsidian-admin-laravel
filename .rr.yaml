@@ -1,0 +1,14 @@
+version: "3"
+
+# Minimal tracked RoadRunner baseline for Laravel Octane.
+# Octane overrides host, port, RPC endpoint, worker count, static dir,
+# log settings, and lifecycle limits via CLI `-o` flags when starting.
+rpc:
+  listen: tcp://0.0.0.0:6002
+
+server:
+  command: "php ./vendor/bin/roadrunner-worker"
+  relay: pipes
+
+http:
+  address: 0.0.0.0:8000

@@ -351,3 +351,12 @@ Obsidian Admin Laravel 架构的灵感来源于一系列卓越的开源项目和
 本项目基于开源 [MIT License](./LICENSE) 协议发布。
 
 *Copyright © 2026 Obsidian Labs.*
+
+
+## Octane Runtime
+
+```bash
+docker compose -f docker-compose.octane.yml up -d --build
+```
+
+该方式会使用仓库内提交的 `.rr.yaml` 作为 RoadRunner 默认模板。该运行方式不会 bind-mount 整个仓库，因此容器会自行下载并使用 Linux 兼容的 `rr` 二进制。

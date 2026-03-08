@@ -14,18 +14,18 @@ What is included in the repository:
 
 ## Important distinction
 
-The repository includes the Octane package and configuration, but the RoadRunner binary itself is still machine-specific.
+The repository now includes the Octane package, configuration, and a tracked `.rr.yaml` baseline template. The RoadRunner binary itself remains machine-specific.
 
 That means:
 
 - the project is in a real Octane installation state
 - a fresh clone still needs a local RoadRunner binary before `octane:start` can run
 - the binary should stay local and is intentionally ignored via `.gitignore`
+- the `.rr.yaml` file is committed so runtime defaults stay reproducible across contributors
 
 Ignored local runtime files:
 
 - `rr`
-- `.rr.yaml`
 
 ## First-time local setup
 
@@ -79,3 +79,22 @@ Avoid saying:
 
 - `RoadRunner binary is committed in the repository`
 - `Docker runs Octane by default`
+
+
+## Docker Compose Octane Runtime
+
+Use `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docker-compose.octane.yml` for a full immutable RoadRunner runtime stack:
+
+```bash
+docker compose -f docker-compose.octane.yml up -d --build
+```
+
+Override host ports when needed:
+
+```bash
+APP_HTTP_PORT=18080 REVERB_PUBLIC_PORT=16001 docker compose -f docker-compose.octane.yml up -d --build
+```
+
+Services included: `octane`, `mysql`, `redis`, `horizon`, `scheduler`, `pulse-worker`, and `reverb`.
+
+This compose file builds the application image and does not bind-mount your workspace, so container startup always uses a Linux-compatible RoadRunner binary.

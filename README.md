@@ -11,9 +11,11 @@
 > [!NOTE]
 > `Obsidian Admin Laravel` is a robust, production-ready enterprise backend boilerplate tailored specifically to act as the API foundation for standard Vue3/React admin dashboards (like Obsidian Admin Vue).
 >
-> The repository now ships with official Laravel Octane integration and RoadRunner-oriented defaults. The machine-specific RoadRunner binary is still generated locally, so review [`docs/octane.md`](./docs/octane.md) before using Octane in development or production.
+> The repository now ships with official Laravel Octane integration, a tracked `.rr.yaml` baseline, and RoadRunner-oriented defaults. The machine-specific RoadRunner binary is still generated locally, so review [`docs/octane.md`](./docs/octane.md) before using Octane in development or production.
 
-## Quick Start (Start Here)
+## Quick Start
+
+Octane / RoadRunner runtime is available through `docker-compose.octane.yml` when you want a production-like long-lived worker stack.
 
 If you just want to get the API running quickly, choose one of the following:
 
@@ -335,3 +337,12 @@ Obsidian Admin Laravel's architecture draws profound inspiration from exceptiona
 This project is released under the [MIT License](./LICENSE).
 
 *Copyright © 2026 Obsidian Labs.*
+
+
+## Octane Runtime
+
+```bash
+docker compose -f docker-compose.octane.yml up -d --build
+```
+
+This starts the application on RoadRunner with the tracked `.rr.yaml` baseline. The runtime compose file does not bind-mount the repository, so the container downloads and uses a Linux-compatible `rr` binary.
