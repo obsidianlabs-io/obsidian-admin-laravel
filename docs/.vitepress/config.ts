@@ -35,7 +35,8 @@ export default defineConfig({
           { text: 'Runtime Topology', link: '/runtime-topology' },
           { text: 'Production Runtime', link: '/production-runtime' },
           { text: 'Project Profiles', link: '/project-profiles' },
-          { text: 'Security Checklist', link: '/security-checklist' }
+          { text: 'Security Checklist', link: '/security-checklist' },
+          { text: 'Security Baseline', link: '/security-baseline' }
         ]
       },
       {

@@ -45,6 +45,7 @@ Use this backend with [Obsidian Admin Vue](https://github.com/obsidianlabs-io/ob
 - Use [Tenant Switching Semantics](/tenant-switching-semantics) if you need the exact rules behind platform scope vs selected-tenant scope
 - Use [Health Model](/health-model) if you need the exact semantics behind live, ready, diagnostics, and CI runtime probes
 - Use [Runtime Topology](/runtime-topology) if you need the repository's php-fpm, Octane, queue, Reverb, and health-probe model in one place
+- Use [Security Baseline](/security-baseline) if you need the exact role of `php artisan security:baseline` and how it fits into release gates
 - Read the [Backend Architecture](/architecture), [RBAC and Role Levels](/rbac-and-role-levels), and [OpenAPI Workflow](/openapi-workflow)
 - Use [Session and 2FA](/session-and-2fa) if you need the auth-session model, device management, and TOTP guarantees in one place
 - Use [Audit and Compliance](/audit-and-compliance) when you need the repository's audit policy and retention model in one place
