@@ -41,6 +41,34 @@ docker run --rm -p 8080:8000 \
 
 For queue, database, Redis, and nginx-backed deployments, use the runtime guidance in [`docs/production-runtime.md`](./docs/production-runtime.md).
 
+### Tag Strategy
+
+Stable backend releases publish the following GHCR tags:
+
+- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.2.0`
+- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.2`
+- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1`
+- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:latest` for stable non-prerelease tags only
+
+Use the fully versioned tag in production. Reserve `latest` for evaluation or internal smoke checks.
+
+### Compose Consumption Example
+
+If you want to consume the published image directly instead of building locally, use a compose override like this:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.2.0
+    pull_policy: always
+```
+
+Then start the stack normally:
+
+```bash
+docker compose -f docker-compose.production.yml -f docker-compose.image.yml up -d
+```
+
 ## Quick Start
 
 Octane / RoadRunner runtime is available through `docker-compose.octane.yml` when you want a production-like long-lived worker stack.

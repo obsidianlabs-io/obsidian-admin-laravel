@@ -32,6 +32,15 @@ Supported platforms:
 - `linux/amd64`
 - `linux/arm64`
 
+Tag strategy:
+
+- `1.2.0`: immutable full release tag
+- `1.2`: latest patch in the current minor line
+- `1`: latest stable minor in the current major line
+- `latest`: stable non-prerelease release only
+
+Use the fully versioned tag for production rollout and rollback control.
+
 Pull example:
 
 ```bash
@@ -55,6 +64,23 @@ docker run --rm -p 8080:8000 \
 ```
 
 This minimal run path is only meant to validate image boot and health. For database-backed production usage, prefer `docker-compose.production.yml` or `docker-compose.octane.yml`.
+
+Compose consumption example:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.2.0
+    pull_policy: always
+```
+
+Launch with:
+
+```bash
+docker compose -f docker-compose.production.yml -f docker-compose.image.yml up -d
+```
+
+This lets you keep the repository-provided `nginx/mysql/redis/horizon/scheduler` topology while consuming a published immutable app image.
 
 ## 2) Start Stack
 
