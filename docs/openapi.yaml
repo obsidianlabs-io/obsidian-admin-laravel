@@ -692,6 +692,334 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+  /organization/list:
+    get:
+      summary: Organization listing
+      parameters:
+        - in: query
+          name: current
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: keyword
+          schema: { type: string }
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/EnableStatus'
+      responses:
+        '200':
+          description: Organization list response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /organization/all:
+    get:
+      summary: List active organizations for selectors
+      responses:
+        '200':
+          description: Organization selector response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /organization:
+    post:
+      summary: Create organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationPayload'
+      responses:
+        '200':
+          description: Organization create response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /organization/{id}:
+    put:
+      summary: Update organization
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationPayload'
+      responses:
+        '200':
+          description: Organization update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      summary: Delete organization
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Organization delete response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /team/list:
+    get:
+      summary: Team listing
+      parameters:
+        - in: query
+          name: current
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: keyword
+          schema: { type: string }
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/EnableStatus'
+        - in: query
+          name: organizationId
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Team list response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /team/all:
+    get:
+      summary: List active teams for selectors
+      parameters:
+        - in: query
+          name: organizationId
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Team selector response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /team:
+    post:
+      summary: Create team
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamPayload'
+      responses:
+        '200':
+          description: Team create response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /team/{id}:
+    put:
+      summary: Update team
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamPayload'
+      responses:
+        '200':
+          description: Team update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      summary: Delete team
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Team delete response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /language/list:
+    get:
+      summary: Language translation listing
+      parameters:
+        - in: query
+          name: current
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: locale
+          schema: { type: string }
+        - in: query
+          name: keyword
+          schema: { type: string }
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/EnableStatus'
+      responses:
+        '200':
+          description: Language translation list response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /language/options:
+    get:
+      summary: List language options for console selectors
+      responses:
+        '200':
+          description: Language options response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /language/locales:
+    get:
+      summary: List runtime active locales
+      responses:
+        '200':
+          description: Runtime locales response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /language/messages:
+    get:
+      summary: Get runtime locale messages
+      parameters:
+        - in: query
+          name: locale
+          schema: { type: string }
+        - in: query
+          name: version
+          schema: { type: string }
+      responses:
+        '200':
+          description: Runtime locale messages response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /language:
+    post:
+      summary: Create language translation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LanguageTranslationPayload'
+      responses:
+        '200':
+          description: Language translation create response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /language/{id}:
+    put:
+      summary: Update language translation
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LanguageTranslationPayload'
+      responses:
+        '200':
+          description: Language translation update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      summary: Delete language translation
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Language translation delete response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /theme/public-config:
+    get:
+      summary: Get public theme configuration
+      responses:
+        '200':
+          description: Public theme configuration response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /theme/config:
+    get:
+      summary: Get current scope theme configuration
+      responses:
+        '200':
+          description: Theme configuration response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    put:
+      summary: Update current scope theme configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThemeConfigPayload'
+      responses:
+        '200':
+          description: Theme configuration update response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /theme/config/reset:
+    post:
+      summary: Reset current scope theme configuration
+      responses:
+        '200':
+          description: Theme configuration reset response wrapper
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
 components:
   parameters:
     TenantHeader:
@@ -1013,3 +1341,139 @@ components:
           type: string
         updateTime:
           type: string
+    OrganizationPayload:
+      type: object
+      required:
+        - organizationCode
+        - organizationName
+      properties:
+        organizationCode:
+          type: string
+        organizationName:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/EnableStatus'
+        sort:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          type: string
+        updateTime:
+          type: string
+    TeamPayload:
+      type: object
+      required:
+        - organizationId
+        - teamCode
+        - teamName
+      properties:
+        organizationId:
+          type: integer
+          minimum: 1
+        teamCode:
+          type: string
+        teamName:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/EnableStatus'
+        sort:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          type: string
+        updateTime:
+          type: string
+    LanguageTranslationPayload:
+      type: object
+      required:
+        - locale
+        - translationKey
+        - translationValue
+      properties:
+        locale:
+          type: string
+        translationKey:
+          type: string
+        translationValue:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/EnableStatus'
+        version:
+          type: integer
+          minimum: 1
+        updatedAt:
+          type: string
+        updateTime:
+          type: string
+    ThemeConfigPayload:
+      type: object
+      properties:
+        themeScheme:
+          type: string
+          enum: [light, dark, auto]
+        themeColor:
+          type: string
+        themeRadius:
+          type: integer
+          minimum: 0
+          maximum: 16
+        headerHeight:
+          type: integer
+          minimum: 48
+          maximum: 80
+        siderWidth:
+          type: integer
+          minimum: 180
+          maximum: 320
+        siderCollapsedWidth:
+          type: integer
+          minimum: 48
+          maximum: 120
+        layoutMode:
+          type: string
+        scrollMode:
+          type: string
+        darkSider:
+          type: boolean
+        themeSchemaVisible:
+          type: boolean
+        headerFullscreenVisible:
+          type: boolean
+        tabVisible:
+          type: boolean
+        tabFullscreenVisible:
+          type: boolean
+        breadcrumbVisible:
+          type: boolean
+        footerVisible:
+          type: boolean
+        footerHeight:
+          type: integer
+          minimum: 32
+          maximum: 96
+        multilingualVisible:
+          type: boolean
+        globalSearchVisible:
+          type: boolean
+        themeConfigVisible:
+          type: boolean
+        pageAnimate:
+          type: boolean
+        pageAnimateMode:
+          type: string
+        fixedHeaderAndTab:
+          type: boolean
