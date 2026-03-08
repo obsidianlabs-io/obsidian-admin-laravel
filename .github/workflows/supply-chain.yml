@@ -93,17 +93,16 @@ jobs:
       - name: Build runtime image for scanning
         run: docker build --target app -t obsidian-admin-laravel:scan .
 
-      - name: Setup Trivy CLI
-        uses: aquasecurity/setup-trivy@v0.2.3
-        with:
-          cache: true
-          version: v0.68.1
-
       - name: Prepare scan output directory
         run: |
           mkdir -p build
           printf '{"version":"2.1.0","runs":[]}\n' > build/container-scan-trivy.sarif
           printf 'Trivy critical scan did not produce output.\n' > build/container-scan-critical.txt
+
+      - name: Install Trivy CLI
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh             | sh -s -- -b /usr/local/bin
+          trivy --version
 
       - name: Generate SARIF report for runtime image
         id: sarif_scan
