@@ -13,7 +13,7 @@
 >
 > The repository now ships with official Laravel Octane integration, a tracked `.rr.yaml` baseline, and RoadRunner-oriented defaults. The machine-specific RoadRunner binary is still generated locally, so review [`docs/octane.md`](./docs/octane.md) before using Octane in development or production.
 >
-> Stable release tags also publish an immutable GHCR image at `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:<tag>`. Stable non-prerelease tags also update `latest`.
+> Stable release tags also publish an immutable multi-arch GHCR image at `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:<tag>` for `linux/amd64` and `linux/arm64`. Stable non-prerelease tags also update `latest`.
 
 ## Quick Start
 
