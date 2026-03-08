@@ -27,6 +27,7 @@ export default defineConfig({
         items: [
           { text: 'Overview', link: '/' },
           { text: 'Getting Started', link: '/getting-started' },
+          { text: 'Full-Stack Evaluation', link: '/full-stack-evaluation' },
           { text: 'Compatibility Matrix', link: '/compatibility-matrix' },
           { text: 'Multi-Tenancy', link: '/multi-tenancy' },
           { text: 'Tenant Switching Semantics', link: '/tenant-switching-semantics' },

@@ -41,6 +41,7 @@ Use this backend with [Obsidian Admin Vue](https://github.com/obsidianlabs-io/ob
 ## What to read next
 
 - Start with [Getting Started](/getting-started)
+- Use [Full-Stack Evaluation](/full-stack-evaluation) if you want the shortest path for frontend preview, backend runtime, or full local pairing
 - Review the [Compatibility Matrix](/compatibility-matrix) and [Multi-Tenancy](/multi-tenancy)
 - Use [Tenant Switching Semantics](/tenant-switching-semantics) if you need the exact rules behind platform scope vs selected-tenant scope
 - Use [Health Model](/health-model) if you need the exact semantics behind live, ready, diagnostics, and CI runtime probes

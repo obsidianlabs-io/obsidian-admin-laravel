@@ -79,10 +79,14 @@ If you just want to get the API running quickly, choose one of the following:
 
 ## Key Docs
 
+- Docs URL: [https://obsidianlabs-io.github.io/obsidian-admin-laravel/](https://obsidianlabs-io.github.io/obsidian-admin-laravel/)
 - Compatibility matrix: [`docs/compatibility-matrix.md`](./docs/compatibility-matrix.md)
+- Full-stack evaluation: [`docs/full-stack-evaluation.md`](./docs/full-stack-evaluation.md)
 - Octane / RoadRunner runtime: [`docs/octane.md`](./docs/octane.md)
 - Production runtime stack: [`docs/production-runtime.md`](./docs/production-runtime.md)
 - Release sign-off checklist: [`docs/release-final-checklist.md`](./docs/release-final-checklist.md)
+
+> The docs site is published through GitHub Pages. If Pages has not been enabled for the repository yet, this URL will return `404` until the first deployment finishes.
 
 ### Option A: Docker Development (Recommended, least setup friction)
 
