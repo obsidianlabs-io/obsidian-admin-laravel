@@ -29,6 +29,7 @@ export default defineConfig({
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'Compatibility Matrix', link: '/compatibility-matrix' },
           { text: 'Multi-Tenancy', link: '/multi-tenancy' },
+          { text: 'Tenant Switching Semantics', link: '/tenant-switching-semantics' },
           { text: 'Testing', link: '/testing' },
           { text: 'Production Runtime', link: '/production-runtime' },
           { text: 'Project Profiles', link: '/project-profiles' },
