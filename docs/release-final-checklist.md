@@ -30,6 +30,7 @@ php artisan test
 
 - `Backend Supply Chain` is green
 - the `backend-sbom-cyclonedx` artifact exists for the release commit
+- the SBOM artifact has an attestation on the push workflow
 
 If the release touched infrastructure, platform hardening, or contract surfaces, also run:
 

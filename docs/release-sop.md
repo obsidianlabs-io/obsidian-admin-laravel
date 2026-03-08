@@ -33,7 +33,7 @@ vendor/bin/phpstan analyse --memory-limit=1G
 php artisan test
 ```
 
-同时确认 GitHub Actions 的 `Backend Supply Chain` 为绿色，并且已生成 `backend-sbom-cyclonedx` artifact。
+同时确认 GitHub Actions 的 `Backend Supply Chain` 为绿色，并且已生成 `backend-sbom-cyclonedx` artifact 与对应 attestation。
 
 如果你修改了 workflow、OpenAPI、代理配置或安全策略，建议额外确认:
 

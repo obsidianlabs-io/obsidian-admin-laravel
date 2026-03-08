@@ -78,6 +78,26 @@ jobs:
           path: build/backend-sbom.cyclonedx.json
           if-no-files-found: error
 
+  attest-sbom:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: sbom
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download SBOM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-sbom-cyclonedx
+          path: build
+
+      - name: Attest SBOM artifact
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: build/backend-sbom.cyclonedx.json
+
   attest-source:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest

@@ -178,7 +178,7 @@ Obsidian continues to evolve — rooted in resilience and order, marching steadf
 - **Laravel Pint** code style enforcement.
 - **Deptrac** domain boundary enforcement for modular monolith discipline.
 - **OpenAPI generation and linting** via `dedoc/scramble`, plus contract snapshot checks.
-- **CycloneDX SBOM generation** in CI for a reproducible runtime dependency inventory.
+- **CycloneDX SBOM generation + attestation** in CI for a reproducible, attestable runtime dependency inventory.
 - **CI quality gates** for tests, static analysis, style checks, proxy trust validation, and security baseline checks.
 
 ## Ecosystem
