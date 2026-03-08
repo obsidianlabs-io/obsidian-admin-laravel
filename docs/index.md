@@ -58,4 +58,5 @@ Use this backend with [Obsidian Admin Vue](https://github.com/obsidianlabs-io/ob
 - Use [Open Source Launch Checklist](/open-source-launch-checklist) when you are promoting the backend and frontend together
 - Use [Full-Stack Demo Environment](/full-stack-demo-environment) when you want to move from preview-only evaluation to a real hosted demo
 - Use [Demo Deployment Runbook](/demo-deployment-runbook) when you want the exact first-pass commands for a hosted evaluator environment
+- Use [Evaluator Demo Validation](/evaluator-demo-validation) when you want the minimum acceptance checklist for the first hosted demo
 - Use the [Release Final Checklist](/release-final-checklist) before publishing
