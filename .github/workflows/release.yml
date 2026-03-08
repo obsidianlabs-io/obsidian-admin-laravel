@@ -16,9 +16,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract release notes from CHANGELOG
+      - name: Prepare release notes
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION_TAG="${GITHUB_REF_NAME}"
+          VERSION="${VERSION_TAG#v}"
+          RELEASE_NOTE_PATH="docs/releases/${VERSION_TAG}.md"
+
+          if [ -f "${RELEASE_NOTE_PATH}" ]; then
+            cp "${RELEASE_NOTE_PATH}" RELEASE_NOTES.md
+            exit 0
+          fi
+
           awk -v ver="$VERSION" '
             $0 ~ "^## \\[" ver "\\]" {capture=1; print; next}
             capture && $0 ~ "^## \\[" {exit}
@@ -29,7 +37,7 @@ jobs:
             {
               echo "## ${GITHUB_REF_NAME}"
               echo
-              echo "Release notes fallback. See CHANGELOG.md for details."
+              echo "Release notes fallback. See CHANGELOG.md for details, or add ${RELEASE_NOTE_PATH}."
             } > RELEASE_NOTES.md
           fi
 

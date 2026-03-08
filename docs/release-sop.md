@@ -152,6 +152,11 @@ git push origin vX.Y.Z
 - Body 使用:
   `docs/releases/vX.Y.Z.md`
 
+自动发布 workflow 也遵循同一规则：
+
+- 优先使用 `docs/releases/vX.Y.Z.md`
+- 只有在该文件缺失时，才回退到 `CHANGELOG.md`
+
 ## 8. Update Repository Metadata
 
 每次正式 release 前后，确认这些设置没有漂移:
