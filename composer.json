@@ -133,6 +133,9 @@
         "docs:path-safety": [
             "@php scripts/check-public-path-safety.php"
         ],
+        "release:pairing": [
+            "@php scripts/check-release-pairing.php"
+        ],
         "quality:check": [
             "@php artisan config:clear --ansi",
             "vendor/bin/pint --test",

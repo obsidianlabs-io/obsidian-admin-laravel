@@ -86,6 +86,7 @@ If you just want to get the API running quickly, choose one of the following:
 
 - Docs URL: [https://obsidianlabs-io.github.io/obsidian-admin-laravel/](https://obsidianlabs-io.github.io/obsidian-admin-laravel/)
 - Compatibility matrix: [`docs/compatibility-matrix.md`](./docs/compatibility-matrix.md)
+- Support policy: [`docs/support-policy.md`](./docs/support-policy.md)
 - Full-stack evaluation: [`docs/full-stack-evaluation.md`](./docs/full-stack-evaluation.md)
 - Octane / RoadRunner runtime: [`docs/octane.md`](./docs/octane.md)
 - Production runtime stack: [`docs/production-runtime.md`](./docs/production-runtime.md)

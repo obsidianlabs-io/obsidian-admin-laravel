@@ -13,8 +13,10 @@ Use it after implementation is finished and before publishing a release.
 ## 2. Release Content
 
 - `CHANGELOG.md` is updated
+- `CHANGELOG.zh_CN.md` is updated
 - the target release note exists:
   - `docs/releases/vX.Y.Z.md`
+- `composer run release:pairing -- vX.Y.Z` passes
 - repository metadata still matches current positioning:
   - `docs/github/repository-metadata.md`
 

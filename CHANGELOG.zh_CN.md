@@ -17,6 +17,24 @@
 - 将自定义的请求级状态重置逻辑迁移到官方 Octane listener 流程中。
 - 明确区分“仓库内已提交的 Octane 配置”与“本机需要单独初始化的 RoadRunner 二进制”。
 
+## [1.2.0] - 2026-03-07
+
+### ✨ 新增
+- 在 `Auth`、`Access`、`Tenant`、`Shared`、`System` 领域全面引入 typed request、action、service 与 response boundary。
+- 为高价值列表接口新增 query action 层与统一分页 payload builder。
+- 增加 controller / service 边界的架构守卫测试。
+- 新增 PostgreSQL CI 支持，并提升质量工作流稳定性。
+
+### 🔧 调整
+- 将剩余 controller 内的数组上下文全面替换为 DTO、typed result object 与显式 action orchestration。
+- 将 session projection、idempotency state、CRUD schema、OpenAPI inspection、tenant option payload 等公共边界统一收敛为 typed data object。
+- 收紧租户、角色、组织、团队失活场景下的认证与会话行为。
+- 改善删除生命周期、审计日志分类、API access log 安全与平台加固路径。
+
+### 🐞 修复
+- 修复多处 CI 契约检查与条件执行相关的质量工作流问题。
+- 通过架构测试锁定高价值 controller / service 返回类型，修复边界漂移风险。
+
 ## [1.1.0] - 2026-03-03
 
 ### ✨ 新增

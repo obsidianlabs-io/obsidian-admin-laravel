@@ -2,6 +2,8 @@
 
 This document explains how to get help for `obsidian-admin-laravel`.
 
+Formal release-lane and maintenance expectations live in [`docs/support-policy.md`](./docs/support-policy.md).
+
 ## Scope
 
 This repository is maintained as an open-source Laravel admin backend baseline.

@@ -18,6 +18,7 @@ This document defines the release process for `obsidian-admin-laravel`.
 在创建 tag 之前，先完成这些内容:
 
 - 更新 `CHANGELOG.md`
+- 更新 `CHANGELOG.zh_CN.md`
 - 准备当前版本 release note:
   `docs/releases/vX.Y.Z.md`
 - 如有需要，更新仓库元信息:
@@ -31,6 +32,7 @@ This document defines the release process for `obsidian-admin-laravel`.
 vendor/bin/pint --test
 vendor/bin/phpstan analyse --memory-limit=1G
 php artisan test
+composer run release:pairing -- vX.Y.Z
 ```
 
 同时确认 GitHub Actions 的 `Backend Supply Chain` 为绿色，并且已生成：
@@ -198,13 +200,14 @@ git push origin vX.Y.Z
 发布当天只看这一段也够用:
 
 1. 更新 `CHANGELOG.md`
-2. 准备 `docs/releases/vX.Y.Z.md`
-3. 跑 `pint + phpstan + test`
-4. 确认工作区干净
-5. 推 `main`
-6. 打 tag 并推
-7. 创建 GitHub Release
-8. 检查 About / Topics / protection rules
+2. 更新 `CHANGELOG.zh_CN.md`
+3. 准备 `docs/releases/vX.Y.Z.md`
+4. 跑 `pint + phpstan + test + release:pairing`
+5. 确认工作区干净
+6. 推 `main`
+7. 打 tag 并推
+8. 创建 GitHub Release
+9. 检查 About / Topics / protection rules
 
 ## 11. Final Sign-Off
 
