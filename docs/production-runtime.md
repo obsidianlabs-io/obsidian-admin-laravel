@@ -21,6 +21,41 @@ Production compose only publishes edge ports by default:
 
 `mysql` and `redis` stay internal to the Docker network unless you explicitly add host port bindings.
 
+## 1.5) GHCR Release Image
+
+Stable release tags publish a multi-arch app image to:
+
+- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:<tag>`
+
+Supported platforms:
+
+- `linux/amd64`
+- `linux/arm64`
+
+Pull example:
+
+```bash
+docker pull ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.2.0
+```
+
+Minimal container boot example:
+
+```bash
+docker run --rm -p 8080:8000 \
+  -e APP_ENV=production \
+  -e APP_DEBUG=false \
+  -e APP_KEY=base64:Q2qE5A3yM4tQvL3X0yr7M5m4r2m40fX9zCw1Q2m3N4o= \
+  -e CACHE_STORE=array \
+  -e SESSION_DRIVER=array \
+  -e QUEUE_CONNECTION=sync \
+  -e AUDIT_QUEUE_CONNECTION=sync \
+  -e LOG_CHANNEL=stderr \
+  -e LOG_STACK=stderr \
+  ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.2.0
+```
+
+This minimal run path is only meant to validate image boot and health. For database-backed production usage, prefer `docker-compose.production.yml` or `docker-compose.octane.yml`.
+
 ## 2) Start Stack
 
 ```bash

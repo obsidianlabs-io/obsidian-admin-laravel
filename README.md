@@ -15,6 +15,32 @@
 >
 > Stable release tags also publish an immutable multi-arch GHCR image at `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:<tag>` for `linux/amd64` and `linux/arm64`. Stable non-prerelease tags also update `latest`.
 
+## Release Image
+
+Pull the release image directly from GHCR:
+
+```bash
+docker pull ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.2.0
+```
+
+Quick runtime example:
+
+```bash
+docker run --rm -p 8080:8000 \
+  -e APP_ENV=production \
+  -e APP_DEBUG=false \
+  -e APP_KEY=base64:Q2qE5A3yM4tQvL3X0yr7M5m4r2m40fX9zCw1Q2m3N4o= \
+  -e CACHE_STORE=array \
+  -e SESSION_DRIVER=array \
+  -e QUEUE_CONNECTION=sync \
+  -e AUDIT_QUEUE_CONNECTION=sync \
+  -e LOG_CHANNEL=stderr \
+  -e LOG_STACK=stderr \
+  ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.2.0
+```
+
+For queue, database, Redis, and nginx-backed deployments, use the runtime guidance in [`docs/production-runtime.md`](./docs/production-runtime.md).
+
 ## Quick Start
 
 Octane / RoadRunner runtime is available through `docker-compose.octane.yml` when you want a production-like long-lived worker stack.
