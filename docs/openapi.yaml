@@ -285,6 +285,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Refresh token success"
+                data:
+                  token: 3|N7m2pQ8vL1kD5rT9yC4wX6bF0sH3jA1z
+                  refreshToken: 4|K2r8sD1fG5hJ9lQ3wE7yU0iO4pA6mN2x
   /auth/getUserInfo:
     get:
       summary: Current user info
@@ -435,6 +441,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Profile updated"
+                data:
+                  userId: "2"
+                  userName: Admin Prime
+                  locale: en-US
+                  timezone: Asia/Kuala_Lumpur
+                  themeSchema: auto
+                  email: admin-prime@example.com
+                  roleCode: R_ADMIN
+                  roleName: Admin
+                  tenantId: "1"
+                  tenantName: Main Tenant
+                  twoFactorEnabled: false
+                  status: "1"
+                  createTime: "2026-01-01 08:00:00"
+                  updateTime: "2026-03-08 11:00:00"
   /auth/preferred-locale:
     put:
       summary: Update preferred locale
@@ -530,6 +554,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Session alias updated"
+                data:
+                  sessionId: demo-session-1
+                  deviceAlias: Office MacBook
+                  updatedTokenCount: 2
+                  updatedCurrentSession: true
   /auth/sessions/{sessionId}:
     delete:
       summary: Revoke an auth session
@@ -542,6 +574,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Session revoked"
+                data:
+                  sessionId: demo-session-legacy
+                  deletedTokenCount: 2
+                  revokedCurrentSession: false
   /auth/logout:
     post:
       summary: Logout current session
@@ -558,6 +597,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Logout success"
+                data:
+                  userId: "2"
   /auth/me:
     get:
       summary: Get current authenticated user
@@ -568,6 +612,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "ok"
+                data:
+                  userId: "2"
+                  userName: Admin
+                  locale: en-US
+                  timezone: Asia/Kuala_Lumpur
+                  themeSchema: auto
+                  roles:
+                    - R_ADMIN
+                  buttons:
+                    - user.view
+                  currentTenantId: "1"
+                  currentTenantName: Main Tenant
+                  tenants:
+                    - tenantId: "1"
+                      tenantName: Main Tenant
+                  menuScope: tenant
+                  menus: []
+                  routeRules: {}
   /auth/error:
     get:
       summary: Return a custom backend error payload for testing
@@ -599,6 +664,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Two-factor secret generated"
+                data:
+                  secret: JBSWY3DPEHPK3PXP
+                  otpauthUrl: otpauth://totp/Obsidian%20Admin:admin%40example.com?secret=JBSWY3DPEHPK3PXP&issuer=Obsidian%20Admin
+                  enabled: false
   /auth/2fa/enable:
     post:
       summary: Enable TOTP
@@ -615,6 +687,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Two-factor enabled"
+                data:
+                  enabled: true
   /auth/2fa/disable:
     post:
       summary: Disable TOTP
@@ -631,6 +708,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Two-factor disabled"
+                data:
+                  enabled: false
   /user/list:
     get:
       summary: User listing
@@ -704,6 +786,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "User created"
+                data:
+                  userId: "108"
+                  userName: CrudUser
+                  email: crud-user@example.com
+                  roleCode: R_ADMIN
+                  roleName: Admin
+                  status: "1"
+                  organizationId: "1"
+                  teamId: "1"
   /user/{id}:
     put:
       summary: Update user
@@ -722,6 +816,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "User updated"
+                data:
+                  userId: "108"
+                  userName: CrudUserUpdated
+                  email: crud-user-updated@example.com
+                  roleCode: R_ADMIN
+                  roleName: Admin
+                  status: "2"
+                  organizationId: "1"
+                  teamId: "1"
+                  version: "1741425600"
+                  updateTime: "2026-03-08 13:00:00"
     delete:
       summary: Delete user
       parameters:
@@ -733,6 +841,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "User deactivated"
+                data:
+                  action: deactivated
+                  resource: user
+                  resourceId: "108"
   /user/{id}/role:
     put:
       summary: Assign role to user
@@ -751,6 +866,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "User role updated"
+                data:
+                  userId: "108"
+                  roleCode: R_ADMIN
+                  roleName: Admin
+                  version: "1741425600"
+                  updateTime: "2026-03-08 13:00:00"
   /role/list:
     get:
       summary: Role listing
@@ -843,6 +967,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Role created"
+                data:
+                  id: 27
+                  roleCode: R_BRANCH_EDITOR
+                  roleName: Branch Editor
+                  level: 55
   /role/{id}:
     put:
       summary: Update role
@@ -861,6 +993,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Role updated"
+                data:
+                  id: 27
+                  roleCode: R_BRANCH_EDITOR
+                  roleName: Branch Editor Updated
+                  level: 55
+                  version: "1741425600"
+                  updateTime: "2026-03-08 13:00:00"
     delete:
       summary: Delete role
       parameters:
@@ -872,6 +1014,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Role deactivated"
+                data:
+                  action: deactivated
+                  resource: role
+                  resourceId: "27"
   /role/{id}/permissions:
     put:
       summary: Sync role permissions
@@ -890,6 +1039,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Role permissions updated"
+                data: {}
   /permission/list:
     get:
       summary: Permission listing
@@ -1037,6 +1190,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Tenant created"
+                data:
+                  id: 17
+                  tenantCode: TENANT_TEST
+                  tenantName: Test Tenant
+                  status: "1"
   /tenant/{id}:
     put:
       summary: Update tenant
@@ -1055,6 +1216,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Tenant updated"
+                data:
+                  id: 17
+                  tenantCode: TENANT_TEST2
+                  tenantName: Test Tenant 2
+                  status: "2"
+                  version: "1741425600"
+                  updateTime: "2026-03-08 13:00:00"
     delete:
       summary: Delete tenant
       parameters:
@@ -1066,6 +1237,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "Tenant deactivated"
+                data:
+                  action: deactivated
+                  resource: tenant
+                  resourceId: "17"
   /organization/list:
     get:
       summary: Organization listing
@@ -1522,17 +1700,23 @@ components:
       properties:
         refreshToken:
           type: string
+      example:
+        refreshToken: 2|y3M9pQ4vT7kL1nD8cR5hS2wX6bF0jA3q
     LogoutRequestBody:
       type: object
       properties:
         refreshToken:
           type: string
+      example:
+        refreshToken: 2|y3M9pQ4vT7kL1nD8cR5hS2wX6bF0jA3q
     UpdateSessionAliasRequestBody:
       type: object
       properties:
         deviceAlias:
           type: string
           maxLength: 80
+      example:
+        deviceAlias: Office MacBook
     UpdatePreferredLocaleRequestBody:
       type: object
       required:
@@ -1587,6 +1771,8 @@ components:
         otpCode:
           type: string
           pattern: '^[0-9]{6}$'
+      example:
+        otpCode: "123456"
     UserPayload:
       type: object
       required:
@@ -1640,6 +1826,8 @@ components:
           type: string
         updateTime:
           type: string
+      example:
+        roleCode: R_ADMIN
     TenantPayload:
       type: object
       required:
@@ -1742,6 +1930,11 @@ components:
           type: string
         updateTime:
           type: string
+      example:
+        permissionCodes:
+          - user.view
+          - user.update
+          - audit.list
     OrganizationPayload:
       type: object
       required:
