@@ -6,9 +6,9 @@ The OpenAPI document is not decorative. In this project it is part of the runtim
 
 Canonical files:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/openapi.yaml`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/api-contract.snapshot`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-vue/src/service/api/generated`
+- `docs/openapi.yaml`
+- `docs/api-contract.snapshot`
+- `obsidian-admin-vue/src/service/api/generated`
 
 ## Source of truth chain
 
@@ -44,7 +44,7 @@ composer run contract:write
 
 After backend OpenAPI changes, regenerate frontend artifacts in:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-vue`
+- `obsidian-admin-vue`
 
 Commands:
 
@@ -87,15 +87,15 @@ High-value endpoints should describe field-level payloads, especially for:
 
 Representative backend checks:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/tests/Feature/OpenApiContractTest.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/tests/Feature/OpenApiLintCommandTest.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/tests/Feature/ApiContractSnapshotCommandTest.php`
+- `tests/Feature/OpenApiContractTest.php`
+- `tests/Feature/OpenApiLintCommandTest.php`
+- `tests/Feature/ApiContractSnapshotCommandTest.php`
 
 Representative frontend checks:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-vue/scripts/api-client-contract.mjs`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-vue/scripts/api-architecture-check.mjs`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-vue/docs/compatibility-matrix.md`
+- `obsidian-admin-vue/scripts/api-client-contract.mjs`
+- `obsidian-admin-vue/scripts/api-architecture-check.mjs`
+- `obsidian-admin-vue/docs/compatibility-matrix.md`
 
 ## Rule of thumb
 

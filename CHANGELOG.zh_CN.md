@@ -40,7 +40,7 @@
 欢迎使用 **Obsidian Admin Laravel** 的首个正式版本。这是一个专为构建强类型、高性能的单体架构(Monolith)打造的企业级后端 API 模板。本项目打破了传统臃肿的 MVC 模式，在架构的最底层直接引入领域驱动设计 (DDD)、严苛的物理隔离边界以及全自动的 OpenAPI 生态。
 
 ### ✨ 特性 (Features)
-- **核心框架**：Laravel 12 (PHP 8.2+)。
+- **核心框架**：Laravel 12 (PHP 8.4)。
 - **高并发友好**：默认代码结构已针对 **Laravel Octane** 的长驻 worker 约束做兼容处理，团队可按需接入官方 Octane 包。
 - **领域驱动设计 (DDD)**：完全摒弃了传统的全局 `app/Http/Controllers` 目录。将核心逻辑深度重构拆分为高内聚的 `app/Domains` (例如 Auth, Tenant, System 领域)。
 - **物理架构守卫 (Deptrac)**：深度集成 `qossmic/deptrac`，在 CI/CD 中通过物理规则强行约束领域之间的互相调用。彻底杜绝未经授权的跨领域“意大利面条”代码依赖。

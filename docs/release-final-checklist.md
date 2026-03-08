@@ -1,6 +1,6 @@
 # Release Final Checklist
 
-This is the last sign-off checklist for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
+This is the last sign-off checklist for `obsidian-admin-laravel`.
 
 Use it after implementation is finished and before publishing a release.
 
@@ -12,11 +12,11 @@ Use it after implementation is finished and before publishing a release.
 
 ## 2. Release Content
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/CHANGELOG.md` is updated
+- `CHANGELOG.md` is updated
 - the target release note exists:
-  - `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/releases/vX.Y.Z.md`
+  - `docs/releases/vX.Y.Z.md`
 - repository metadata still matches current positioning:
-  - `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/repository-metadata.md`
+  - `docs/github/repository-metadata.md`
 
 ## 3. Required Backend Gates
 
@@ -114,7 +114,7 @@ Confirm there is no drift in:
 
 Reference:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/repository-setup-checklist.md`
+- `docs/github/repository-setup-checklist.md`
 
 ## 6. Push Order
 

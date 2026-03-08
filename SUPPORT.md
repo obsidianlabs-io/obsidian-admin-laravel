@@ -1,6 +1,6 @@
 # Support
 
-This document explains how to get help for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
+This document explains how to get help for `obsidian-admin-laravel`.
 
 ## Scope
 
@@ -26,8 +26,8 @@ Support is not intended for:
 Please confirm all of the following first:
 
 1. You are testing against the latest `main` branch or the latest release tag.
-2. You have read `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/README.md`.
-3. You have read `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/CONTRIBUTING.md`.
+2. You have read `README.md`.
+3. You have read `CONTRIBUTING.md`.
 4. You ran the baseline backend gates:
 
 ```bash
@@ -48,9 +48,9 @@ php artisan test
 - Bug reports:
   [GitHub Issues](https://github.com/obsidianlabs-io/obsidian-admin-laravel/issues)
 - Security reports:
-  See `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/SECURITY.md`
+  See `SECURITY.md`
 - Contribution process:
-  See `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/CONTRIBUTING.md`
+  See `CONTRIBUTING.md`
 
 ## How To Ask For Help Well
 
@@ -69,8 +69,8 @@ Include:
 If the issue is contract-related, also include:
 
 - backend commit or tag
-- whether `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/openapi.yaml` changed
-- whether `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/api-contract.snapshot` changed
+- whether `docs/openapi.yaml` changed
+- whether `docs/api-contract.snapshot` changed
 
 ## Response Expectations
 

@@ -6,10 +6,10 @@ This repository uses Laravel Pennant as the foundation for feature control, with
 
 Key files:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Domains/System/Services/FeatureFlagService.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Domains/System/Actions/FeatureFlag`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Domains/System/Http/Controllers/FeatureFlagController.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Console/Commands/FeatureRolloutCommand.php`
+- `app/Domains/System/Services/FeatureFlagService.php`
+- `app/Domains/System/Actions/FeatureFlag`
+- `app/Domains/System/Http/Controllers/FeatureFlagController.php`
+- `app/Console/Commands/FeatureRolloutCommand.php`
 
 ## Why it is not just raw Pennant
 
@@ -25,7 +25,7 @@ Pennant provides the flag engine, but this project needs admin-oriented behavior
 
 The documented feature-flag endpoints live in:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/openapi.yaml`
+- `docs/openapi.yaml`
 
 Current operations include:
 
@@ -53,8 +53,8 @@ This is the intended path when you want scripted or operational control without 
 
 The intended paired frontend surface is:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-vue/src/service/api/feature-flag.ts`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-vue/src/views/feature-flag/index.vue`
+- `obsidian-admin-vue/src/service/api/feature-flag.ts`
+- `obsidian-admin-vue/src/views/feature-flag/index.vue`
 
 That frontend now routes through the generated SDK rather than ad-hoc request calls.
 

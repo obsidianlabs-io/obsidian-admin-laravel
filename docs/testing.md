@@ -72,7 +72,7 @@ Current CI smokes include:
 
 Relevant workflow:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/.github/workflows/ci.yml`
+- `.github/workflows/ci.yml`
 
 ## 5. Contract and security gates
 

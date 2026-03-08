@@ -1,6 +1,6 @@
 # Release SOP
 
-This document defines the release process for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
+This document defines the release process for `obsidian-admin-laravel`.
 
 目标是让每次 release 都遵循同一套流程，避免“代码通过了，但 tag、Release、GitHub 设置没跟上”的问题。
 
@@ -17,11 +17,11 @@ This document defines the release process for `/Users/zero/Documents/Project/WK/
 
 在创建 tag 之前，先完成这些内容:
 
-- 更新 `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/CHANGELOG.md`
+- 更新 `CHANGELOG.md`
 - 准备当前版本 release note:
-  `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/releases/vX.Y.Z.md`
+  `docs/releases/vX.Y.Z.md`
 - 如有需要，更新仓库元信息:
-  `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/repository-metadata.md`
+  `docs/github/repository-metadata.md`
 
 ## 3. Required Release Gates
 
@@ -148,9 +148,9 @@ git push origin vX.Y.Z
 
 - Tag 选择: `vX.Y.Z`
 - Title 使用:
-  `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/repository-metadata.md`
+  `docs/github/repository-metadata.md`
 - Body 使用:
-  `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/releases/vX.Y.Z.md`
+  `docs/releases/vX.Y.Z.md`
 
 ## 8. Update Repository Metadata
 
@@ -165,7 +165,7 @@ git push origin vX.Y.Z
 
 参考:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/repository-setup-checklist.md`
+- `docs/github/repository-setup-checklist.md`
 
 ## 9. Post-Release Check
 
@@ -193,4 +193,4 @@ git push origin vX.Y.Z
 
 For the last pre-release pass, use:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/release-final-checklist.md`
+- `docs/release-final-checklist.md`

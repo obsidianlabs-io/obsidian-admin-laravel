@@ -1,6 +1,6 @@
 # GitHub Repository Setup Checklist
 
-This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
+This checklist is for `obsidian-admin-laravel`.
 
 目标不是把 GitHub 选项全部打开，而是把这个仓库真正需要的设置一次配对，避免发布前遗漏。
 
@@ -22,7 +22,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 
 来源文案:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/repository-metadata.md`
+- `docs/github/repository-metadata.md`
 
 ## 2. Default Branch
 
@@ -96,14 +96,14 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 
 对应 workflow:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/.github/workflows/ci.yml`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/.github/workflows/quality.yml`
+- `.github/workflows/ci.yml`
+- `.github/workflows/quality.yml`
 
 ## 4.5. CODEOWNERS
 
 当前仓库已包含：
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/.github/CODEOWNERS`
+- `.github/CODEOWNERS`
 
 当前使用维护邮箱作为默认 owner，这样语法有效、不会依赖一个尚未创建的 GitHub team。
 
@@ -136,7 +136,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 
 文档站 workflow:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/.github/workflows/docs-site.yml`
+- `.github/workflows/docs-site.yml`
 
 ## 6. Repository Variables And Secrets
 
@@ -175,9 +175,9 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 
 - Tag 指向代码发布提交，不强行追着文档提交移动
 - GitHub Release 正文使用:
-  `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/releases/v1.2.0.md`
+  `docs/releases/v1.2.0.md`
 - CHANGELOG 使用:
-  `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/CHANGELOG.md`
+  `CHANGELOG.md`
 
 当前状态:
 
@@ -195,7 +195,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 
 可直接复制这个模板:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/github/profile/README.md`
+- `docs/github/profile/README.md`
 
 ## 10. Recommended Cleanup Choices
 
@@ -236,4 +236,4 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 
 内部发布流程文档:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/release-sop.md`
+- `docs/release-sop.md`

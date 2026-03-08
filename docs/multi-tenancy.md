@@ -13,8 +13,8 @@ The main building blocks are:
 
 Relevant code lives under:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Domains/Tenant`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Domains/Shared/Auth`
+- `app/Domains/Tenant`
+- `app/Domains/Shared/Auth`
 
 ## Scope model
 
@@ -36,9 +36,9 @@ Tenant context is resolved centrally, not page by page.
 
 Key files:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Domains/Tenant/Services/TenantContextService.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Http/Middleware/ResolveTenantContext.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Domains/Shared/Auth/TenantContext.php`
+- `app/Domains/Tenant/Services/TenantContextService.php`
+- `app/Http/Middleware/ResolveTenantContext.php`
+- `app/Domains/Shared/Auth/TenantContext.php`
 
 The request header used for explicit tenant selection is:
 
@@ -69,9 +69,9 @@ Current project guarantees include:
 
 Representative tests:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/tests/Feature/TenantBoundaryApiTest.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/tests/Feature/AuditLogApiTest.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/tests/Feature/RbacDoctorCommandTest.php`
+- `tests/Feature/TenantBoundaryApiTest.php`
+- `tests/Feature/AuditLogApiTest.php`
+- `tests/Feature/RbacDoctorCommandTest.php`
 
 ## Role and tenant interaction
 
@@ -88,7 +88,7 @@ Important rules already enforced in the repository:
 
 The intended frontend pairing is:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-vue/docs/multi-tenancy.md`
+- `obsidian-admin-vue/docs/multi-tenancy.md`
 
 The frontend reacts to tenant changes, but the backend remains the source of truth for:
 

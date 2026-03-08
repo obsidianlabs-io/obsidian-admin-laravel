@@ -17,15 +17,15 @@ The backend ships with:
 
 Relevant files:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/composer.json`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docker-compose.production.yml`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docker-compose.octane.yml`
+- `composer.json`
+- `docker-compose.production.yml`
+- `docker-compose.octane.yml`
 
 ## Current broadcast event
 
 The shared broadcast event used by the admin system is:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Domains/System/Events/SystemRealtimeUpdated.php`
+- `app/Domains/System/Events/SystemRealtimeUpdated.php`
 
 It implements `ShouldBroadcastNow` and emits:
 
@@ -37,8 +37,8 @@ This keeps system updates fast and avoids queue lag for these lightweight admin 
 
 Representative producers already wired in the backend:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Domains/System/Http/Controllers/FeatureFlagController.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Domains/System/Http/Controllers/AuditPolicyController.php`
+- `app/Domains/System/Http/Controllers/FeatureFlagController.php`
+- `app/Domains/System/Http/Controllers/AuditPolicyController.php`
 
 That means feature-flag and audit-policy changes can notify connected admin clients without forcing manual refresh.
 
@@ -46,7 +46,7 @@ That means feature-flag and audit-policy changes can notify connected admin clie
 
 The intended frontend consumer is documented in:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-vue/docs/realtime.md`
+- `obsidian-admin-vue/docs/realtime.md`
 
 The frontend listens to a small set of system events and decides whether it can refresh safely.
 

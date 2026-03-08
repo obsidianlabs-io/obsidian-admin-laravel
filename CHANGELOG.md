@@ -58,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Welcome to the first official release of **Obsidian Admin Laravel**, an enterprise-grade API backend built for strictly-typed, high-performance monolith applications. This template breaks away from bloated MVC patterns by natively implementing Domain-Driven Design (DDD), strict architectural boundaries, and native OpenAPI generation.
 
 ### ✨ Features
-- **Architecture**: Laravel 12 on PHP 8.2+.
+- **Architecture**: Laravel 12 on PHP 8.4.
 - **Performance Constraints**: request lifecycle safeguards that laid the groundwork for the project's later official **Laravel Octane** integration.
 - **Domain-Driven Design (DDD)**: Discarded traditional `app/Http/Controllers` structures for deep, self-contained `app/Domains` boundaries (e.g., Auth, Tenant, System).
 - **Physical Boundary Enforcement**: Deep integration with `qossmic/deptrac` ensuring that Domains cannot accidentally leak into or depend on unauthorized Domain layers.

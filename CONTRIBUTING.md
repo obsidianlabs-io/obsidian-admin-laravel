@@ -6,11 +6,11 @@ This repository is intended to be a production-grade Laravel 12 backend baseline
 
 ## Before You Start
 
-- Use PHP `8.2+`
+- Use PHP `8.4`
 - Use Composer `2.x`
 - Prefer Docker if you need the full local stack (`MySQL + Redis + Horizon + Reverb`)
-- Read `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/architecture.md`
-- Read `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/release-sop.md` if your change affects release gates
+- Read `docs/architecture.md`
+- Read `docs/release-sop.md` if your change affects release gates
 
 ## Local Setup
 
@@ -47,7 +47,7 @@ composer run octane:install
 composer run octane:start
 ```
 
-Read `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/octane.md` before changing Octane or RoadRunner behavior.
+Read `docs/octane.md` before changing Octane or RoadRunner behavior.
 
 ## Development Rules
 

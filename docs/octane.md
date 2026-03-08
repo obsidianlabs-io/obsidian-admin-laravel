@@ -4,13 +4,13 @@
 
 What is included in the repository:
 
-- `laravel/octane` in `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/composer.json`
+- `laravel/octane` in `composer.json`
 - RoadRunner PHP dependencies:
   - `spiral/roadrunner-http`
   - `spiral/roadrunner-cli`
 - `config/octane.php`
 - `php artisan octane:*` commands
-- application-specific worker reset logic via `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Listeners/Octane/PrepareObsidianRequestState.php`
+- application-specific worker reset logic via `app/Listeners/Octane/PrepareObsidianRequestState.php`
 
 ## Important distinction
 
@@ -52,10 +52,10 @@ composer run octane:start
 
 The codebase includes explicit request-state reset handling for Octane workers:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Listeners/Octane/PrepareObsidianRequestState.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Http/Middleware/AssignRequestId.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Http/Middleware/SetRequestLocale.php`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/app/Support/ApiDateTime.php`
+- `app/Listeners/Octane/PrepareObsidianRequestState.php`
+- `app/Http/Middleware/AssignRequestId.php`
+- `app/Http/Middleware/SetRequestLocale.php`
+- `app/Support/ApiDateTime.php`
 
 ## Current support model
 
@@ -83,7 +83,7 @@ Avoid saying:
 
 ## Docker Compose Octane Runtime
 
-Use `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docker-compose.octane.yml` for a full immutable RoadRunner runtime stack:
+Use `docker-compose.octane.yml` for a full immutable RoadRunner runtime stack:
 
 ```bash
 docker compose -f docker-compose.octane.yml up -d --build

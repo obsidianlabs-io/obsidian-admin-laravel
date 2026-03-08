@@ -47,11 +47,11 @@ php artisan test
 
 This repository supports multiple runtime shapes:
 
-- Docker development: `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docker-compose.dev.yml`
-- Production-like php-fpm stack: `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docker-compose.production.yml`
-- Octane + RoadRunner stack: `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docker-compose.octane.yml`
+- Docker development: `docker-compose.dev.yml`
+- Production-like php-fpm stack: `docker-compose.production.yml`
+- Octane + RoadRunner stack: `docker-compose.octane.yml`
 
 Use these docs next:
 
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/production-runtime.md`
-- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/docs/octane.md`
+- `docs/production-runtime.md`
+- `docs/octane.md`
