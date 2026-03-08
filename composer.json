@@ -64,7 +64,7 @@
         "laravel/reverb": "^1.0",
         "laravel/sanctum": "^4.3",
         "spiral/roadrunner-cli": "^2.6.0",
-        "spiral/roadrunner-http": "^3.3.0"
+        "spiral/roadrunner-http": "^4.1.0"
     },
     "require-dev": {
         "deptrac/deptrac": "^4.6",
