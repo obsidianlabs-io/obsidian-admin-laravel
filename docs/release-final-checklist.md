@@ -31,6 +31,7 @@ php artisan test
 - `Backend Supply Chain` is green
 - the `backend-sbom-cyclonedx` artifact exists for the release commit
 - the SBOM artifact has an attestation on the push workflow
+- the `backend-release-image-scan` artifact exists for the release tag workflow
 
 If the release touched infrastructure, platform hardening, or contract surfaces, also run:
 
@@ -152,6 +153,7 @@ After publishing, confirm:
 - GitHub Release is visible
 - GHCR package shows the expected version tag
 - GHCR package manifest includes `linux/amd64` and `linux/arm64`
+- the published image vulnerability scan job is green
 - `main` is still green
 - no new workflow failure appeared on tag push
 

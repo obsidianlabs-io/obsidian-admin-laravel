@@ -187,3 +187,63 @@ jobs:
       - name: Cleanup published image smoke container
         if: always()
         run: docker rm -f obsidian-admin-laravel-release-smoke || true
+
+  scan-published-image:
+    needs: verify-published-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ghcr.io/${{ github.repository }}
+      RELEASE_IMAGE_TAG: ${{ github.ref_name }}
+      TRIVY_USERNAME: ${{ github.actor }}
+      TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare scan output directory
+        run: mkdir -p build
+
+      - name: Export release image reference
+        run: echo "RELEASE_IMAGE_REF=${IMAGE_NAME}:${RELEASE_IMAGE_TAG#v}" >> "$GITHUB_ENV"
+
+      - name: Generate SARIF report for published image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ env.RELEASE_IMAGE_REF }}
+          format: sarif
+          output: build/release-image-trivy.sarif
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+          ignore-unfixed: true
+          scanners: vuln
+          exit-code: '0'
+
+      - name: Critical vulnerability gate
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ env.RELEASE_IMAGE_REF }}
+          format: table
+          output: build/release-image-trivy-critical.txt
+          severity: CRITICAL
+          vuln-type: os,library
+          ignore-unfixed: true
+          scanners: vuln
+          exit-code: '1'
+
+      - name: Upload vulnerability scan artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-release-image-scan
+          path: |
+            build/release-image-trivy.sarif
+            build/release-image-trivy-critical.txt
+          if-no-files-found: error

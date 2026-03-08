@@ -85,7 +85,24 @@ Use these when you need to prove that:
 - the published image matches the workflow output
 - the SBOM belongs to the exact release pipeline that produced it
 
-## 5. Recommended Consumer Paths
+## 5. Release Image Vulnerability Scan
+
+Every stable backend tag now scans the just-published GHCR runtime image.
+
+The release workflow:
+
+- pulls the versioned release image from GHCR
+- generates a Trivy SARIF report
+- uploads the report as the `backend-release-image-scan` artifact
+- fails the release workflow if a **critical** vulnerability is detected in the published image
+
+This answers a different question than SBOM and attestation:
+
+- SBOM shows **what is inside**
+- attestation shows **where it came from**
+- release image scanning shows **whether the published runtime currently contains known critical vulnerabilities**
+
+## 6. Recommended Consumer Paths
 
 Choose the artifact based on your goal.
 
@@ -123,6 +140,7 @@ Use:
 - CycloneDX SBOM artifact
 - SBOM attestation
 - image attestation
+- release image vulnerability scan artifact
 
 Best for:
 
@@ -130,7 +148,7 @@ Best for:
 - regulated environments
 - internal audit trails
 
-## 6. Post-Tag Verification
+## 7. Post-Tag Verification
 
 After pushing a release tag, verify:
 
@@ -139,7 +157,9 @@ After pushing a release tag, verify:
 3. the GHCR manifest includes `linux/amd64` and `linux/arm64`
 4. the `backend-sbom-cyclonedx` artifact exists
 5. the SBOM attestation exists
-6. the release image post-publish verification job is green
+6. the `backend-release-image-scan` artifact exists
+7. the release image post-publish verification job is green
+8. the published image vulnerability scan job is green
 
 If you need route-level HTTP verification, use the compose-backed runtime from `docs/production-runtime.md` and call:
 
@@ -147,7 +167,7 @@ If you need route-level HTTP verification, use the compose-backed runtime from `
 curl http://127.0.0.1:8080/api/health/live
 ```
 
-## 7. Related Documents
+## 8. Related Documents
 
 - `docs/production-runtime.md`
 - `docs/release-sop.md`

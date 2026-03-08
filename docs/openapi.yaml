@@ -215,6 +215,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "ok"
+                data:
+                  token: 1|R6m4l3JkT8YqW2eH5n0sV7xC9bZ1pM6d
+                  refreshToken: 2|y3M9pQ4vT7kL1nD8cR5hS2wX6bF0jA3q
   /auth/register:
     post:
       summary: Register a new user
@@ -289,6 +295,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "ok"
+                data:
+                  userId: "2"
+                  userName: Admin
+                  locale: en-US
+                  timezone: Asia/Kuala_Lumpur
+                  themeSchema: auto
+                  roles:
+                    - R_ADMIN
+                  buttons:
+                    - user.view
+                    - user.create
+                    - user.update
+                  currentTenantId: "1"
+                  currentTenantName: Main Tenant
+                  tenants:
+                    - tenantId: "1"
+                      tenantName: Main Tenant
+                  menuScope: tenant
+                  menus:
+                    - key: dashboard
+                      routeKey: dashboard
+                      routePath: /dashboard
+                      label: Dashboard
+                      i18nKey: route.dashboard
+                      icon: mdi:view-dashboard-outline
+                      order: 1
+                      scope: both
+                      featureFlag: null
+                      children: []
+                  routeRules:
+                    user:
+                      enabled: true
+                      permissions:
+                        - user.view
+                      roles:
+                        - R_ADMIN
+                      noTenantOnly: false
+                      tenantOnly: true
   /auth/menus:
     get:
       summary: Current user menus and route rules
@@ -299,6 +346,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "ok"
+                data:
+                  menuScope: tenant
+                  currentTenantId: "1"
+                  currentTenantName: Main Tenant
+                  tenants:
+                    - tenantId: "1"
+                      tenantName: Main Tenant
+                  menus:
+                    - key: dashboard
+                      routeKey: dashboard
+                      routePath: /dashboard
+                      label: Dashboard
+                      i18nKey: route.dashboard
+                      icon: mdi:view-dashboard-outline
+                      order: 1
+                      scope: both
+                      featureFlag: null
+                      children: []
+                    - key: user
+                      routeKey: user
+                      routePath: /user
+                      label: User
+                      i18nKey: route.user
+                      icon: mdi:account-outline
+                      order: 30
+                      scope: tenant
+                      featureFlag: null
+                      children: []
+                  routeRules:
+                    dashboard:
+                      enabled: true
+                      permissions: []
+                      roles: []
+                      noTenantOnly: false
+                      tenantOnly: false
+                    user:
+                      enabled: true
+                      permissions:
+                        - user.view
+                      roles:
+                        - R_ADMIN
+                      noTenantOnly: false
+                      tenantOnly: true
   /auth/profile:
     get:
       summary: Get current user profile
@@ -309,6 +402,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "ok"
+                data:
+                  userId: "2"
+                  userName: Admin
+                  locale: en-US
+                  timezone: Asia/Kuala_Lumpur
+                  themeSchema: auto
+                  email: admin@example.com
+                  roleCode: R_ADMIN
+                  roleName: Admin
+                  tenantId: "1"
+                  tenantName: Main Tenant
+                  twoFactorEnabled: false
+                  status: "1"
+                  createTime: "2026-01-01 08:00:00"
+                  updateTime: "2026-03-01 10:30:00"
     put:
       summary: Update current user profile
       requestBody:
@@ -376,6 +487,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "ok"
+                data:
+                  singleDeviceLogin: false
+                  records:
+                    - sessionId: demo-session-1
+                      current: true
+                      legacy: false
+                      rememberMe: true
+                      hasAccessToken: true
+                      hasRefreshToken: true
+                      tokenCount: 2
+                      deviceAlias: Office Chrome
+                      deviceName: Desktop
+                      browser: Chrome
+                      os: macOS
+                      deviceType: desktop
+                      ipAddress: 127.0.0.1
+                      createdAt: "2026-03-01 08:00:00"
+                      lastUsedAt: "2026-03-08 09:00:00"
+                      lastAccessUsedAt: "2026-03-08 09:00:00"
+                      lastRefreshUsedAt: "2026-03-08 08:50:00"
+                      accessTokenExpiresAt: "2026-03-08 10:00:00"
+                      refreshTokenExpiresAt: "2026-03-15 08:00:00"
   /auth/sessions/{sessionId}/alias:
     put:
       summary: Update auth session alias
@@ -529,6 +665,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "ok"
+                data:
+                  current: 1
+                  size: 10
+                  total: 2
+                  actorLevel: 97
+                  records:
+                    - id: 2
+                      userName: Admin
+                      email: admin@example.com
+                      roleCode: R_ADMIN
+                      roleName: Admin
+                      roleLevel: 97
+                      organizationId: "1"
+                      organizationName: Main Organization
+                      teamId: "1"
+                      teamName: Main Platform Team
+                      status: "1"
+                      manageable: true
+                      createTime: "2026-01-01 08:00:00"
+                      updateTime: "2026-03-01 10:30:00"
   /user:
     post:
       summary: Create user
@@ -619,6 +778,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "ok"
+                data:
+                  current: 1
+                  size: 10
+                  total: 2
+                  actorLevel: 97
+                  records:
+                    - id: 2
+                      roleCode: R_ADMIN
+                      roleName: Admin
+                      tenantId: "1"
+                      tenantName: Main Tenant
+                      description: Tenant administrator
+                      status: "1"
+                      level: 97
+                      manageable: true
+                      userCount: 3
+                      permissionCodes:
+                        - user.view
+                        - user.create
+                        - role.view
+                      createTime: "2026-01-01 08:00:00"
+                      updateTime: "2026-03-01 10:30:00"
   /role/all:
     get:
       summary: List active roles for selectors
@@ -812,6 +996,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: "0000"
+                msg: "ok"
+                data:
+                  current: 1
+                  size: 10
+                  total: 2
+                  records:
+                    - id: 1
+                      tenantCode: TENANT_MAIN
+                      tenantName: Main Tenant
+                      status: "1"
+                      userCount: 12
+                      createTime: "2026-01-01 08:00:00"
+                      updateTime: "2026-03-01 10:30:00"
   /tenant/all:
     get:
       summary: List active tenants for selectors
@@ -1272,6 +1471,11 @@ components:
           type: string
         locale:
           type: string
+      example:
+        userName: Admin
+        password: StrongPass123!
+        rememberMe: true
+        locale: en-US
     RegisterRequestBody:
       type: object
       required:
@@ -1414,6 +1618,14 @@ components:
           type: string
         updateTime:
           type: string
+      example:
+        userName: New Admin
+        email: new-admin@example.com
+        roleCode: R_ADMIN
+        organizationId: 1
+        teamId: 1
+        status: "1"
+        password: StrongPass123!
     AssignUserRoleRequestBody:
       type: object
       required:
@@ -1447,6 +1659,10 @@ components:
           type: string
         updateTime:
           type: string
+      example:
+        tenantCode: TENANT_BRANCH_ALPHA
+        tenantName: Branch Alpha
+        status: "1"
     PermissionPayload:
       type: object
       required:
@@ -1500,6 +1716,16 @@ components:
           type: string
         updateTime:
           type: string
+      example:
+        roleCode: R_MANAGER
+        roleName: Manager
+        description: Tenant managers with scoped operational access
+        status: "1"
+        level: 60
+        permissionCodes:
+          - user.view
+          - user.update
+          - audit.list
     RoleSyncPermissionsRequestBody:
       type: object
       required:
