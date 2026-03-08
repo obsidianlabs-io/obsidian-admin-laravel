@@ -82,6 +82,19 @@ docker compose -f docker-compose.production.yml -f docker-compose.image.yml up -
 
 This lets you keep the repository-provided `nginx/mysql/redis/horizon/scheduler` topology while consuming a published immutable app image.
 
+Release workflow verification notes:
+
+- the published GHCR app image is a PHP-FPM runtime image, so the release workflow validates cold boot by checking container startup and running `php artisan about --only=environment`
+- route-level HTTP health checks still require an edge/runtime topology such as `docker-compose.production.yml` or `docker-compose.octane.yml`
+
+If you want to probe the published image through the real HTTP path, use the published app image with the compose override above and then call:
+
+```bash
+curl http://127.0.0.1:8080/api/health/live
+```
+
+That route-level probe is already covered in CI by the production Docker smoke job.
+
 ## 2) Start Stack
 
 ```bash

@@ -41,6 +41,8 @@ docker run --rm -p 8080:8000 \
 
 For queue, database, Redis, and nginx-backed deployments, use the runtime guidance in [`docs/production-runtime.md`](./docs/production-runtime.md).
 
+The GHCR release image is verified in CI for cold boot and Laravel bootstrap. For route-level HTTP health probes, use the compose-backed runtime path documented in [`docs/production-runtime.md`](./docs/production-runtime.md).
+
 ### Tag Strategy
 
 Stable backend releases publish the following GHCR tags:
