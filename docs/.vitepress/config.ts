@@ -39,7 +39,8 @@ export default defineConfig({
           { text: 'Security Checklist', link: '/security-checklist' },
           { text: 'Security Baseline', link: '/security-baseline' },
           { text: 'Open Source Launch Checklist', link: '/open-source-launch-checklist' },
-          { text: 'Full-Stack Demo Environment', link: '/full-stack-demo-environment' }
+          { text: 'Full-Stack Demo Environment', link: '/full-stack-demo-environment' },
+          { text: 'Open Source Launch Checklist', link: '/open-source-launch-checklist' }
         ]
       },
       {
