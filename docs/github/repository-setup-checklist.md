@@ -126,6 +126,7 @@ This checklist is for `obsidian-admin-laravel`.
 - `release.yml` 现在也会发布 multi-arch GHCR image，因此需要 `packages: write`
 - `supply-chain.yml` 需要 attestation / dependency review 相关权限
 - `supply-chain.yml` 还会生成、上传并 attestate `backend-sbom-cyclonedx` artifact
+- `supply-chain.yml` 现在还会构建 runtime image 并上传 `backend-runtime-image-scan` artifact
 - `docs-site.yml` 需要 Pages 部署权限
 
 ## 5.5. GitHub Pages
@@ -227,7 +228,7 @@ This checklist is for `obsidian-admin-laravel`.
 - tag 指向的是代码提交，不是临时文档提交
 - GitHub Release 正文已贴入
 - About / Topics / Description 已更新
-- `Backend Supply Chain` 为绿色且带有 `backend-sbom-cyclonedx` artifact 与 attestation
+- `Backend Supply Chain` 为绿色且带有 `backend-sbom-cyclonedx`、`backend-runtime-image-scan` artifact 与 attestation
 
 ## 12. Recommended Next Step
 

@@ -102,6 +102,26 @@ This answers a different question than SBOM and attestation:
 - attestation shows **where it came from**
 - release image scanning shows **whether the published runtime currently contains known critical vulnerabilities**
 
+## 5.5. Continuous Runtime Image Scans
+
+Release-time image scanning is not the only image security gate.
+
+`Backend Supply Chain` also builds the repository runtime image and scans it on:
+
+- pull requests
+- pushes to `main`
+- nightly schedule
+- manual workflow dispatch
+
+Published artifact:
+
+- `backend-runtime-image-scan`
+
+Use this artifact when you want to answer:
+
+- "Would this branch introduce a critical image vulnerability before a tag exists?"
+- "Did the current `main` runtime drift into a vulnerable state overnight?"
+
 ## 6. Recommended Consumer Paths
 
 Choose the artifact based on your goal.
@@ -140,6 +160,7 @@ Use:
 - CycloneDX SBOM artifact
 - SBOM attestation
 - image attestation
+- runtime image scan artifact
 - release image vulnerability scan artifact
 
 Best for:
@@ -157,9 +178,10 @@ After pushing a release tag, verify:
 3. the GHCR manifest includes `linux/amd64` and `linux/arm64`
 4. the `backend-sbom-cyclonedx` artifact exists
 5. the SBOM attestation exists
-6. the `backend-release-image-scan` artifact exists
-7. the release image post-publish verification job is green
-8. the published image vulnerability scan job is green
+6. the `backend-runtime-image-scan` artifact exists for the release commit
+7. the `backend-release-image-scan` artifact exists
+8. the release image post-publish verification job is green
+9. the published image vulnerability scan job is green
 
 If you need route-level HTTP verification, use the compose-backed runtime from `docs/production-runtime.md` and call:
 

@@ -43,7 +43,10 @@ For queue, database, Redis, and nginx-backed deployments, use the runtime guidan
 
 The GHCR release image is verified in CI for cold boot and Laravel bootstrap. For route-level HTTP health probes, use the compose-backed runtime path documented in [`docs/production-runtime.md`](./docs/production-runtime.md).
 
-Stable release tags also scan the published GHCR image for known critical vulnerabilities and upload the scan result as a workflow artifact.
+The repository now runs two complementary image scanning paths:
+
+- `Backend Supply Chain` builds the current runtime image on pull requests, `main`, and nightly schedule, then uploads `backend-runtime-image-scan`
+- stable release tags scan the just-published GHCR image and upload `backend-release-image-scan`
 
 ### Tag Strategy
 

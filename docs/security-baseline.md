@@ -58,7 +58,7 @@ Use CI to enforce the baseline before tags and production deploys.
 2. feature and architecture tests
    Confirm behavior such as tenant boundaries, auth/session rules, and API hardening.
 3. supply-chain workflow
-   Confirms dependency review, audit, SBOM generation, and attestations.
+   Confirms dependency review, audit, SBOM generation, runtime image scanning, and attestations.
 
 It should be used together with:
 
@@ -87,5 +87,11 @@ It is not a replacement for:
 - secret scanning
 - SAST/DAST tooling
 - dependency audits
+- container vulnerability scanning of external base images outside this repository's own build pipeline
+
+The repository handles runtime image vulnerability scanning separately through GitHub Actions:
+
+- `Backend Supply Chain` scans the locally built runtime image on pull requests, `main`, and nightly schedule
+- `Release` scans the published GHCR image after tag push
 
 Treat it as a repository-native security gate, not as your entire security program.

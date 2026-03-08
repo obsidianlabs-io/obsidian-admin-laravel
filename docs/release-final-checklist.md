@@ -30,6 +30,7 @@ php artisan test
 
 - `Backend Supply Chain` is green
 - the `backend-sbom-cyclonedx` artifact exists for the release commit
+- the `backend-runtime-image-scan` artifact exists for the release commit
 - the SBOM artifact has an attestation on the push workflow
 - the `backend-release-image-scan` artifact exists for the release tag workflow
 
