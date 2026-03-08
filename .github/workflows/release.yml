@@ -218,7 +218,7 @@ jobs:
         run: echo "RELEASE_IMAGE_REF=${IMAGE_NAME}:${RELEASE_IMAGE_TAG#v}" >> "$GITHUB_ENV"
 
       - name: Generate SARIF report for published image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: ${{ env.RELEASE_IMAGE_REF }}
           format: sarif
@@ -230,7 +230,7 @@ jobs:
           exit-code: '0'
 
       - name: Critical vulnerability gate
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: ${{ env.RELEASE_IMAGE_REF }}
           format: table
