@@ -46,4 +46,5 @@ Use this backend with [Obsidian Admin Vue](https://github.com/obsidianlabs-io/ob
 - Use [Testing](/testing) when changing contracts, tenancy, or runtime behavior
 - Review [Realtime](/realtime) if you are pairing with the websocket-enabled frontend flows
 - Choose between [Production Runtime](/production-runtime) and [Octane Runtime](/octane)
+- Use [Release Artifacts](/release-artifacts) when you need the exact GHCR / SBOM / attestation consumption path
 - Use the [Release Final Checklist](/release-final-checklist) before publishing

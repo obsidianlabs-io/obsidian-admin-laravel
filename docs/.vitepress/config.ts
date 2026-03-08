@@ -53,6 +53,7 @@ export default defineConfig({
           { text: 'OpenAPI Workflow', link: '/openapi-workflow' },
           { text: 'API Contract Snapshot', link: '/api-contract.snapshot' },
           { text: 'API Error Catalog', link: '/api-error-catalog' },
+          { text: 'Release Artifacts', link: '/release-artifacts' },
           { text: 'Release SOP', link: '/release-sop' },
           { text: 'Release Final Checklist', link: '/release-final-checklist' }
         ]
