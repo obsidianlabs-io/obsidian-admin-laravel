@@ -39,6 +39,8 @@ export default defineConfig({
         text: 'Architecture & Operations',
         items: [
           { text: 'Backend Architecture', link: '/architecture' },
+          { text: 'Feature Flags', link: '/feature-flags' },
+          { text: 'Realtime', link: '/realtime' },
           { text: 'Octane Runtime', link: '/octane' },
           { text: 'Operations Hardening', link: '/operations-hardening' },
           { text: 'Deletion Governance', link: '/deletion-governance' }
