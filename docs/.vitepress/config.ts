@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { defineConfig } from 'vitepress';
 
 const repo = 'https://github.com/obsidianlabs-io/obsidian-admin-laravel';
@@ -27,6 +28,8 @@ export default defineConfig({
           { text: 'Overview', link: '/' },
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'Compatibility Matrix', link: '/compatibility-matrix' },
+          { text: 'Multi-Tenancy', link: '/multi-tenancy' },
+          { text: 'Testing', link: '/testing' },
           { text: 'Production Runtime', link: '/production-runtime' },
           { text: 'Project Profiles', link: '/project-profiles' },
           { text: 'Security Checklist', link: '/security-checklist' }
@@ -45,6 +48,7 @@ export default defineConfig({
         text: 'Contracts & Releases',
         items: [
           { text: 'OpenAPI Contract', link: '/openapi.yaml' },
+          { text: 'OpenAPI Workflow', link: '/openapi-workflow' },
           { text: 'API Contract Snapshot', link: '/api-contract.snapshot' },
           { text: 'API Error Catalog', link: '/api-error-catalog' },
           { text: 'Release SOP', link: '/release-sop' },

@@ -41,7 +41,8 @@ Use this backend with [Obsidian Admin Vue](https://github.com/obsidianlabs-io/ob
 ## What to read next
 
 - Start with [Getting Started](/getting-started)
-- Review the [Compatibility Matrix](/compatibility-matrix)
-- Read the [Backend Architecture](/architecture)
+- Review the [Compatibility Matrix](/compatibility-matrix) and [Multi-Tenancy](/multi-tenancy)
+- Read the [Backend Architecture](/architecture) and [OpenAPI Workflow](/openapi-workflow)
+- Use [Testing](/testing) when changing contracts, tenancy, or runtime behavior
 - Choose between [Production Runtime](/production-runtime) and [Octane Runtime](/octane)
 - Use the [Release Final Checklist](/release-final-checklist) before publishing
