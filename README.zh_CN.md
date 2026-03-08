@@ -12,6 +12,8 @@
 > `Obsidian Admin Laravel` 是一个严格类型化、生产可用、面向企业后台与 SaaS 平台的 Laravel 12 API 基线。它专为标准 Vue3/React 管理后台（如 Obsidian Admin Vue）提供可靠、可扩展、可长期维护的后端能力。
 >
 > 当前仓库已经包含官方 `Laravel Octane` 集成，并默认面向 `RoadRunner` 运行时。需要注意的是，RoadRunner 二进制仍然是机器级文件，需要在本地初始化，因此在使用前请先阅读 [`docs/octane.md`](./docs/octane.md)。
+>
+> 稳定版 release tag 也会自动发布不可变的 GHCR 镜像：`ghcr.io/obsidianlabs-io/obsidian-admin-laravel:<tag>`；稳定非预发布 tag 同时会更新 `latest`。
 
 ## 核心定位
 

@@ -156,6 +156,8 @@ git push origin vX.Y.Z
 
 - 优先使用 `docs/releases/vX.Y.Z.md`
 - 只有在该文件缺失时，才回退到 `CHANGELOG.md`
+- 同一个 tag push 还会发布 GHCR image：
+  `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:vX.Y.Z`
 
 ## 8. Update Repository Metadata
 
@@ -178,6 +180,7 @@ git push origin vX.Y.Z
 
 - `main` 和 tag 都已推送
 - GitHub Release 已可见
+- GHCR package 已出现对应版本 tag
 - CI 没有在 `main` 或 tag 上出现新失败
 - 当前 release note 与 changelog 版本号一致
 

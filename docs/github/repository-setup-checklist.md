@@ -123,6 +123,7 @@ This checklist is for `obsidian-admin-laravel`.
 原因:
 
 - `release.yml` 需要创建 GitHub Release
+- `release.yml` 现在也会发布 GHCR image，因此需要 `packages: write`
 - `supply-chain.yml` 需要 attestation / dependency review 相关权限
 - `supply-chain.yml` 还会生成、上传并 attestate `backend-sbom-cyclonedx` artifact
 - `docs-site.yml` 需要 Pages 部署权限
@@ -179,6 +180,8 @@ This checklist is for `obsidian-admin-laravel`.
 - CHANGELOG 使用:
   `CHANGELOG.md`
 - `release.yml` 会优先读取 `docs/releases/<tag>.md`，缺失时才回退到 `CHANGELOG.md`
+- 同一个 tag push 会发布 GHCR image：
+  `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:<tag>`
 
 当前状态:
 
@@ -209,7 +212,7 @@ This checklist is for `obsidian-admin-laravel`.
 - Wiki:
   如果文档都在仓库里，先关闭
 - Packages:
-  如果当前不发布 package，先隐藏
+  当前会发布 GHCR image，建议保持可见并核对 package 权限/可见性
 
 ## 11. Release-Day Quick Checklist
 

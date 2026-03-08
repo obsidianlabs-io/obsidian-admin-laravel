@@ -140,6 +140,7 @@ Before publishing:
 - release title matches repository metadata guidance
 - release body comes from the prepared release note
 - release version matches `CHANGELOG.md`
+- the release tag is expected to publish `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:vX.Y.Z`
 - `docs/releases/vX.Y.Z.md` exists if you want the release workflow to publish the exact curated note
 
 ## 9. Post-Release Check
@@ -148,6 +149,7 @@ After publishing, confirm:
 
 - tag exists remotely
 - GitHub Release is visible
+- GHCR package shows the expected version tag
 - `main` is still green
 - no new workflow failure appeared on tag push
 
