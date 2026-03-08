@@ -40,6 +40,44 @@ jobs:
       - name: Composer audit (locked)
         run: composer audit --locked --no-interaction
 
+  sbom:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          tools: composer:v2
+
+      - name: Allow CycloneDX Composer plugin
+        run: composer global config --no-plugins allow-plugins.cyclonedx/cyclonedx-php-composer true
+
+      - name: Install CycloneDX Composer plugin
+        run: composer global require cyclonedx/cyclonedx-php-composer:^6.2 --no-interaction --no-progress
+
+      - name: Generate runtime SBOM
+        run: |
+          mkdir -p build
+          composer CycloneDX:make-sbom \
+            --output-format=JSON \
+            --output-file=build/backend-sbom.cyclonedx.json \
+            --omit=dev \
+            --omit=plugin \
+            --output-reproducible \
+            --validate
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-sbom-cyclonedx
+          path: build/backend-sbom.cyclonedx.json
+          if-no-files-found: error
+
   attest-source:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest

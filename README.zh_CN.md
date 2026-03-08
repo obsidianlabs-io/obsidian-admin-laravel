@@ -190,6 +190,7 @@ Obsidian 持续进化 —— 扎根韧性与秩序，坚定迈向长期价值。
 - **Laravel Pint 代码风格**：统一格式规范，便于团队协作。
 - **Deptrac 领域边界约束**：防止跨模块随意依赖，守住模块化单体边界。
 - **OpenAPI 自动生成与校验**：基于 `dedoc/scramble` 输出文档，并支持 OpenAPI lint / 契约快照校验。
+- **CycloneDX SBOM 生成**：在 CI 中输出可复现的运行时依赖清单。
 - **CI Quality Gate**：可在 CI 中执行测试、静态分析、风格检查、代理配置检查、安全基线检查。
 
 ## 生态系统

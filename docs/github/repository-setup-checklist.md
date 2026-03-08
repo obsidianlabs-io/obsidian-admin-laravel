@@ -123,6 +123,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 
 - `release.yml` 需要创建 GitHub Release
 - `supply-chain.yml` 需要 attestation / dependency review 相关权限
+- `supply-chain.yml` 还会生成并上传 `backend-sbom-cyclonedx` artifact
 
 ## 6. Repository Variables And Secrets
 
@@ -208,6 +209,7 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 - tag 指向的是代码提交，不是临时文档提交
 - GitHub Release 正文已贴入
 - About / Topics / Description 已更新
+- `Backend Supply Chain` 为绿色且带有 `backend-sbom-cyclonedx` artifact
 
 ## 12. Recommended Next Step
 
