@@ -49,6 +49,9 @@ jobs:
       - name: Deptrac domain boundaries
         run: vendor/bin/deptrac --config-file=deptrac.yaml --no-interaction
 
+      - name: Public path safety
+        run: php scripts/check-public-path-safety.php
+
       - name: Proxy trust configuration gate
         run: php artisan http:proxy-trust-check --strict
 

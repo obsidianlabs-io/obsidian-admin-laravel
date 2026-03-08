@@ -57,6 +57,7 @@ Read `docs/octane.md` before changing Octane or RoadRunner behavior.
 - Prefer typed DTOs and typed result/data objects over unstructured arrays
 - Do not add Laravel-specific global state patterns that break long-lived worker safety
 - Do not weaken tenant safety, role-level governance, or audit coverage to make tests pass
+- Public-facing docs and GitHub templates must use repo-relative paths or public URLs, never machine-specific absolute paths
 
 ## Validation Checklist
 
@@ -68,6 +69,7 @@ Run the relevant gates before opening a pull request.
 vendor/bin/pint --test
 vendor/bin/phpstan analyse --memory-limit=1G
 php artisan test
+composer run docs:path-safety
 ```
 
 ### Recommended full backend gate

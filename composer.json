@@ -130,12 +130,16 @@
         "security:check": [
             "@php artisan security:baseline"
         ],
+        "docs:path-safety": [
+            "@php scripts/check-public-path-safety.php"
+        ],
         "quality:check": [
             "@php artisan config:clear --ansi",
             "vendor/bin/pint --test",
             "vendor/bin/phpstan analyse --memory-limit=1G",
             "vendor/bin/pest tests/Architecture --colors=always",
             "vendor/bin/deptrac --config-file=deptrac.yaml --no-interaction",
+            "@php scripts/check-public-path-safety.php",
             "@php artisan openapi:lint",
             "@php artisan api:contract-snapshot",
             "@php artisan security:baseline",
