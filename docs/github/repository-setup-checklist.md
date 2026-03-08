@@ -15,7 +15,8 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 - Topics:
   `laravel laravel12 php php84 api backend ddd clean-architecture multi-tenancy saas rbac audit-logs openapi scramble sanctum roadrunner octane redis horizon reverb pest phpstan deptrac postgresql mysql`
 - Website:
-  留空即可，除非你后面有正式官网或文档站。
+  如果启用了 GitHub Pages 文档站，建议填：
+  `https://obsidianlabs-io.github.io/obsidian-admin-laravel/`
 - Include in the home page:
   建议开启 `Releases`、`Packages` 关闭、`Environments` 按需。
 
@@ -124,6 +125,18 @@ This checklist is for `/Users/zero/Documents/Project/WK/obsidian-admin-laravel`.
 - `release.yml` 需要创建 GitHub Release
 - `supply-chain.yml` 需要 attestation / dependency review 相关权限
 - `supply-chain.yml` 还会生成、上传并 attestate `backend-sbom-cyclonedx` artifact
+- `docs-site.yml` 需要 Pages 部署权限
+
+## 5.5. GitHub Pages
+
+在 `Settings` -> `Pages`:
+
+- Source:
+  `GitHub Actions`
+
+文档站 workflow:
+
+- `/Users/zero/Documents/Project/WK/obsidian-admin-laravel/.github/workflows/docs-site.yml`
 
 ## 6. Repository Variables And Secrets
 

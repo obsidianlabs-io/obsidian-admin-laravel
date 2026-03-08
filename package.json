@@ -1,0 +1,19 @@
+{
+  "name": "obsidian-admin-laravel-docs",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.30.2",
+  "engines": {
+    "node": ">=20.19.0",
+    "pnpm": ">=10.5.0"
+  },
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "postcss": "^8.5.6",
+    "vitepress": "1.6.4"
+  }
+}
