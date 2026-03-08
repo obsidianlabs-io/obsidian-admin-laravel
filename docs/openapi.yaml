@@ -32,23 +32,14 @@ paths:
         - bearerAuth: []
       parameters:
         - in: query
-          name: page
+          name: current
           schema: { type: integer, minimum: 1 }
         - in: query
-          name: pageSize
+          name: size
           schema: { type: integer, minimum: 1, maximum: 100 }
         - in: query
-          name: feature
+          name: keyword
           schema: { type: string }
-        - in: query
-          name: tenantId
-          schema: { type: integer }
-        - in: query
-          name: roleCode
-          schema: { type: string }
-        - in: query
-          name: status
-          schema: { type: string, enum: [active, inactive] }
       responses:
         "200":
           description: Feature flag list
@@ -102,35 +93,35 @@ paths:
         - bearerAuth: []
       parameters:
         - in: query
-          name: page
+          name: current
           schema: { type: integer, minimum: 1 }
         - in: query
-          name: pageSize
+          name: size
           schema: { type: integer, minimum: 1, maximum: 100 }
         - in: query
-          name: userId
-          schema: { type: integer }
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: keyword
+          schema: { type: string }
         - in: query
           name: action
           schema: { type: string }
         - in: query
-          name: module
-          schema: { type: string }
+          name: logType
+          schema: { type: string, enum: [login, api, operation, data, permission] }
         - in: query
-          name: targetType
-          schema: { type: string }
-        - in: query
-          name: targetId
+          name: userName
           schema: { type: string }
         - in: query
           name: requestId
           schema: { type: string }
         - in: query
-          name: from
-          schema: { type: string, format: date-time }
+          name: dateFrom
+          schema: { type: string, format: date }
         - in: query
-          name: to
-          schema: { type: string, format: date-time }
+          name: dateTo
+          schema: { type: string, format: date }
       responses:
         "200":
           description: Audit log list
@@ -144,16 +135,6 @@ paths:
       summary: List effective audit policies
       security:
         - bearerAuth: []
-      parameters:
-        - in: query
-          name: tenantId
-          schema: { type: integer }
-        - in: query
-          name: action
-          schema: { type: string }
-        - in: query
-          name: mandatoryOnly
-          schema: { type: boolean }
       responses:
         "200":
           description: Audit policies
@@ -188,14 +169,11 @@ paths:
         - bearerAuth: []
       parameters:
         - in: query
-          name: page
+          name: current
           schema: { type: integer, minimum: 1 }
         - in: query
-          name: pageSize
+          name: size
           schema: { type: integer, minimum: 1, maximum: 100 }
-        - in: query
-          name: action
-          schema: { type: string }
       responses:
         "200":
           description: Audit policy history
@@ -1674,3 +1652,337 @@ components:
           type: string
         fixedHeaderAndTab:
           type: boolean
+
+    FeatureFlagToggleRequestBody:
+      type: object
+      required: [key, enabled]
+      properties:
+        key:
+          type: string
+        enabled:
+          type: boolean
+    FeatureFlagPurgeRequestBody:
+      type: object
+      required: [key]
+      properties:
+        key:
+          type: string
+    FeatureFlagRecord:
+      type: object
+      properties:
+        key:
+          type: string
+        enabled:
+          type: boolean
+        percentage:
+          type: integer
+        platform_only:
+          type: boolean
+        tenant_only:
+          type: boolean
+        role_codes:
+          type: array
+          items:
+            type: string
+        global_override:
+          type: boolean
+          nullable: true
+    FeatureFlagListData:
+      type: object
+      properties:
+        current:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureFlagRecord'
+    FeatureFlagOverrideData:
+      type: object
+      properties:
+        key:
+          type: string
+        global_override:
+          type: boolean
+          nullable: true
+    FeatureFlagListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/FeatureFlagListData'
+    FeatureFlagOverrideResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/FeatureFlagOverrideData'
+    AuditLogRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+        logType:
+          type: string
+          enum: [login, api, operation, data, permission]
+        userName:
+          type: string
+        tenantId:
+          type: string
+        tenantName:
+          type: string
+        auditableType:
+          type: string
+        auditableId:
+          type: string
+        target:
+          type: string
+        oldValues:
+          type: object
+          additionalProperties: true
+        newValues:
+          type: object
+          additionalProperties: true
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        requestId:
+          type: string
+        createTime:
+          type: string
+    AuditLogListData:
+      type: object
+      properties:
+        current:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLogRecord'
+    AuditLogListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AuditLogListData'
+    AuditPolicyRecord:
+      type: object
+      properties:
+        action:
+          type: string
+        category:
+          type: string
+        mandatory:
+          type: boolean
+        locked:
+          type: boolean
+        lockReason:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        samplingRate:
+          type: number
+          format: float
+        retentionDays:
+          type: integer
+        source:
+          type: string
+        defaultEnabled:
+          type: boolean
+        defaultSamplingRate:
+          type: number
+          format: float
+        defaultRetentionDays:
+          type: integer
+    AuditPolicyListData:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditPolicyRecord'
+    AuditPolicyPoliciesResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AuditPolicyListData'
+    AuditPolicyHistoryRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        scope:
+          type: string
+        changedByUserId:
+          type: string
+        changedByUserName:
+          type: string
+        changeReason:
+          type: string
+        changedCount:
+          type: integer
+        changedActions:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+    AuditPolicyHistoryData:
+      type: object
+      properties:
+        current:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditPolicyHistoryRecord'
+    AuditPolicyHistoryResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AuditPolicyHistoryData'
+    AuditPolicyChangeState:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        samplingRate:
+          type: number
+          format: float
+        retentionDays:
+          type: integer
+    AuditPolicyChange:
+      type: object
+      properties:
+        action:
+          type: string
+        old:
+          $ref: '#/components/schemas/AuditPolicyChangeState'
+        new:
+          $ref: '#/components/schemas/AuditPolicyChangeState'
+    AuditPolicyUpdateRecord:
+      type: object
+      required: [action, enabled]
+      properties:
+        action:
+          type: string
+        enabled:
+          type: boolean
+        samplingRate:
+          type: number
+          format: float
+          nullable: true
+        retentionDays:
+          type: integer
+          nullable: true
+    AuditPolicyUpdateRequestBody:
+      type: object
+      required: [records, changeReason]
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditPolicyUpdateRecord'
+        changeReason:
+          type: string
+    AuditPolicyUpdateData:
+      type: object
+      properties:
+        updated:
+          type: integer
+        clearedTenantOverrides:
+          type: integer
+        revisionId:
+          type: string
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditPolicyRecord'
+    AuditPolicyUpdateResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AuditPolicyUpdateData'
+    CrudSchemaSearchField:
+      type: object
+      properties:
+        key:
+          type: string
+        type:
+          type: string
+        labelKey:
+          type: string
+        placeholderKey:
+          type: string
+        clearable:
+          type: boolean
+        filterable:
+          type: boolean
+        optionSource:
+          type: string
+    CrudSchemaColumn:
+      type: object
+      properties:
+        key:
+          type: string
+        type:
+          type: string
+        titleKey:
+          type: string
+        align:
+          type: string
+        width:
+          type: integer
+        minWidth:
+          type: integer
+        emptyLabelKey:
+          type: string
+    CrudSchemaPayload:
+      type: object
+      properties:
+        resource:
+          type: string
+        permission:
+          type: string
+        searchFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrudSchemaSearchField'
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrudSchemaColumn'
+        scrollX:
+          type: integer
+    CrudSchemaResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CrudSchemaPayload'
