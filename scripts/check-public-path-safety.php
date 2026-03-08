@@ -33,7 +33,7 @@ $failures = [];
 foreach ($files as $relativePath) {
     $absolutePath = $repoRoot.DIRECTORY_SEPARATOR.$relativePath;
 
-    if (!is_file($absolutePath)) {
+    if (! is_file($absolutePath)) {
         continue;
     }
 
