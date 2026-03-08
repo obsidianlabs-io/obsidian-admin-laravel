@@ -57,4 +57,5 @@ Use this backend with [Obsidian Admin Vue](https://github.com/obsidianlabs-io/ob
 - Use [Release Artifacts](/release-artifacts) when you need the exact GHCR / SBOM / attestation consumption path
 - Use [Open Source Launch Checklist](/open-source-launch-checklist) when you are promoting the backend and frontend together
 - Use [Full-Stack Demo Environment](/full-stack-demo-environment) when you want to move from preview-only evaluation to a real hosted demo
+- Use [Demo Deployment Runbook](/demo-deployment-runbook) when you want the exact first-pass commands for a hosted evaluator environment
 - Use the [Release Final Checklist](/release-final-checklist) before publishing

@@ -10,6 +10,16 @@ The current repository already supports:
 
 This guide defines the next step: a stable hosted demo environment for evaluators.
 
+## Ready-to-Use Repository Assets
+
+Use these repository assets for the first hosted demo rollout.
+
+- `docker-compose.demo.yml`
+- `.env.demo.example`
+- frontend `.env.demo-live.example`
+
+These assets are meant for a real hosted backend demo, not for the static GitHub Pages preview.
+
 ## Goal
 
 Provide a public, low-risk environment where a visitor can:
@@ -124,6 +134,26 @@ Recommended pragmatic options:
 3. managed MySQL/PostgreSQL + managed Redis
 
 If you want the simplest first release, keep backend and demo data private to a single cloud project and expose only the frontend and API ingress.
+
+## Minimum Deployment Commands
+
+Backend demo stack:
+
+```bash
+cp .env.demo.example .env.demo
+docker compose -f docker-compose.demo.yml up -d
+docker compose -f docker-compose.demo.yml exec app php artisan key:generate --force
+docker compose -f docker-compose.demo.yml exec app php artisan migrate:fresh --seed --force
+```
+
+Frontend live-demo build:
+
+```bash
+cp .env.demo-live.example .env.demo-live
+pnpm build --mode demo-live
+```
+
+Use the generated frontend bundle on your static host and point it at the same backend ingress declared in `.env.demo-live`.
 
 ## Suggested Rollout Plan
 
