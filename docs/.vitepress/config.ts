@@ -31,6 +31,7 @@ export default defineConfig({
           { text: 'Multi-Tenancy', link: '/multi-tenancy' },
           { text: 'Tenant Switching Semantics', link: '/tenant-switching-semantics' },
           { text: 'Testing', link: '/testing' },
+          { text: 'Health Model', link: '/health-model' },
           { text: 'Runtime Topology', link: '/runtime-topology' },
           { text: 'Production Runtime', link: '/production-runtime' },
           { text: 'Project Profiles', link: '/project-profiles' },
