@@ -109,3 +109,81 @@ jobs:
           subject-name: ${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+  verify-published-image:
+    needs: publish-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ghcr.io/${{ github.repository }}
+      RELEASE_IMAGE_TAG: ${{ github.ref_name }}
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for published image tag
+        run: |
+          VERSION_TAG="${RELEASE_IMAGE_TAG#v}"
+          IMAGE_REF="${IMAGE_NAME}:${VERSION_TAG}"
+
+          for attempt in $(seq 1 10); do
+            if docker manifest inspect "${IMAGE_REF}" >/dev/null 2>&1; then
+              exit 0
+            fi
+
+            sleep 6
+          done
+
+          echo "Published image ${IMAGE_REF} was not available in time."
+          exit 1
+
+      - name: Cold boot published image
+        run: |
+          VERSION_TAG="${RELEASE_IMAGE_TAG#v}"
+          IMAGE_REF="${IMAGE_NAME}:${VERSION_TAG}"
+          CONTAINER_NAME="obsidian-admin-laravel-release-smoke"
+
+          docker pull "${IMAGE_REF}"
+
+          docker run -d \
+            --name "${CONTAINER_NAME}" \
+            -e APP_KEY=base64:VdMKqNOj13fIHY8Jaz9UJW6QcgOZsRk8C/2QmyntTnQ= \
+            -e APP_ENV=production \
+            -e APP_DEBUG=false \
+            -e APP_URL=http://127.0.0.1 \
+            -e DB_CONNECTION=sqlite \
+            -e DB_DATABASE=/tmp/database.sqlite \
+            -e CACHE_STORE=array \
+            -e SESSION_DRIVER=array \
+            -e QUEUE_CONNECTION=sync \
+            "${IMAGE_REF}"
+
+          sleep 12
+          docker inspect -f '{{.State.Running}}' "${CONTAINER_NAME}" | grep -qx true
+          docker exec "${CONTAINER_NAME}" php artisan about --only=environment
+
+      - name: Dump published image diagnostics
+        if: failure()
+        run: |
+          VERSION_TAG="${RELEASE_IMAGE_TAG#v}"
+          IMAGE_REF="${IMAGE_NAME}:${VERSION_TAG}"
+          CONTAINER_NAME="obsidian-admin-laravel-release-smoke"
+
+          docker images "${IMAGE_REF}" || true
+          docker logs "${CONTAINER_NAME}" || true
+          docker exec "${CONTAINER_NAME}" php -v || true
+          docker exec "${CONTAINER_NAME}" php -m || true
+          docker exec "${CONTAINER_NAME}" php artisan about --only=environment || true
+          docker exec "${CONTAINER_NAME}" ls -la bootstrap/cache || true
+          docker exec "${CONTAINER_NAME}" ls -la storage/logs || true
+
+      - name: Cleanup published image smoke container
+        if: always()
+        run: docker rm -f obsidian-admin-laravel-release-smoke || true
