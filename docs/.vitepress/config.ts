@@ -40,6 +40,7 @@ export default defineConfig({
         items: [
           { text: 'Backend Architecture', link: '/architecture' },
           { text: 'RBAC and Role Levels', link: '/rbac-and-role-levels' },
+          { text: 'Session and 2FA', link: '/session-and-2fa' },
           { text: 'Audit and Compliance', link: '/audit-and-compliance' },
           { text: 'Feature Flags', link: '/feature-flags' },
           { text: 'Realtime', link: '/realtime' },
