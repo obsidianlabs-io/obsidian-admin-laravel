@@ -25,6 +25,13 @@
 
 如果你只是想先把 API 跑起来，先选下面一种方式即可：
 
+## 关键文档
+
+- 版本兼容矩阵：[`docs/compatibility-matrix.md`](./docs/compatibility-matrix.md)
+- Octane / RoadRunner 运行说明：[`docs/octane.md`](./docs/octane.md)
+- 生产运行栈：[`docs/production-runtime.md`](./docs/production-runtime.md)
+- 发布签发清单：[`docs/release-final-checklist.md`](./docs/release-final-checklist.md)
+
 ### 方式 A：Docker 开发环境（推荐，最省环境配置）
 
 适合第一次运行项目、团队统一环境、或你想直接使用 `MySQL + Redis + Horizon + Reverb` 完整栈进行本地开发。

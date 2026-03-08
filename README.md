@@ -19,6 +19,13 @@ Octane / RoadRunner runtime is available through `docker-compose.octane.yml` whe
 
 If you just want to get the API running quickly, choose one of the following:
 
+## Key Docs
+
+- Compatibility matrix: [`docs/compatibility-matrix.md`](./docs/compatibility-matrix.md)
+- Octane / RoadRunner runtime: [`docs/octane.md`](./docs/octane.md)
+- Production runtime stack: [`docs/production-runtime.md`](./docs/production-runtime.md)
+- Release sign-off checklist: [`docs/release-final-checklist.md`](./docs/release-final-checklist.md)
+
 ### Option A: Docker Development (Recommended, least setup friction)
 
 Best for first-time setup, team-standardized environments, or when you want the full `MySQL + Redis + Horizon + Reverb` stack for local development.

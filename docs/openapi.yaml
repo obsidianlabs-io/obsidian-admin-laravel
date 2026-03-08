@@ -1661,6 +1661,9 @@ components:
           type: string
         enabled:
           type: boolean
+      example:
+        key: menu.role
+        enabled: false
     FeatureFlagPurgeRequestBody:
       type: object
       required: [key]
@@ -1715,6 +1718,22 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/FeatureFlagListData'
+      example:
+        code: "0000"
+        msg: "ok"
+        data:
+          current: 1
+          size: 10
+          total: 1
+          records:
+            - key: menu.role
+              enabled: false
+              percentage: 0
+              platform_only: false
+              tenant_only: false
+              role_codes:
+                - R_ADMIN
+              global_override: false
     FeatureFlagOverrideResponse:
       allOf:
         - $ref: '#/components/schemas/ApiResponse'
@@ -1722,6 +1741,12 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/FeatureFlagOverrideData'
+      example:
+        code: "0000"
+        msg: "ok"
+        data:
+          key: menu.role
+          global_override: false
     AuditLogRecord:
       type: object
       properties:
@@ -1778,6 +1803,31 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/AuditLogListData'
+      example:
+        code: "0000"
+        msg: "ok"
+        data:
+          current: 1
+          size: 10
+          total: 1
+          records:
+            - id: 120
+              action: user.update
+              logType: operation
+              userName: Super
+              tenantId: "1"
+              tenantName: Main Tenant
+              auditableType: App\\Domains\\Access\\Models\\User
+              auditableId: "42"
+              target: Admin
+              oldValues:
+                status: 1
+              newValues:
+                status: 2
+              ipAddress: 127.0.0.1
+              userAgent: Mozilla/5.0
+              requestId: req_123
+              createTime: 2026-03-08 10:00:00
     AuditPolicyRecord:
       type: object
       properties:
@@ -1823,6 +1873,24 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/AuditPolicyListData'
+      example:
+        code: "0000"
+        msg: "ok"
+        data:
+          records:
+            - action: user.locale.update
+              category: profile
+              mandatory: false
+              locked: false
+              lockReason: null
+              description: Track locale preference updates
+              enabled: true
+              samplingRate: 1
+              retentionDays: 180
+              source: global
+              defaultEnabled: false
+              defaultSamplingRate: 1
+              defaultRetentionDays: 90
     AuditPolicyHistoryRecord:
       type: object
       properties:
@@ -1864,6 +1932,23 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/AuditPolicyHistoryData'
+      example:
+        code: "0000"
+        msg: "ok"
+        data:
+          current: 1
+          size: 10
+          total: 1
+          records:
+            - id: "15"
+              scope: global
+              changedByUserId: "1"
+              changedByUserName: Super
+              changeReason: Enable locale audit
+              changedCount: 1
+              changedActions:
+                - user.locale.update
+              createdAt: 2026-03-08 10:15:00
     AuditPolicyChangeState:
       type: object
       properties:
@@ -1908,6 +1993,13 @@ components:
             $ref: '#/components/schemas/AuditPolicyUpdateRecord'
         changeReason:
           type: string
+      example:
+        records:
+          - action: user.locale.update
+            enabled: true
+            samplingRate: 1
+            retentionDays: 180
+        changeReason: Enable locale audit for all tenants
     AuditPolicyUpdateData:
       type: object
       properties:
@@ -1928,6 +2020,27 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/AuditPolicyUpdateData'
+      example:
+        code: "0000"
+        msg: "ok"
+        data:
+          updated: 1
+          clearedTenantOverrides: 0
+          revisionId: "16"
+          records:
+            - action: user.locale.update
+              category: profile
+              mandatory: false
+              locked: false
+              lockReason: null
+              description: Track locale preference updates
+              enabled: true
+              samplingRate: 1
+              retentionDays: 180
+              source: global
+              defaultEnabled: false
+              defaultSamplingRate: 1
+              defaultRetentionDays: 90
     CrudSchemaSearchField:
       type: object
       properties:
@@ -1986,3 +2099,22 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/CrudSchemaPayload'
+      example:
+        code: "0000"
+        msg: "ok"
+        data:
+          resource: user
+          permission: user.view
+          searchFields:
+            - key: keyword
+              type: input
+              labelKey: page.user.search.keyword
+              placeholderKey: page.user.search.keywordPlaceholder
+              clearable: true
+          columns:
+            - key: userName
+              type: text
+              titleKey: page.user.table.userName
+              align: left
+              minWidth: 180
+          scrollX: 1200
