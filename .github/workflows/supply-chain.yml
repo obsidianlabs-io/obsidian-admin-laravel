@@ -93,6 +93,12 @@ jobs:
       - name: Build runtime image for scanning
         run: docker build --target app -t obsidian-admin-laravel:scan .
 
+      - name: Setup Trivy CLI
+        uses: aquasecurity/setup-trivy@v0.2.3
+        with:
+          cache: true
+          version: v0.68.1
+
       - name: Prepare scan output directory
         run: |
           mkdir -p build
@@ -102,16 +108,15 @@ jobs:
       - name: Generate SARIF report for runtime image
         id: sarif_scan
         continue-on-error: true
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          image-ref: obsidian-admin-laravel:scan
-          format: sarif
-          output: build/container-scan-trivy.sarif
-          severity: HIGH,CRITICAL
-          vuln-type: os,library
-          ignore-unfixed: true
-          scanners: vuln
-          exit-code: '0'
+        run: |
+          trivy image \
+            --format sarif \
+            --output build/container-scan-trivy.sarif \
+            --severity HIGH,CRITICAL \
+            --vuln-type os,library \
+            --ignore-unfixed \
+            --scanners vuln \
+            obsidian-admin-laravel:scan
 
       - name: Upload SARIF to GitHub code scanning
         if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && steps.sarif_scan.outcome == 'success'
@@ -123,16 +128,16 @@ jobs:
       - name: Critical vulnerability gate
         id: critical_scan
         continue-on-error: true
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          image-ref: obsidian-admin-laravel:scan
-          format: table
-          output: build/container-scan-critical.txt
-          severity: CRITICAL
-          vuln-type: os,library
-          ignore-unfixed: true
-          scanners: vuln
-          exit-code: '1'
+        run: |
+          trivy image \
+            --format table \
+            --output build/container-scan-critical.txt \
+            --severity CRITICAL \
+            --vuln-type os,library \
+            --ignore-unfixed \
+            --scanners vuln \
+            --exit-code 1 \
+            obsidian-admin-laravel:scan
 
       - name: Upload runtime image scan artifacts
         if: always()
