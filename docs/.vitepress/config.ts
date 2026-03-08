@@ -46,6 +46,7 @@ export default defineConfig({
           { text: 'Realtime', link: '/realtime' },
           { text: 'Octane Runtime', link: '/octane' },
           { text: 'Operations Hardening', link: '/operations-hardening' },
+          { text: 'Deletion Lifecycle', link: '/deletion-lifecycle' },
           { text: 'Deletion Governance', link: '/deletion-governance' }
         ]
       },
