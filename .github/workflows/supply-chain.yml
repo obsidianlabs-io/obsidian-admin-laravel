@@ -94,9 +94,14 @@ jobs:
         run: docker build --target app -t obsidian-admin-laravel:scan .
 
       - name: Prepare scan output directory
-        run: mkdir -p build
+        run: |
+          mkdir -p build
+          printf '{"version":"2.1.0","runs":[]}\n' > build/container-scan-trivy.sarif
+          printf 'Trivy critical scan did not produce output.\n' > build/container-scan-critical.txt
 
       - name: Generate SARIF report for runtime image
+        id: sarif_scan
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: obsidian-admin-laravel:scan
@@ -109,13 +114,15 @@ jobs:
           exit-code: '0'
 
       - name: Upload SARIF to GitHub code scanning
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+        if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && steps.sarif_scan.outcome == 'success'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: build/container-scan-trivy.sarif
           category: backend-runtime-image
 
       - name: Critical vulnerability gate
+        id: critical_scan
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: obsidian-admin-laravel:scan
@@ -136,6 +143,18 @@ jobs:
             build/container-scan-trivy.sarif
             build/container-scan-critical.txt
           if-no-files-found: error
+
+      - name: Fail if SARIF scan could not run
+        if: steps.sarif_scan.outcome == 'failure'
+        run: |
+          cat build/container-scan-critical.txt || true
+          exit 1
+
+      - name: Fail if critical vulnerabilities were found
+        if: steps.critical_scan.outcome == 'failure'
+        run: |
+          cat build/container-scan-critical.txt || true
+          exit 1
 
   attest-sbom:
     if: github.event_name == 'push'
