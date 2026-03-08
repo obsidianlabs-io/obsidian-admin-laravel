@@ -42,7 +42,8 @@ Use this backend with [Obsidian Admin Vue](https://github.com/obsidianlabs-io/ob
 
 - Start with [Getting Started](/getting-started)
 - Review the [Compatibility Matrix](/compatibility-matrix) and [Multi-Tenancy](/multi-tenancy)
-- Read the [Backend Architecture](/architecture), [Feature Flags](/feature-flags), and [OpenAPI Workflow](/openapi-workflow)
+- Read the [Backend Architecture](/architecture), [RBAC and Role Levels](/rbac-and-role-levels), and [OpenAPI Workflow](/openapi-workflow)
+- Use [Audit and Compliance](/audit-and-compliance) when you need the repository's audit policy and retention model in one place
 - Use [Testing](/testing) when changing contracts, tenancy, or runtime behavior
 - Review [Realtime](/realtime) if you are pairing with the websocket-enabled frontend flows
 - Choose between [Production Runtime](/production-runtime) and [Octane Runtime](/octane)
