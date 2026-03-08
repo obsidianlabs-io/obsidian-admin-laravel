@@ -55,4 +55,6 @@ Use this backend with [Obsidian Admin Vue](https://github.com/obsidianlabs-io/ob
 - Review [Realtime](/realtime) if you are pairing with the websocket-enabled frontend flows
 - Choose between [Production Runtime](/production-runtime) and [Octane Runtime](/octane)
 - Use [Release Artifacts](/release-artifacts) when you need the exact GHCR / SBOM / attestation consumption path
+- Use [Open Source Launch Checklist](/open-source-launch-checklist) when you are promoting the backend and frontend together
+- Use [Full-Stack Demo Environment](/full-stack-demo-environment) when you want to move from preview-only evaluation to a real hosted demo
 - Use the [Release Final Checklist](/release-final-checklist) before publishing
