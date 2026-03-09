@@ -91,6 +91,21 @@ Each domain keeps its own `Http/Controllers`, `Services`, `Models`, and `Http/Re
   - direct config ingestion
   - short-lived private helpers that do not escape the service
 
+## Scaffolding
+
+- `php artisan make:domain-resource {Domain} {Resource}` scaffolds a bounded resource baseline aligned with the current Laravel patterns.
+- Generated files include:
+  - list/create/update DTOs
+  - list/store/update requests
+  - list query action
+  - domain service
+  - list resource
+  - controller
+  - skipped feature test placeholder
+- Use `--scope=tenant|platform` to choose the generated scope semantics.
+- Use `--base-path=...` for temporary generation in tests or external worktrees.
+- The generator does not wire routes, policies, migrations, or OpenAPI paths; those remain explicit follow-up steps.
+
 ## Route modules
 
 - `routes/api/auth.php`: login/session/profile/security endpoints

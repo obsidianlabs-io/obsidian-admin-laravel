@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{DOMAIN_NAMESPACE}}\Http\Resources;
+
+use App\Domains\{{DOMAIN_STUDLY}}\Models\{{RESOURCE_STUDLY}};
+use App\Support\ApiDateTime;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/** @mixin {{RESOURCE_STUDLY}} */
+class {{RESOURCE_STUDLY}}ListResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+{{RESOURCE_TENANT_FIELD}}            '{{CODE_FIELD}}' => (string) $this->code,
+            '{{NAME_FIELD}}' => (string) $this->name,
+            'description' => (string) ($this->description ?? ''),
+            'status' => (string) $this->status,
+            'sort' => (int) ($this->sort ?? 0),
+            'version' => (string) ($this->updated_at?->copy()->setTimezone('UTC')->timestamp ?? 0),
+            'createTime' => ApiDateTime::formatForRequest($this->created_at, $request),
+            'updateTime' => ApiDateTime::formatForRequest($this->updated_at, $request),
+        ];
+    }
+}

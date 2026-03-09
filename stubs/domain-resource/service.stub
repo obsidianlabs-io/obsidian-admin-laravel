@@ -1,0 +1,41 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{DOMAIN_NAMESPACE}}\Services;
+
+use App\Domains\{{DOMAIN_STUDLY}}\Models\{{RESOURCE_STUDLY}};
+use App\DTOs\{{RESOURCE_STUDLY}}\Create{{RESOURCE_STUDLY}}DTO;
+use App\DTOs\{{RESOURCE_STUDLY}}\Update{{RESOURCE_STUDLY}}DTO;
+
+class {{RESOURCE_STUDLY}}Service
+{
+    {{SERVICE_CREATE_SIGNATURE}}
+    {
+        return {{RESOURCE_STUDLY}}::query()->create([
+{{SERVICE_CREATE_TENANT_LINE}}            'code' => $dto->{{CODE_FIELD}},
+            'name' => $dto->{{NAME_FIELD}},
+            'description' => $dto->description,
+            'status' => $dto->status,
+            'sort' => $dto->sort,
+        ]);
+    }
+
+    public function update({{RESOURCE_STUDLY}} ${{RESOURCE_CAMEL}}, Update{{RESOURCE_STUDLY}}DTO $dto): {{RESOURCE_STUDLY}}
+    {
+        ${{RESOURCE_CAMEL}}->forceFill([
+            'code' => $dto->{{CODE_FIELD}},
+            'name' => $dto->{{NAME_FIELD}},
+            'description' => $dto->description,
+            'status' => $dto->status,
+            'sort' => $dto->sort,
+        ])->save();
+
+        return ${{RESOURCE_CAMEL}};
+    }
+
+    public function delete({{RESOURCE_STUDLY}} ${{RESOURCE_CAMEL}}): void
+    {
+        ${{RESOURCE_CAMEL}}->delete();
+    }
+}

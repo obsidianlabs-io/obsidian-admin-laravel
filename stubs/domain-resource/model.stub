@@ -1,0 +1,23 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{DOMAIN_NAMESPACE}}\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class {{RESOURCE_STUDLY}} extends Model
+{
+    protected $table = '{{TABLE_NAME}}';
+
+    /**
+     * @var list<string>
+     */
+    protected $fillable = [
+{{TENANT_FILLABLE_FIELD}}        'code',
+        'name',
+        'description',
+        'status',
+        'sort',
+    ];
+}

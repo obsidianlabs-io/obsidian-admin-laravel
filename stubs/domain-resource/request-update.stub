@@ -1,0 +1,38 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{REQUEST_NAMESPACE}};
+
+use App\DTOs\{{RESOURCE_STUDLY}}\Update{{RESOURCE_STUDLY}}DTO;
+use App\Http\Requests\Api\BaseApiRequest;
+
+class Update{{RESOURCE_STUDLY}}Request extends BaseApiRequest
+{
+    /**
+     * @return array<string, list<string>>
+     */
+    public function rules(): array
+    {
+        return [
+            '{{CODE_FIELD}}' => ['required', 'string', 'max:64'],
+            '{{NAME_FIELD}}' => ['required', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'status' => ['nullable', 'in:1,2'],
+            'sort' => ['nullable', 'integer', 'min:0', 'max:65535'],
+        ];
+    }
+
+    public function toDTO(): Update{{RESOURCE_STUDLY}}DTO
+    {
+        $validated = $this->validated();
+
+        return new Update{{RESOURCE_STUDLY}}DTO(
+            {{CODE_FIELD}}: trim((string) $validated['{{CODE_FIELD}}']),
+            {{NAME_FIELD}}: trim((string) $validated['{{NAME_FIELD}}']),
+            description: trim((string) ($validated['description'] ?? '')),
+            status: (string) ($validated['status'] ?? '1'),
+            sort: (int) ($validated['sort'] ?? 0),
+        );
+    }
+}

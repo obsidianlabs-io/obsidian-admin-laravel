@@ -1,0 +1,90 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{DOMAIN_NAMESPACE}}\Http\Controllers;
+
+use App\Domains\Shared\Http\Controllers\ApiController;
+use App\Domains\{{DOMAIN_STUDLY}}\Actions\List{{PLURAL_STUDLY}}QueryAction;
+use App\Domains\{{DOMAIN_STUDLY}}\Http\Resources\{{RESOURCE_STUDLY}}ListResource;
+use App\Domains\{{DOMAIN_STUDLY}}\Models\{{RESOURCE_STUDLY}};
+use App\Domains\{{DOMAIN_STUDLY}}\Services\{{RESOURCE_STUDLY}}Service;
+use App\Http\Requests\Api\{{RESOURCE_STUDLY}}\List{{PLURAL_STUDLY}}Request;
+use App\Http\Requests\Api\{{RESOURCE_STUDLY}}\Store{{RESOURCE_STUDLY}}Request;
+use App\Http\Requests\Api\{{RESOURCE_STUDLY}}\Update{{RESOURCE_STUDLY}}Request;
+use Illuminate\Http\JsonResponse;
+
+class {{RESOURCE_STUDLY}}Controller extends ApiController
+{
+    public function __construct(private readonly {{RESOURCE_STUDLY}}Service ${{RESOURCE_CAMEL}}Service) {}
+
+    public function list(List{{PLURAL_STUDLY}}Request $request, List{{PLURAL_STUDLY}}QueryAction $list{{PLURAL_STUDLY}}Query): JsonResponse
+    {
+        $input = $request->toDTO();
+{{CONTROLLER_LIST_SETUP}}
+
+        if ($input->usesCursorPagination((string) $request->input('paginationMode', ''))) {
+            $page = $this->cursorPaginateById(
+                clone $query,
+                $input->size,
+                $input->cursor,
+                false,
+            );
+
+            $records = {{RESOURCE_STUDLY}}ListResource::collection($page['records'])->resolve($request);
+
+            return $this->success($this->cursorPaginationPayload($page, $records)->toArray());
+        }
+
+        $total = (clone $query)->count();
+        $records = {{RESOURCE_STUDLY}}ListResource::collection(
+            $query->orderBy('sort')->orderBy('id')->forPage($input->current, $input->size)->get()
+        )->resolve($request);
+
+        return $this->success(
+            $this->offsetPaginationPayload($input->current, $input->size, $total, $records)->toArray()
+        );
+    }
+
+    public function store(Store{{RESOURCE_STUDLY}}Request $request): JsonResponse
+    {
+        $dto = $request->toDTO();
+{{CONTROLLER_CREATE_SETUP}}
+
+        return $this->success([
+            'id' => (int) ${{RESOURCE_CAMEL}}->id,
+{{RESPONSE_TENANT_FIELD}}            '{{CODE_FIELD}}' => (string) ${{RESOURCE_CAMEL}}->code,
+            '{{NAME_FIELD}}' => (string) ${{RESOURCE_CAMEL}}->name,
+            'description' => (string) (${{RESOURCE_CAMEL}}->description ?? ''),
+            'status' => (string) ${{RESOURCE_CAMEL}}->status,
+            'sort' => (int) (${{RESOURCE_CAMEL}}->sort ?? 0),
+        ], '{{RESOURCE_STUDLY}} created');
+    }
+
+    public function update(Update{{RESOURCE_STUDLY}}Request $request, int $id): JsonResponse
+    {
+{{CONTROLLER_FIND_MODEL}}
+        $dto = $request->toDTO();
+        ${{RESOURCE_CAMEL}} = $this->{{RESOURCE_CAMEL}}Service->update(${{RESOURCE_CAMEL}}, $dto);
+
+        return $this->success([
+            'id' => (int) ${{RESOURCE_CAMEL}}->id,
+{{RESPONSE_TENANT_FIELD}}            '{{CODE_FIELD}}' => (string) ${{RESOURCE_CAMEL}}->code,
+            '{{NAME_FIELD}}' => (string) ${{RESOURCE_CAMEL}}->name,
+            'description' => (string) (${{RESOURCE_CAMEL}}->description ?? ''),
+            'status' => (string) ${{RESOURCE_CAMEL}}->status,
+            'sort' => (int) (${{RESOURCE_CAMEL}}->sort ?? 0),
+        ], '{{RESOURCE_STUDLY}} updated');
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+{{CONTROLLER_FIND_MODEL}}
+        $this->{{RESOURCE_CAMEL}}Service->delete(${{RESOURCE_CAMEL}});
+
+        return $this->success([
+            'id' => $id,
+            'deleted' => true,
+        ], '{{RESOURCE_STUDLY}} deleted');
+    }
+}

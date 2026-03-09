@@ -1,0 +1,17 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature;
+
+use Tests\TestCase;
+
+class {{RESOURCE_STUDLY}}ApiTest extends TestCase
+{
+    public function test_{{RESOURCE_SNAKE}}_api_requires_real_route_wiring(): void
+    {
+        $this->markTestSkipped(
+            'Replace scaffolded test with real API coverage after wiring routes, policies, tenant scope, and {{TEST_SCOPE_NOTES}}.'
+        );
+    }
+}

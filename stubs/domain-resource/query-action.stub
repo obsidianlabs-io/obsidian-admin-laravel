@@ -1,0 +1,52 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{DOMAIN_NAMESPACE}}\Actions;
+
+use App\Domains\{{DOMAIN_STUDLY}}\Models\{{RESOURCE_STUDLY}};
+use App\DTOs\{{RESOURCE_STUDLY}}\List{{PLURAL_STUDLY}}InputDTO;
+use Illuminate\Database\Eloquent\Builder;
+
+final class List{{PLURAL_STUDLY}}QueryAction
+{
+    /**
+     * @return Builder<{{RESOURCE_STUDLY}}>
+     */
+    {{LIST_HANDLE_SIGNATURE}}
+    {
+        $query = {{RESOURCE_STUDLY}}::query()
+            ->select([
+                'id',
+                {{TENANT_SELECT_FIELD}}'code',
+                'name',
+                'description',
+                'status',
+                'sort',
+                'created_at',
+                'updated_at',
+            ])
+{{QUERY_SCOPE_LINE}};
+
+        $this->applyFilters($query, $input);
+
+        return $query;
+    }
+
+    /**
+     * @param  Builder<{{RESOURCE_STUDLY}}>  $query
+     */
+    private function applyFilters(Builder $query, List{{PLURAL_STUDLY}}InputDTO $input): void
+    {
+        if ($input->keyword !== '') {
+            $query->where(function (Builder $builder) use ($input): void {
+                $builder->where('code', 'like', '%'.$input->keyword.'%')
+                    ->orWhere('name', 'like', '%'.$input->keyword.'%');
+            });
+        }
+
+        if ($input->status !== '') {
+            $query->where('status', $input->status);
+        }
+    }
+}

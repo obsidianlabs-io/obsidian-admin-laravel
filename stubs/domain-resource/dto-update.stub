@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{DTO_NAMESPACE}};
+
+readonly class Update{{RESOURCE_STUDLY}}DTO
+{
+    public function __construct(
+        public string ${{CODE_FIELD}},
+        public string ${{NAME_FIELD}},
+        public string $description,
+        public string $status,
+        public int $sort,
+    ) {}
+}
