@@ -36,6 +36,7 @@ export default defineConfig({
           { text: 'Runtime Topology', link: '/runtime-topology' },
           { text: 'Production Runtime', link: '/production-runtime' },
           { text: 'Backup and Recovery', link: '/backup-and-recovery' },
+          { text: 'Backup/Restore Drill', link: '/backup-restore-drill' },
           { text: 'Support Policy', link: '/support-policy' },
           { text: 'Project Profiles', link: '/project-profiles' },
           { text: 'Security Checklist', link: '/security-checklist' },
