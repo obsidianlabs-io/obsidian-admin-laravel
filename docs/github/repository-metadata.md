@@ -3,7 +3,7 @@
 ## Release Title
 
 ```text
-v1.2.0 · Production hardening and typed architecture baseline
+v1.2.1 · Runtime hardening and release artifact baseline
 ```
 
 ## Repository About
