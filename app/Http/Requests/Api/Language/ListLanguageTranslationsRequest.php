@@ -6,13 +6,14 @@ namespace App\Http\Requests\Api\Language;
 
 use App\DTOs\Language\ListLanguageTranslationsInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
+use Illuminate\Contracts\Validation\ValidationRule;
 
 class ListLanguageTranslationsRequest extends BaseApiRequest
 {
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {

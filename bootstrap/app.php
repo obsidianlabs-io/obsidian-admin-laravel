@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\EnsureApiPermission;
+use App\Http\Middleware\HandleIdempotentRequests;
+use App\Http\Middleware\RecordApiAccessLog;
+use App\Http\Middleware\ResolveTenantContext;
+use App\Http\Middleware\SetRequestLocale;
 use App\Support\ApiErrorResponse;
 use App\Support\TrustedProxyConfig;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -39,21 +46,21 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(
             prepend: [
-                \App\Http\Middleware\AssignRequestId::class,
-                \App\Http\Middleware\SetRequestLocale::class,
+                AssignRequestId::class,
+                SetRequestLocale::class,
             ],
             append: [
-                \App\Http\Middleware\RecordApiAccessLog::class,
+                RecordApiAccessLog::class,
             ]
         );
 
         $middleware->alias([
-            'tenant.context' => \App\Http\Middleware\ResolveTenantContext::class,
-            'request.locale' => \App\Http\Middleware\SetRequestLocale::class,
-            'request.id' => \App\Http\Middleware\AssignRequestId::class,
-            'idempotent.request' => \App\Http\Middleware\HandleIdempotentRequests::class,
-            'api.auth' => \App\Http\Middleware\AuthenticateApiToken::class,
-            'api.permission' => \App\Http\Middleware\EnsureApiPermission::class,
+            'tenant.context' => ResolveTenantContext::class,
+            'request.locale' => SetRequestLocale::class,
+            'request.id' => AssignRequestId::class,
+            'idempotent.request' => HandleIdempotentRequests::class,
+            'api.auth' => AuthenticateApiToken::class,
+            'api.permission' => EnsureApiPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -162,7 +169,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return ApiErrorResponse::json($request, '4050', 'Method Not Allowed');
         });
 
-        $exceptions->render(function (\Throwable $exception, Request $request) use ($isApiRequest) {
+        $exceptions->render(function (Throwable $exception, Request $request) use ($isApiRequest) {
             if (! $isApiRequest($request)) {
                 return null;
             }

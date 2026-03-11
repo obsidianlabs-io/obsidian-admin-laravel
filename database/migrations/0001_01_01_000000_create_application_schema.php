@@ -436,7 +436,7 @@ return new class extends Migration
             'mariadb', 'mysql' => $table->char('key_hash', 16)->charset('binary')->virtualAs('unhex(md5(`key`))'),
             'pgsql' => $table->uuid('key_hash')->storedAs('md5("key")::uuid'),
             'sqlite' => $table->string('key_hash'),
-            default => throw new \RuntimeException('Pulse key hash column is not supported for current database driver.'),
+            default => throw new RuntimeException('Pulse key hash column is not supported for current database driver.'),
         };
     }
 

@@ -26,7 +26,7 @@ use InvalidArgumentException;
 class AuditPolicyService
 {
     /**
-     * @var array<int, array<string, \App\Domains\System\Models\AuditPolicy>>
+     * @var array<int, array<string, AuditPolicy>>
      */
     private array $scopePoliciesCache = [];
 
@@ -165,7 +165,7 @@ class AuditPolicyService
                 $retentionDays = $oldValues['retentionDays'];
             }
 
-            /** @var \App\Domains\System\Models\AuditPolicy|null $existing */
+            /** @var AuditPolicy|null $existing */
             $existing = $existingPolicies->get($action);
             if (
                 ! $existing
@@ -485,7 +485,7 @@ class AuditPolicyService
     }
 
     /**
-     * @return array<string, \App\Domains\System\Models\AuditPolicy>
+     * @return array<string, AuditPolicy>
      */
     private function scopePolicies(?int $tenantId): array
     {

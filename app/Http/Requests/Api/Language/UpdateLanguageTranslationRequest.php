@@ -7,6 +7,7 @@ namespace App\Http\Requests\Api\Language;
 use App\Domains\System\Models\Language;
 use App\DTOs\Language\UpdateLanguageTranslationInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 
 class UpdateLanguageTranslationRequest extends BaseApiRequest
@@ -14,7 +15,7 @@ class UpdateLanguageTranslationRequest extends BaseApiRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {

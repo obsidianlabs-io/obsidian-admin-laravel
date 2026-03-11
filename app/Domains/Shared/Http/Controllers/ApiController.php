@@ -18,6 +18,7 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,7 +59,7 @@ abstract class ApiController extends Controller
     }
 
     /**
-     * @param  Closure(): \Illuminate\Http\JsonResponse  $callback
+     * @param  Closure(): JsonResponse  $callback
      */
     protected function withIdempotency(Request $request, ?User $actor, Closure $callback): JsonResponse
     {
@@ -240,7 +241,7 @@ abstract class ApiController extends Controller
      *
      * @param  Builder<TModel>  $query
      * @return array{
-     *   records: \Illuminate\Database\Eloquent\Collection<int, TModel>,
+     *   records: Collection<int, TModel>,
      *   size: int,
      *   hasMore: bool,
      *   nextCursor: string
@@ -265,13 +266,13 @@ abstract class ApiController extends Controller
             ->orderBy('id', $direction)
             ->limit($size + 1)
             ->get();
-        /** @var \Illuminate\Database\Eloquent\Collection<int, TModel> $records */
+        /** @var Collection<int, TModel> $records */
         $records = $records;
 
         $hasMore = $records->count() > $size;
         if ($hasMore) {
             $records = $records->take($size)->values();
-            /** @var \Illuminate\Database\Eloquent\Collection<int, TModel> $records */
+            /** @var Collection<int, TModel> $records */
             $records = $records;
         }
 

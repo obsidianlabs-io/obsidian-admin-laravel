@@ -1,10 +1,14 @@
 <?php
 
 declare(strict_types=1);
+use App\Providers\AppServiceProvider;
+use App\Providers\AuthServiceProvider;
+use App\Providers\DomainEventServiceProvider;
+use App\Providers\HorizonServiceProvider;
 
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\AuthServiceProvider::class,
-    App\Providers\DomainEventServiceProvider::class,
-    App\Providers\HorizonServiceProvider::class,
+    AppServiceProvider::class,
+    AuthServiceProvider::class,
+    DomainEventServiceProvider::class,
+    HorizonServiceProvider::class,
 ];

@@ -367,7 +367,7 @@ class AuditLogApiTest extends TestCase
             tenantId: (int) $adminUser->tenant_id
         );
 
-        /** @var \App\Domains\System\Models\AuditLog $record */
+        /** @var AuditLog $record */
         $record = AuditLog::query()->latest('id')->firstOrFail();
 
         $this->assertSame('[REDACTED]', (string) ($record->old_values['password'] ?? ''));
@@ -395,7 +395,7 @@ class AuditLogApiTest extends TestCase
             tenantId: (int) $adminUser->tenant_id
         );
 
-        /** @var \App\Domains\System\Models\AuditLog $record */
+        /** @var AuditLog $record */
         $record = AuditLog::query()->latest('id')->firstOrFail();
         $this->assertTrue((bool) ($record->new_values['_truncated'] ?? false));
         $this->assertSame('payload_oversize', (string) ($record->new_values['_reason'] ?? ''));

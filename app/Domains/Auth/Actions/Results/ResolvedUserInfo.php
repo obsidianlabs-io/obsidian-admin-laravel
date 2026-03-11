@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Auth\Actions\Results;
 
+use App\Domains\Auth\Services\Results\ResolvedMenuItem;
 use App\Domains\Auth\Services\Results\ResolvedUserNavigation;
 use App\Domains\Shared\Auth\TenantOptionData;
 
@@ -49,7 +50,7 @@ final readonly class ResolvedUserInfo
             ),
             'menuScope' => $this->navigation->menuScope,
             'menus' => array_map(
-                static fn (\App\Domains\Auth\Services\Results\ResolvedMenuItem $item): array => $item->toArray(),
+                static fn (ResolvedMenuItem $item): array => $item->toArray(),
                 $this->navigation->menus,
             ),
             'routeRules' => $routeRules,

@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Domains\System\Models\ApiAccessLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class ApiAccessLogTest extends TestCase
@@ -63,7 +64,7 @@ class ApiAccessLogTest extends TestCase
         $this->assertDatabaseHas('api_access_logs', ['id' => $active->id]);
     }
 
-    private function createAccessLog(\Illuminate\Support\Carbon $createdAt): ApiAccessLog
+    private function createAccessLog(Carbon $createdAt): ApiAccessLog
     {
         $record = ApiAccessLog::query()->create([
             'request_id' => 'req-'.$createdAt->timestamp,

@@ -8,6 +8,7 @@ use App\Domains\Access\Models\User;
 use App\Domains\System\Models\AuditLog;
 use App\Domains\Tenant\Models\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class AuditPruneCommandTest extends TestCase
@@ -51,7 +52,7 @@ class AuditPruneCommandTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['id' => $expiredLog->id]);
     }
 
-    private function createAuditLog(User $user, ?int $tenantId, string $action, \Illuminate\Support\Carbon $createdAt): AuditLog
+    private function createAuditLog(User $user, ?int $tenantId, string $action, Carbon $createdAt): AuditLog
     {
         $log = AuditLog::query()->create([
             'user_id' => $user->id,

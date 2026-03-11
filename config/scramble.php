@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\CacheOpenApiSpec;
+use App\Http\Middleware\CheckDocsEnabled;
 use Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess;
 
 return [
@@ -136,9 +138,9 @@ return [
 
     'middleware' => [
         'web',
-        \App\Http\Middleware\CheckDocsEnabled::class,
+        CheckDocsEnabled::class,
         RestrictedDocsAccess::class,
-        \App\Http\Middleware\CacheOpenApiSpec::class,
+        CacheOpenApiSpec::class,
     ],
 
     'extensions' => [],

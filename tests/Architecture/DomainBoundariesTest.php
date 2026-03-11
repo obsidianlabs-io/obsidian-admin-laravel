@@ -25,7 +25,7 @@ test('php source files declare strict types', function (): void {
             new RecursiveDirectoryIterator($root, RecursiveDirectoryIterator::SKIP_DOTS)
         );
 
-        /** @var \SplFileInfo $file */
+        /** @var SplFileInfo $file */
         foreach ($iterator as $file) {
             if ($file->getExtension() !== 'php') {
                 continue;

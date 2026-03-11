@@ -8,6 +8,7 @@ use App\DTOs\Auth\LoginInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 use App\Support\AppLocale;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 
 class LoginRequest extends BaseApiRequest
 {
@@ -28,7 +29,7 @@ class LoginRequest extends BaseApiRequest
     }
 
     /**
-     * @return array<string, list<\Illuminate\Validation\Rules\Exists|string>>
+     * @return array<string, list<Exists|string>>
      */
     public function rules(): array
     {

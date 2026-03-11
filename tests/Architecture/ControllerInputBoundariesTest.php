@@ -124,7 +124,7 @@ test('high value services use typed command dto inputs', function (): void {
     ];
 
     foreach ($signatures as [$class, $method, $parameterIndex, $expectedType]) {
-        $reflection = new \ReflectionMethod($class, $method);
+        $reflection = new ReflectionMethod($class, $method);
         $parameter = $reflection->getParameters()[$parameterIndex];
         $type = $parameter->getType();
 
@@ -134,13 +134,13 @@ test('high value services use typed command dto inputs', function (): void {
 });
 
 test('theme config service returns typed data objects', function (): void {
-    $actorScopeReflection = new \ReflectionMethod(ThemeConfigService::class, 'resolveActorScope');
+    $actorScopeReflection = new ReflectionMethod(ThemeConfigService::class, 'resolveActorScope');
     $actorScopeType = $actorScopeReflection->getReturnType();
 
     expect($actorScopeType)->not->toBeNull();
     expect($actorScopeType?->getName())->toBe(ThemeActorScopeData::class);
 
-    $effectiveReflection = new \ReflectionMethod(ThemeConfigService::class, 'resolveEffectiveConfig');
+    $effectiveReflection = new ReflectionMethod(ThemeConfigService::class, 'resolveEffectiveConfig');
     $effectiveType = $effectiveReflection->getReturnType();
 
     expect($effectiveType)->not->toBeNull();
@@ -153,7 +153,7 @@ test('theme config service returns typed data objects', function (): void {
     ];
 
     foreach ($scopeMethods as $method) {
-        $reflection = new \ReflectionMethod(ThemeConfigService::class, $method);
+        $reflection = new ReflectionMethod(ThemeConfigService::class, $method);
         $returnType = $reflection->getReturnType();
 
         expect($returnType)->not->toBeNull();
@@ -171,7 +171,7 @@ test('audit policy service returns typed result objects', function (): void {
     ];
 
     foreach ($returnTypes as $method => $expectedType) {
-        $reflection = new \ReflectionMethod(AuditPolicyService::class, $method);
+        $reflection = new ReflectionMethod(AuditPolicyService::class, $method);
         $returnType = $reflection->getReturnType();
 
         expect($returnType)->not->toBeNull();
@@ -188,7 +188,7 @@ test('system operational services return typed result objects', function (): voi
     ];
 
     foreach ($serviceReturnTypes as [$class, $method, $expectedType]) {
-        $reflection = new \ReflectionMethod($class, $method);
+        $reflection = new ReflectionMethod($class, $method);
         $returnType = $reflection->getReturnType();
 
         expect($returnType)->not->toBeNull();
@@ -197,7 +197,7 @@ test('system operational services return typed result objects', function (): voi
 });
 
 test('crud schema service returns typed schema data', function (): void {
-    $reflection = new \ReflectionMethod(CrudSchemaService::class, 'find');
+    $reflection = new ReflectionMethod(CrudSchemaService::class, 'find');
     $returnType = $reflection->getReturnType();
 
     expect($returnType)->not->toBeNull();
@@ -206,7 +206,7 @@ test('crud schema service returns typed schema data', function (): void {
 });
 
 test('openapi inspector returns typed document data', function (): void {
-    $reflection = new \ReflectionMethod(OpenApiSpecInspector::class, 'inspect');
+    $reflection = new ReflectionMethod(OpenApiSpecInspector::class, 'inspect');
     $returnType = $reflection->getReturnType();
 
     expect($returnType)->not->toBeNull();
@@ -216,7 +216,7 @@ test('openapi inspector returns typed document data', function (): void {
 test('auth session projection avoids raw session record arrays', function (): void {
     $sessionProjector = (string) file_get_contents(base_path('app/Domains/Auth/Services/SessionProjector.php'));
     $authSessionContext = (string) file_get_contents(base_path('app/Domains/Auth/Services/AuthSessionContextService.php'));
-    $reflection = new \ReflectionMethod(SessionProjector::class, 'listSessions');
+    $reflection = new ReflectionMethod(SessionProjector::class, 'listSessions');
     $returnType = $reflection->getReturnType();
 
     expect($returnType)->not->toBeNull();
@@ -232,7 +232,7 @@ test('auth session projection avoids raw session record arrays', function (): vo
 });
 
 test('shared idempotency boundary returns typed result object', function (): void {
-    $reflection = new \ReflectionMethod(IdempotencyService::class, 'begin');
+    $reflection = new ReflectionMethod(IdempotencyService::class, 'begin');
     $returnType = $reflection->getReturnType();
 
     expect($returnType)->not->toBeNull();
@@ -240,7 +240,7 @@ test('shared idempotency boundary returns typed result object', function (): voi
 });
 
 test('user context action returns typed profile result', function (): void {
-    $reflection = new \ReflectionMethod(ResolveUserContextAction::class, 'resolveProfile');
+    $reflection = new ReflectionMethod(ResolveUserContextAction::class, 'resolveProfile');
     $type = $reflection->getReturnType();
 
     expect($type)->not->toBeNull();
@@ -248,7 +248,7 @@ test('user context action returns typed profile result', function (): void {
 });
 
 test('user context action returns typed roles result', function (): void {
-    $reflection = new \ReflectionMethod(ResolveUserContextAction::class, 'resolveRoles');
+    $reflection = new ReflectionMethod(ResolveUserContextAction::class, 'resolveRoles');
     $type = $reflection->getReturnType();
 
     expect($type)->not->toBeNull();
@@ -256,13 +256,13 @@ test('user context action returns typed roles result', function (): void {
 });
 
 test('auth menu and user info actions return typed results', function (): void {
-    $menuReflection = new \ReflectionMethod(MenuMetadataService::class, 'resolveForUser');
+    $menuReflection = new ReflectionMethod(MenuMetadataService::class, 'resolveForUser');
     $menuType = $menuReflection->getReturnType();
 
     expect($menuType)->not->toBeNull();
     expect($menuType?->getName())->toBe(ResolvedUserNavigation::class);
 
-    $userInfoReflection = new \ReflectionMethod(ResolveUserInfoAction::class, 'handle');
+    $userInfoReflection = new ReflectionMethod(ResolveUserInfoAction::class, 'handle');
     $userInfoType = $userInfoReflection->getReturnType();
 
     expect($userInfoType)->not->toBeNull();
@@ -270,13 +270,13 @@ test('auth menu and user info actions return typed results', function (): void {
 });
 
 test('update own profile result exposes typed snapshots', function (): void {
-    $oldProfileReflection = new \ReflectionMethod(UpdateOwnProfileResult::class, 'oldProfile');
+    $oldProfileReflection = new ReflectionMethod(UpdateOwnProfileResult::class, 'oldProfile');
     $oldProfileType = $oldProfileReflection->getReturnType();
 
     expect($oldProfileType)->not->toBeNull();
     expect($oldProfileType?->getName())->toBe(UserProfileSnapshot::class);
 
-    $newProfileReflection = new \ReflectionMethod(UpdateOwnProfileResult::class, 'newProfile');
+    $newProfileReflection = new ReflectionMethod(UpdateOwnProfileResult::class, 'newProfile');
     $newProfileType = $newProfileReflection->getReturnType();
 
     expect($newProfileType)->not->toBeNull();
@@ -296,42 +296,42 @@ test('high value list queries are delegated to typed query actions', function ()
     ];
 
     foreach ($actionSignatures as [$actionClass, $dtoClass]) {
-        $reflection = new \ReflectionMethod($actionClass, 'handle');
+        $reflection = new ReflectionMethod($actionClass, 'handle');
         $returnType = $reflection->getReturnType();
 
         expect($returnType)->not->toBeNull();
         expect($returnType?->getName())->toBe(Builder::class);
 
         $parameterTypes = array_map(
-            static fn (\ReflectionParameter $parameter): ?string => $parameter->getType()?->getName(),
+            static fn (ReflectionParameter $parameter): ?string => $parameter->getType()?->getName(),
             $reflection->getParameters(),
         );
 
         expect($parameterTypes)->toContain($dtoClass);
     }
 
-    $userListParameters = (new \ReflectionMethod(UserManagementController::class, 'listUsers'))->getParameters();
+    $userListParameters = (new ReflectionMethod(UserManagementController::class, 'listUsers'))->getParameters();
     expect($userListParameters[1]->getType()?->getName())->toBe(ListUsersQueryAction::class);
 
-    $roleListParameters = (new \ReflectionMethod(RoleController::class, 'list'))->getParameters();
+    $roleListParameters = (new ReflectionMethod(RoleController::class, 'list'))->getParameters();
     expect($roleListParameters[1]->getType()?->getName())->toBe(ListRolesQueryAction::class);
 
-    $permissionListParameters = (new \ReflectionMethod(PermissionController::class, 'list'))->getParameters();
+    $permissionListParameters = (new ReflectionMethod(PermissionController::class, 'list'))->getParameters();
     expect($permissionListParameters[1]->getType()?->getName())->toBe(ListPermissionsQueryAction::class);
 
-    $tenantListParameters = (new \ReflectionMethod(TenantController::class, 'list'))->getParameters();
+    $tenantListParameters = (new ReflectionMethod(TenantController::class, 'list'))->getParameters();
     expect($tenantListParameters[1]->getType()?->getName())->toBe(ListTenantsQueryAction::class);
 
-    $organizationListParameters = (new \ReflectionMethod(OrganizationController::class, 'list'))->getParameters();
+    $organizationListParameters = (new ReflectionMethod(OrganizationController::class, 'list'))->getParameters();
     expect($organizationListParameters[1]->getType()?->getName())->toBe(ListOrganizationsQueryAction::class);
 
-    $teamListParameters = (new \ReflectionMethod(TeamController::class, 'list'))->getParameters();
+    $teamListParameters = (new ReflectionMethod(TeamController::class, 'list'))->getParameters();
     expect($teamListParameters[1]->getType()?->getName())->toBe(ListTeamsQueryAction::class);
 
-    $languageListParameters = (new \ReflectionMethod(LanguageController::class, 'list'))->getParameters();
+    $languageListParameters = (new ReflectionMethod(LanguageController::class, 'list'))->getParameters();
     expect($languageListParameters[1]->getType()?->getName())->toBe(ListLanguageTranslationsQueryAction::class);
 
-    $auditLogListParameters = (new \ReflectionMethod(AuditLogController::class, 'list'))->getParameters();
+    $auditLogListParameters = (new ReflectionMethod(AuditLogController::class, 'list'))->getParameters();
     expect($auditLogListParameters[1]->getType()?->getName())->toBe(ListAuditLogsQueryAction::class);
 });
 
