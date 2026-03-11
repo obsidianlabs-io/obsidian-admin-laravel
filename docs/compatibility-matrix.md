@@ -7,7 +7,8 @@ This repository is versioned independently from `obsidian-admin-vue`.
 | Backend | Frontend | Status | Notes |
 | --- | --- | --- | --- |
 | `main` | `main` | Active development | CI and local contract tooling assume both repositories move together. |
-| `v1.2.0` | `v1.1.1` | Stable | Current documented release pair. |
+| `v1.2.1` | `v1.2.0` | Stable | Current documented release pair. |
+| `v1.2.0` | `v1.1.1` | Stable | Previous stable release pair. |
 
 ## Source of truth
 

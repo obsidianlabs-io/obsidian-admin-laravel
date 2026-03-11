@@ -9,13 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-03-12
+
 ### ✨ Added
-- Added official `laravel/octane` integration with RoadRunner-oriented defaults.
-- Added committed `config/octane.php` and Composer shortcuts for Octane install/start/reload/stop.
+- Added official `laravel/octane` integration with committed RoadRunner-oriented configuration, reproducible Octane runtime templates, and dedicated runtime topology guidance.
+- Added release-grade operational assets including GHCR multi-architecture runtime images, release artifact verification, SBOM generation/attestation, image scan policy, and backup/restore drill guidance.
+- Added a formal backend docs site, support policy, compatibility matrix, launch checklists, demo environment templates, and release artifact documentation.
 
 ### 🔧 Changed
-- Moved custom worker reset logic onto the official Octane listener pipeline.
-- Clarified documentation around local RoadRunner binary initialization versus committed project config.
+- Clarified Docker, production, Octane, health, security, RBAC, audit, tenant-switching, and deletion lifecycle documentation to align with the actual runtime model.
+- Tightened release, supply-chain, docs safety, and pairing workflows so public releases follow one curated release-note path with stronger verification.
+- Refined OpenAPI coverage and examples for high-value auth, user, role, tenant, feature-flag, audit, and CRUD schema endpoints.
+
+### 🐞 Fixed
+- Fixed Docker build/runtime inconsistencies around RoadRunner dependencies and PHP extension baselines.
+- Fixed release and supply-chain workflow edge cases around Trivy installation, artifact preservation, and published-image diagnostics.
+
 
 ## [1.2.0] - 2026-03-07
 

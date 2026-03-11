@@ -9,13 +9,22 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-03-12
+
 ### ✨ 新增
-- 正式接入官方 `laravel/octane`，并以 `RoadRunner` 作为默认运行时路径。
-- 新增已提交的 `config/octane.php`，以及 `octane:install / octane:start / octane:reload / octane:stop` Composer 快捷脚本。
+- 正式接入官方 `laravel/octane`，补齐已提交的 RoadRunner 配置、可复制的 Octane 运行模板，以及独立的 runtime topology 说明。
+- 新增面向发布的运维产物：GHCR multi-arch 运行镜像、发布后镜像校验、SBOM 生成与 attestation、镜像扫描策略，以及 backup/restore drill 指南。
+- 新增正式 backend docs site、support policy、compatibility matrix、launch checklist、demo 环境模板与 release artifact 文档。
 
 ### 🔧 调整
-- 将自定义的请求级状态重置逻辑迁移到官方 Octane listener 流程中。
-- 明确区分“仓库内已提交的 Octane 配置”与“本机需要单独初始化的 RoadRunner 二进制”。
+- 将 Docker、production、Octane、health、security、RBAC、audit、tenant switching、deletion lifecycle 等文档统一收口为与真实运行模型一致的说明。
+- 收紧 release、supply-chain、docs safety、release pairing 等工作流，让公开发布统一走 curated release notes 与更强的验证链路。
+- 扩充高价值接口的 OpenAPI 覆盖与 example，覆盖 auth、user、role、tenant、feature flag、audit 与 CRUD schema 等核心能力。
+
+### 🐞 修复
+- 修复 RoadRunner 相关 Docker 构建与运行时依赖不一致问题，统一 PHP 扩展基线。
+- 修复 Trivy 安装、scan artifact 保留与 published image 诊断等 release/supply-chain 边界问题。
+
 
 ## [1.2.0] - 2026-03-07
 
