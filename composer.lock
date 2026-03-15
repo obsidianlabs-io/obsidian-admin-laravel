@@ -5649,16 +5649,16 @@
         },
         {
             "name": "spiral/roadrunner",
-            "version": "v2025.1.8",
+            "version": "v2025.1.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/roadrunner-server/roadrunner.git",
-                "reference": "e3b05713e8d65ad4d5104d839890cc4892d63b2d"
+                "reference": "1ffc187037ebcd84082d4b951504d5d4d9f968fc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-server/roadrunner/zipball/e3b05713e8d65ad4d5104d839890cc4892d63b2d",
-                "reference": "e3b05713e8d65ad4d5104d839890cc4892d63b2d",
+                "url": "https://api.github.com/repos/roadrunner-server/roadrunner/zipball/1ffc187037ebcd84082d4b951504d5d4d9f968fc",
+                "reference": "1ffc187037ebcd84082d4b951504d5d4d9f968fc",
                 "shasum": ""
             },
             "type": "metapackage",
@@ -5686,7 +5686,7 @@
                 "chat": "https://discord.gg/V6EK4he",
                 "docs": "https://docs.roadrunner.dev/",
                 "issues": "https://github.com/roadrunner-server/roadrunner/issues",
-                "source": "https://github.com/roadrunner-server/roadrunner/tree/v2025.1.8"
+                "source": "https://github.com/roadrunner-server/roadrunner/tree/v2025.1.9"
             },
             "funding": [
                 {
@@ -5694,7 +5694,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-02-19T14:32:44+00:00"
+            "time": "2026-03-14T18:29:01+00:00"
         },
         {
             "name": "spiral/roadrunner-cli",
@@ -9986,16 +9986,16 @@
         },
         {
             "name": "laravel/pint",
-            "version": "v1.28.0",
+            "version": "v1.29.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/pint.git",
-                "reference": "1feae84bf9c1649d99ba8f7b8193bf0f09f04cc9"
+                "reference": "bdec963f53172c5e36330f3a400604c69bf02d39"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/pint/zipball/1feae84bf9c1649d99ba8f7b8193bf0f09f04cc9",
-                "reference": "1feae84bf9c1649d99ba8f7b8193bf0f09f04cc9",
+                "url": "https://api.github.com/repos/laravel/pint/zipball/bdec963f53172c5e36330f3a400604c69bf02d39",
+                "reference": "bdec963f53172c5e36330f3a400604c69bf02d39",
                 "shasum": ""
             },
             "require": {
@@ -10012,8 +10012,8 @@
                 "laravel-zero/framework": "^12.0.5",
                 "mockery/mockery": "^1.6.12",
                 "nunomaduro/termwind": "^2.4.0",
-                "pestphp/pest": "^3.8.5",
-                "shipfastlabs/agent-detector": "^1.0.2"
+                "pestphp/pest": "^3.8.6",
+                "shipfastlabs/agent-detector": "^1.1.0"
             },
             "bin": [
                 "builds/pint"
@@ -10050,7 +10050,7 @@
                 "issues": "https://github.com/laravel/pint/issues",
                 "source": "https://github.com/laravel/pint"
             },
-            "time": "2026-03-10T20:37:18+00:00"
+            "time": "2026-03-12T15:51:39+00:00"
         },
         {
             "name": "mockery/mockery",
