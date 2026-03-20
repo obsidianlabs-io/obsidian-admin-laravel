@@ -1,4 +1,4 @@
-# Backend Architecture (Laravel 12 API-only)
+# Backend Architecture (Laravel 13 API-only)
 
 ## Modular Domain Layout
 

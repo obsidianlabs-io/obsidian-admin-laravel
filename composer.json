@@ -2,10 +2,10 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "obsidianlabs-io/obsidian-admin-laravel",
     "type": "project",
-    "description": "Strictly-typed Laravel 12 admin backend with domain-driven boundaries, multi-tenancy, audit logs, OpenAPI generation, and official Octane integration.",
+    "description": "Strictly-typed Laravel 13 admin backend with domain-driven boundaries, multi-tenancy, audit logs, OpenAPI generation, and official Octane integration.",
     "keywords": [
         "laravel",
-        "laravel12",
+        "laravel13",
         "php",
         "php84",
         "api",
@@ -55,12 +55,12 @@
     ],
     "require": {
         "php": "^8.4",
-        "dedoc/scramble": "^0.13.14",
-        "laravel/framework": "^12.0",
+        "dedoc/scramble": "^0.13.16",
+        "laravel/framework": "^13.0",
         "laravel/horizon": "^5.44",
-        "laravel/octane": "^2.14",
-        "laravel/pennant": "^1.19",
-        "laravel/pulse": "^1.5",
+        "laravel/octane": "^2.17.1",
+        "laravel/pennant": "^1.22",
+        "laravel/pulse": "^1.7.2",
         "laravel/reverb": "^1.0",
         "laravel/sanctum": "^4.3",
         "spiral/roadrunner-cli": "^2.6.0",
@@ -73,10 +73,10 @@
         "laravel/pint": "^1.24",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
-        "pestphp/pest": "^3.8.5",
-        "pestphp/pest-plugin-laravel": "^3.2",
+        "pestphp/pest": "^4.4.2",
+        "pestphp/pest-plugin-laravel": "^4.1",
         "phpstan/phpstan": "^2.1.32",
-        "phpunit/phpunit": "11.5.50"
+        "phpunit/phpunit": "^12.5"
     },
     "autoload": {
         "psr-4": {

@@ -175,7 +175,7 @@ composer run test
 
 ## Introduction
 
-[`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) is a highly structured, scalable, and secure backend template built on **Laravel 12**. Unlike standard monolithic applications with fat controllers, this project enforces strict **Clean Architecture** patterns, pushing business logic into specialized Services and using **Data Transfer Objects (DTOs)** for strict type safety. It features native true multi-tenancy, enterprise Role-Based Access Control (RBAC), built-in audit logging, and official **Laravel Octane** integration with RoadRunner-oriented defaults and worker-safe request lifecycle guards.
+[`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) is a highly structured, scalable, and secure backend template built on **Laravel 13**. Unlike standard monolithic applications with fat controllers, this project enforces strict **Clean Architecture** patterns, pushing business logic into specialized Services and using **Data Transfer Objects (DTOs)** for strict type safety. It features native true multi-tenancy, enterprise Role-Based Access Control (RBAC), built-in audit logging, and official **Laravel Octane** integration with RoadRunner-oriented defaults and worker-safe request lifecycle guards.
 
 ## The Vision
 
@@ -193,7 +193,7 @@ Obsidian continues to evolve — rooted in resilience and order, marching steadf
 
 ### Architecture & Domain Design
 
-- **Laravel 12 + PHP 8.4+** with support for `MySQL / PostgreSQL / SQLite` and `Redis` for cache/queues.
+- **Laravel 13 + PHP 8.4+** with support for `MySQL / PostgreSQL / SQLite` and `Redis` for cache/queues.
 - **Modular Monolith structure** organized by `app/Domains/*` (e.g. `Auth / Access / Tenant / System / Shared`).
 - **Layered design** following `Controller -> DTO -> Service -> Model` to reduce fat controllers.
 - **DTO-driven write flows** for safer, more maintainable request-to-domain boundaries.

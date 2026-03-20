@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: Obsidian Admin Laravel
-  text: Strictly-typed Laravel 12 admin backend baseline
+  text: Strictly-typed Laravel 13 admin backend baseline
   tagline: Production-ready Laravel backend with domain boundaries, multi-tenancy, OpenAPI contracts, official Octane integration, and release-grade CI gates.
   image:
     src: /favicon.svg

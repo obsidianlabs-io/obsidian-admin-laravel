@@ -9,11 +9,11 @@ This checklist is for `obsidian-admin-laravel`.
 在 GitHub 仓库首页右侧点击 `About` -> `Edit repository details`:
 
 - Description:
-  `Obsidian Admin Laravel is a production-ready Laravel 12 backend template built for enterprise admin systems, internal platforms, and SaaS products. It emphasizes strict typing, domain-driven structure, tenant-safe data isolation, auditability, and long-term maintainability.`
+  `Obsidian Admin Laravel is a production-ready Laravel 13 backend template built for enterprise admin systems, internal platforms, and SaaS products. It emphasizes strict typing, domain-driven structure, tenant-safe data isolation, auditability, and long-term maintainability.`
 - About:
-  `Strictly-typed Laravel 12 admin backend with DDD boundaries, multi-tenancy, audit logs, OpenAPI generation, and official Octane integration.`
+  `Strictly-typed Laravel 13 admin backend with DDD boundaries, multi-tenancy, audit logs, OpenAPI generation, and official Octane integration.`
 - Topics:
-  `laravel laravel12 php php84 api backend ddd clean-architecture multi-tenancy saas rbac audit-logs openapi scramble sanctum roadrunner octane redis horizon reverb pest phpstan deptrac postgresql mysql`
+  `laravel laravel13 php php84 api backend ddd clean-architecture multi-tenancy saas rbac audit-logs openapi scramble sanctum roadrunner octane redis horizon reverb pest phpstan deptrac postgresql mysql`
 - Website:
   如果启用了 GitHub Pages 文档站，建议填：
   `https://obsidianlabs-io.github.io/obsidian-admin-laravel/`

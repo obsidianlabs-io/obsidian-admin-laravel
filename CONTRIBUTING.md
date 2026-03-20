@@ -2,7 +2,7 @@
 
 Thanks for contributing to Obsidian Admin Laravel.
 
-This repository is intended to be a production-grade Laravel 12 backend baseline. Contributions should improve correctness, maintainability, security, or operational clarity. Please avoid speculative abstractions and framework churn.
+This repository is intended to be a production-grade Laravel 13 backend baseline. Contributions should improve correctness, maintainability, security, or operational clarity. Please avoid speculative abstractions and framework churn.
 
 ## Before You Start
 

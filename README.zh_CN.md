@@ -9,7 +9,7 @@
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
 > [!NOTE]
-> `Obsidian Admin Laravel` 是一个严格类型化、生产可用、面向企业后台与 SaaS 平台的 Laravel 12 API 基线。它专为标准 Vue3/React 管理后台（如 Obsidian Admin Vue）提供可靠、可扩展、可长期维护的后端能力。
+> `Obsidian Admin Laravel` 是一个严格类型化、生产可用、面向企业后台与 SaaS 平台的 Laravel 13 API 基线。它专为标准 Vue3/React 管理后台（如 Obsidian Admin Vue）提供可靠、可扩展、可长期维护的后端能力。
 >
 > 当前仓库已经包含官方 `Laravel Octane` 集成，并默认面向 `RoadRunner` 运行时。需要注意的是，RoadRunner 二进制仍然是机器级文件，需要在本地初始化，因此在使用前请先阅读 [`docs/octane.md`](./docs/octane.md)。
 >
@@ -119,7 +119,7 @@ composer run test:pgsql
 
 ## 简介
 
-[`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) 是一个基于 **Laravel 12** 构建的、高度结构化且面向生产环境的后端模板。它不是传统“先堆功能、后补规范”的后台项目，而是从一开始就以 **清晰边界、严格类型、安全治理、多租户隔离、长期维护成本** 为核心目标来设计。
+[`Obsidian Admin Laravel`](https://github.com/obsidianlabs-io/obsidian-admin-laravel) 是一个基于 **Laravel 13** 构建的、高度结构化且面向生产环境的后端模板。它不是传统“先堆功能、后补规范”的后台项目，而是从一开始就以 **清晰边界、严格类型、安全治理、多租户隔离、长期维护成本** 为核心目标来设计。
 
 项目采用模块化单体（Modular Monolith）结构，将业务拆分到 `app/Domains/*` 中，并通过 **DTO、Query Action、Result/Data Object、架构测试与静态分析** 收紧系统边界。对于需要承接企业后台、内部平台、SaaS 控制台、配置中心、审计中心的团队，它提供的是一个可以持续扩展、而不是很快失控的 Laravel 基线。
 
@@ -139,7 +139,7 @@ Obsidian 持续进化 —— 扎根韧性与秩序，坚定迈向长期价值。
 
 ### 架构与领域设计
 
-- **Laravel 12 + PHP 8.4+**：支持 `MySQL / PostgreSQL / SQLite`，默认适配 `Redis` 缓存与队列。
+- **Laravel 13 + PHP 8.4+**：支持 `MySQL / PostgreSQL / SQLite`，默认适配 `Redis` 缓存与队列。
 - **模块化单体（Modular Monolith）**：按 `app/Domains/*` 组织业务（如 `Auth / Access / Tenant / System / Shared`），便于长期演进。
 - **清晰分层**：遵循 `Controller -> DTO -> Service -> Model` 的职责划分，减少“胖控制器”。
 - **DTO 模式**：关键写操作通过 DTO 承载输入，降低无结构数组在业务层蔓延的风险。

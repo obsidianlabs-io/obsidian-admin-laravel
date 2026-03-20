@@ -9,7 +9,7 @@ This repository is maintained for:
 - enterprise admin backends
 - SaaS control planes
 - contract-driven pairing with `obsidian-admin-vue`
-- long-lived Laravel 12 deployments that follow the documented runtime paths
+- long-lived Laravel 13 deployments that follow the documented runtime paths
 
 This repository is not maintained as:
 
