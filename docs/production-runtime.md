@@ -44,7 +44,7 @@ Use the fully versioned tag for production rollout and rollback control.
 Pull example:
 
 ```bash
-docker pull ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.2.1
+docker pull ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.3.0
 ```
 
 Minimal container boot example:
@@ -60,7 +60,7 @@ docker run --rm -p 8080:8000 \
   -e AUDIT_QUEUE_CONNECTION=sync \
   -e LOG_CHANNEL=stderr \
   -e LOG_STACK=stderr \
-  ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.2.1
+  ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.3.0
 ```
 
 This minimal run path is only meant to validate image boot and health. For database-backed production usage, prefer `docker-compose.production.yml` or `docker-compose.octane.yml`.
@@ -70,7 +70,7 @@ Compose consumption example:
 ```yaml
 services:
   app:
-    image: ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.2.1
+    image: ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.3.0
     pull_policy: always
 ```
 

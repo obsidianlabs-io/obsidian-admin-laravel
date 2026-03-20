@@ -3,7 +3,7 @@
 ## Release Title
 
 ```text
-v1.2.1 · Runtime hardening and release artifact baseline
+v1.3.0 · Laravel 13 baseline and Eloquent attribute-first adoption
 ```
 
 ## Repository About

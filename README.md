@@ -20,7 +20,7 @@
 Pull the release image directly from GHCR:
 
 ```bash
-docker pull ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.2.1
+docker pull ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.3.0
 ```
 
 Quick runtime example:
@@ -36,7 +36,7 @@ docker run --rm -p 8080:8000 \
   -e AUDIT_QUEUE_CONNECTION=sync \
   -e LOG_CHANNEL=stderr \
   -e LOG_STACK=stderr \
-  ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.2.1
+  ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.3.0
 ```
 
 For queue, database, Redis, and nginx-backed deployments, use the runtime guidance in [`docs/production-runtime.md`](./docs/production-runtime.md).
@@ -52,7 +52,7 @@ The repository now runs two complementary image scanning paths:
 
 Stable backend releases publish the following GHCR tags:
 
-- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.2.1`
+- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.3.0`
 - `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.2`
 - `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1`
 - `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:latest` for stable non-prerelease tags only
@@ -66,7 +66,7 @@ If you want to consume the published image directly instead of building locally,
 ```yaml
 services:
   app:
-    image: ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.2.1
+    image: ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.3.0
     pull_policy: always
 ```
 
