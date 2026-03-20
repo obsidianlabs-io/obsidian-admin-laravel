@@ -7,7 +7,9 @@ namespace App\Domains\Access\Models;
 use App\Domains\Tenant\Models\Tenant;
 use App\Policies\RolePolicy;
 use Illuminate\Database\Eloquent\Attributes\Boot;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -54,6 +56,48 @@ class Role extends Model
         static::saving(function (Role $role): void {
             $role->setAttribute('tenant_scope_id', $role->tenant_id !== null ? (int) $role->tenant_id : 0);
         });
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function active(Builder $query): void
+    {
+        $query->where('status', '1');
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function inTenantScope(Builder $query, ?int $tenantId): void
+    {
+        if ($tenantId === null) {
+            $query->whereNull('tenant_id');
+
+            return;
+        }
+
+        $query->where('tenant_id', $tenantId);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function upToLevel(Builder $query, int $level): void
+    {
+        $query->where('level', '<=', $level);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function belowLevel(Builder $query, int $level): void
+    {
+        $query->where('level', '<', $level);
     }
 
     /**

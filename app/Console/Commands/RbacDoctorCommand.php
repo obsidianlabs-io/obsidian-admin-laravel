@@ -188,7 +188,7 @@ class RbacDoctorCommand extends Command
 
         $globalSuperRoles = Role::query()
             ->where('code', 'R_SUPER')
-            ->whereNull('tenant_id')
+            ->inTenantScope(null)
             ->with('permissions:id,code')
             ->orderBy('id')
             ->get(['id', 'code', 'tenant_id']);

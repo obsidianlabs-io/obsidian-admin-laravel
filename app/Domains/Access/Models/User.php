@@ -11,7 +11,9 @@ use App\Domains\Tenant\Models\Tenant;
 use App\Policies\UserPolicy;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Boot;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -88,6 +90,40 @@ class User extends Authenticatable
     {
         static::saving(function (User $user): void {
             $user->setAttribute('tenant_scope_id', $user->tenant_id !== null ? (int) $user->tenant_id : 0);
+        });
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function excludingUser(Builder $query, int $userId): void
+    {
+        $query->whereKeyNot($userId);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function visibleToActorLevel(Builder $query, int $actorLevel): void
+    {
+        $query->where(function (Builder $builder) use ($actorLevel): void {
+            $builder->whereNull('role_id')
+                ->orWhereHas('role', function (Builder $roleQuery) use ($actorLevel): void {
+                    $roleQuery->where('level', '<=', $actorLevel);
+                });
+        });
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function withRoleCode(Builder $query, string $roleCode): void
+    {
+        $query->whereHas('role', function (Builder $builder) use ($roleCode): void {
+            $builder->where('code', $roleCode);
         });
     }
 

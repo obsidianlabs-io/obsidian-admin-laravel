@@ -21,7 +21,7 @@ trait ResolvesRoleScope
         $this->applyRoleTenantScope($scopedQuery, $tenantId, $fallbackTenantId);
 
         $role = (clone $scopedQuery)
-            ->where('status', '1')
+            ->active()
             ->orderByRaw('CASE WHEN tenant_id IS NULL THEN 1 ELSE 0 END')
             ->orderByDesc('id')
             ->first();

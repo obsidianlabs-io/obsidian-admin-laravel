@@ -47,13 +47,9 @@ final class RoleScopeGuardService
 
     public function roleCodeExistsInScope(string $roleCode, ?int $tenantId, ?int $ignoreRoleId = null): bool
     {
-        $query = Role::query()->where('code', trim($roleCode));
-
-        if ($tenantId === null) {
-            $query->whereNull('tenant_id');
-        } else {
-            $query->where('tenant_id', $tenantId);
-        }
+        $query = Role::query()
+            ->where('code', trim($roleCode))
+            ->inTenantScope($tenantId);
 
         if ($ignoreRoleId !== null) {
             $query->whereKeyNot($ignoreRoleId);
@@ -84,13 +80,9 @@ final class RoleScopeGuardService
 
     public function roleNameExistsInScope(string $roleName, ?int $tenantId, ?int $ignoreRoleId = null): bool
     {
-        $query = Role::query()->where('name', trim($roleName));
-
-        if ($tenantId === null) {
-            $query->whereNull('tenant_id');
-        } else {
-            $query->where('tenant_id', $tenantId);
-        }
+        $query = Role::query()
+            ->where('name', trim($roleName))
+            ->inTenantScope($tenantId);
 
         if ($ignoreRoleId !== null) {
             $query->whereKeyNot($ignoreRoleId);
@@ -182,13 +174,13 @@ final class RoleScopeGuardService
         bool $manageableOnly
     ): void {
         if (! $manageableOnly) {
-            $query->where('level', '<=', $actorLevel);
+            $query->upToLevel($actorLevel);
 
             return;
         }
 
         $query->where(function (Builder $builder) use ($actorLevel, $tenantId, $isSuper): void {
-            $builder->where('level', '<', $actorLevel);
+            $builder->belowLevel($actorLevel);
 
             if ($this->allowPlatformPermissions($tenantId, $isSuper)) {
                 $builder->orWhere('code', self::RESERVED_ROLE_CODE_SUPER);

@@ -27,7 +27,7 @@ final class ListRolesQueryAction
             ->with('permissions:id,code,status')
             ->withCount('users')
             ->select(['id', 'code', 'name', 'description', 'status', 'tenant_id', 'level', 'created_at', 'updated_at'])
-            ->where('level', '<=', $actorLevel);
+            ->upToLevel($actorLevel);
 
         $this->roleScopeGuardService->applyRoleVisibilityScope($query, $tenantId, $isSuper);
         $this->applyFilters($query, $input);

@@ -169,7 +169,7 @@ class RoleController extends ApiController
             'all|tenant:'.($scopeTenantId ?? 0).'|level:'.$actorLevel.'|super:'.($isSuper ? 1 : 0).'|manageable:'.($manageableOnly ? 1 : 0),
             function () use ($actorLevel, $scopeTenantId, $isSuper, $manageableOnly): array {
                 $query = Role::query()
-                    ->where('status', '1')
+                    ->active()
                     ->orderBy('id');
                 $this->roleScopeGuardService->applyRoleVisibilityScope($query, $scopeTenantId, $isSuper);
                 $this->roleScopeGuardService->applyRoleManageableFilter(

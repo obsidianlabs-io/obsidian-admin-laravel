@@ -36,13 +36,8 @@ final class UserTenantScopeService
                 'created_at',
                 'updated_at',
             ])
-            ->where('id', '!=', $authUser->id)
-            ->where(function (Builder $builder) use ($actorLevel): void {
-                $builder->whereNull('role_id')
-                    ->orWhereHas('role', function (Builder $roleQuery) use ($actorLevel): void {
-                        $roleQuery->where('level', '<=', $actorLevel);
-                    });
-            });
+            ->excludingUser($authUser->id)
+            ->visibleToActorLevel($actorLevel);
 
         TenantVisibility::applyScope($query, $tenantId, $isSuper);
 
@@ -76,9 +71,7 @@ final class UserTenantScopeService
         }
 
         if ($roleCode !== '') {
-            $query->whereHas('role', function (Builder $builder) use ($roleCode): void {
-                $builder->where('code', $roleCode);
-            });
+            $query->withRoleCode($roleCode);
         }
 
         if ($status !== '') {
