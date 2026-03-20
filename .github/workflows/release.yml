@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v6
         with:
@@ -89,7 +91,7 @@ jobs:
             type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
           labels: |
             org.opencontainers.image.title=obsidian-admin-laravel
-            org.opencontainers.image.description=Production-ready Laravel 12 admin backend with domain-driven boundaries, multi-tenancy, audit logs, and official Octane integration.
+            org.opencontainers.image.description=Production-ready Laravel 13 admin backend with domain-driven boundaries, multi-tenancy, audit logs, and official Octane integration.
             org.opencontainers.image.vendor=Obsidian Labs
             org.opencontainers.image.licenses=MIT
 
