@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\Tenant\Models;
 
 use App\Domains\Access\Models\User;
+use App\Policies\OrganizationPolicy;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[UsePolicy(OrganizationPolicy::class)]
 class Organization extends Model
 {
     /** @use HasFactory<Factory<self>> */

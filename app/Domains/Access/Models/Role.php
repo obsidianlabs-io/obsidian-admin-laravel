@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Domains\Access\Models;
 
 use App\Domains\Tenant\Models\Tenant;
+use App\Policies\RolePolicy;
+use Illuminate\Database\Eloquent\Attributes\Boot;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[UsePolicy(RolePolicy::class)]
 class Role extends Model
 {
     /** @use HasFactory<Factory<self>> */
@@ -44,7 +48,8 @@ class Role extends Model
         ];
     }
 
-    protected static function booted(): void
+    #[Boot]
+    protected static function syncTenantScopeId(): void
     {
         static::saving(function (Role $role): void {
             $role->setAttribute('tenant_scope_id', $role->tenant_id !== null ? (int) $role->tenant_id : 0);

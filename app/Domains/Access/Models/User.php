@@ -8,7 +8,10 @@ namespace App\Domains\Access\Models;
 use App\Domains\Tenant\Models\Organization;
 use App\Domains\Tenant\Models\Team;
 use App\Domains\Tenant\Models\Tenant;
+use App\Policies\UserPolicy;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Attributes\Boot;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -17,6 +20,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+#[UsePolicy(UserPolicy::class)]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -79,7 +83,8 @@ class User extends Authenticatable
         ];
     }
 
-    protected static function booted(): void
+    #[Boot]
+    protected static function syncTenantScopeId(): void
     {
         static::saving(function (User $user): void {
             $user->setAttribute('tenant_scope_id', $user->tenant_id !== null ? (int) $user->tenant_id : 0);
