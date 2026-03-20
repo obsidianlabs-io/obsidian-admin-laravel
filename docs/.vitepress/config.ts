@@ -7,7 +7,7 @@ const frontendRepo = 'https://github.com/obsidianlabs-io/obsidian-admin-vue';
 export default defineConfig({
   base: process.env.VITEPRESS_BASE || '/',
   title: 'Obsidian Admin Laravel',
-  description: 'Strictly-typed Laravel 12 admin backend for enterprise systems, SaaS platforms, and contract-driven frontend pairing.',
+  description: 'Strictly-typed Laravel 13 admin backend for enterprise systems, SaaS platforms, and contract-driven frontend pairing.',
   lang: 'en-US',
   cleanUrls: true,
   lastUpdated: true,

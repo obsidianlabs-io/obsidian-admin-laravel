@@ -10,6 +10,12 @@ This repository is versioned independently from `obsidian-admin-vue`.
 | `v1.2.1` | `v1.2.0` | Stable | Current documented release pair. |
 | `v1.2.0` | `v1.1.1` | Stable | Previous stable release pair. |
 
+## Next coordinated release
+
+- Backend `main` now tracks the Laravel 13 baseline.
+- The next backend release note is prepared as `docs/releases/v1.3.0.md`.
+- No backend contract changes are currently expected to force a frontend release before the next coordinated pair is cut.
+
 ## Source of truth
 
 - Backend API contract: `docs/openapi.yaml`
