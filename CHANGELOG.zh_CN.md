@@ -9,6 +9,33 @@
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-03-20
+
+### ✨ 新增
+- 将 backend framework baseline 从 Laravel 12 升级到 Laravel 13，并同步切到 Laravel 13 兼容的 Octane、Pulse、Pennant、Scramble 依赖线。
+- 在真实运行代码中接入 Laravel 13 框架能力：
+  - `PreventRequestForgery`
+  - `Queue::route(...)`
+  - controller `#[Middleware]`
+  - `Cache::touch(...)`
+- 开始在 backend 领域模型中采用 Eloquent attribute-first 风格：
+  - 在 `User`、`Role`、`AuditPolicy` 上使用 `#[Boot]`
+  - 在带 policy 的 access、tenant、audit 模型上使用 `#[UsePolicy]`
+  - 在 `Role`、`User`、`AuditLog` 上使用 `#[Scope]`
+- 新增针对 Laravel 13 model attributes 与 Eloquent local scopes 的回归测试覆盖。
+
+### 🔧 调整
+- 将 backend 测试与工具链升级到 Laravel 13 生态：
+  - Pest 4
+  - PHPUnit 12
+- 将 policy 归属更贴近 model，自 `AuthServiceProvider` 中移除冗余的显式 policy 注册。
+- 将重复出现的 role、user、audit-log 查询语义收敛为 model-local scopes，同时保持公开 API contract 不变。
+- 补齐 backend `v1.3.0` 的 release lane 与 compatibility 文档，明确与 frontend `v1.2.0` 的配对计划。
+
+### 🐞 修复
+- 在把 model lifecycle hook 从 `booted()` 迁到 Laravel 13 `#[Boot]` 时，保持 tenant-scope 归一化行为不变。
+- 在把重复查询条件迁到 Laravel 13 local scopes 时，保持既有 role、user、audit-log 过滤行为不变。
+
 ## [1.2.1] - 2026-03-12
 
 ### ✨ 新增

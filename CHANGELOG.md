@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-03-20
+
+### ✨ Added
+- Upgraded the backend framework baseline from Laravel 12 to Laravel 13, including the Laravel 13-compatible Octane, Pulse, Pennant, and Scramble dependency lane.
+- Added Laravel 13 framework capability adoption in live runtime code:
+  - `PreventRequestForgery`
+  - `Queue::route(...)`
+  - controller `#[Middleware]`
+  - `Cache::touch(...)`
+- Added Eloquent attribute-first adoption for the backend domain model:
+  - `#[Boot]` on `User`, `Role`, and `AuditPolicy`
+  - `#[UsePolicy]` on policy-backed access, tenant, and audit models
+  - `#[Scope]` on `Role`, `User`, and `AuditLog`
+- Added targeted regression coverage for Laravel 13 model attributes and Eloquent local scopes.
+
+### 🔧 Changed
+- Updated the backend test and tooling stack to the Laravel 13 ecosystem:
+  - Pest 4
+  - PHPUnit 12
+- Moved policy ownership closer to the model layer and reduced `AuthServiceProvider` policy-registration noise.
+- Refined repeated role, user, and audit-log query semantics into model-local scopes without changing the published API contract.
+- Prepared the backend `v1.3.0` release lane and compatibility documentation for pairing with frontend `v1.2.0`.
+
+### 🐞 Fixed
+- Preserved tenant-scope normalization behavior while moving model lifecycle hooks from `booted()` into Laravel 13 `#[Boot]` methods.
+- Preserved existing role, user, and audit-log filtering behavior while migrating repeated query clauses to Laravel 13 local scopes.
+
 ## [1.2.1] - 2026-03-12
 
 ### ✨ Added
