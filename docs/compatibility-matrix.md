@@ -7,14 +7,15 @@ This repository is versioned independently from `obsidian-admin-vue`.
 | Backend | Frontend | Status | Notes |
 | --- | --- | --- | --- |
 | `main` | `main` | Active development | CI and local contract tooling assume both repositories move together. |
+| `v1.3.0` | `v1.2.0` | Planned | Laravel 13 backend minor release. No coordinated frontend tag is currently required for contract compatibility. |
 | `v1.2.1` | `v1.2.0` | Stable | Current documented release pair. |
 | `v1.2.0` | `v1.1.1` | Stable | Previous stable release pair. |
 
 ## Next coordinated release
 
 - Backend `main` now tracks the Laravel 13 baseline.
-- The next backend release note is prepared as `docs/releases/v1.3.0.md`.
-- No backend contract changes are currently expected to force a frontend release before the next coordinated pair is cut.
+- The next backend release is planned as `v1.3.0`.
+- The current plan is to keep frontend `v1.2.0` as the compatible published frontend release because no backend contract break is expected.
 
 ## Source of truth
 
