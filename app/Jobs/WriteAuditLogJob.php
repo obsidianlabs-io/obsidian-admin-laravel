@@ -41,15 +41,6 @@ class WriteAuditLogJob implements ShouldQueueAfterCommit
         $this->tries = max(1, (int) config('audit.queue.tries', 5));
         $this->backoff = $this->normalizeBackoff(config('audit.queue.backoff', [5, 30, 120]));
         $this->timeout = max(1, (int) config('audit.queue.timeout', 15));
-
-        $connection = trim((string) config('audit.queue.connection', (string) config('queue.default', 'database')));
-        $queue = trim((string) config('audit.queue.name', 'audit'));
-        if ($connection !== '') {
-            $this->onConnection($connection);
-        }
-        if ($queue !== '') {
-            $this->onQueue($queue);
-        }
     }
 
     public function handle(AuditLogService $auditLogService): void

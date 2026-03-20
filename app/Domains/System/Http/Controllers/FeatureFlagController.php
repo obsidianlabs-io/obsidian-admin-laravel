@@ -15,7 +15,11 @@ use App\Http\Requests\Api\FeatureFlag\ListFeatureFlagsRequest;
 use App\Http\Requests\Api\FeatureFlag\PurgeFeatureFlagRequest;
 use App\Http\Requests\Api\FeatureFlag\ToggleFeatureFlagRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 
+#[Middleware('tenant.context')]
+#[Middleware('api.auth')]
+#[Middleware('api.permission:system.manage')]
 class FeatureFlagController extends ApiController
 {
     public function __construct(

@@ -9,7 +9,10 @@ use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Services\CrudSchemaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Middleware;
 
+#[Middleware('tenant.context')]
+#[Middleware('api.auth')]
 final class CrudSchemaController extends ApiController
 {
     public function __construct(private readonly CrudSchemaService $crudSchemaService) {}

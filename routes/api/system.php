@@ -55,13 +55,11 @@ return static function (?string $version, callable $toVersionedPath): void {
     Route::get($toVersionedPath($version, 'health'), [HealthController::class, 'show']);
 
     Route::prefix($toVersionedPath($version, 'system/feature-flags'))
-        ->middleware(['tenant.context', 'api.auth', 'api.permission:system.manage'])
         ->group(function (): void {
             Route::get('/', [FeatureFlagController::class, 'index']);
             Route::put('/toggle', [FeatureFlagController::class, 'toggle']);
             Route::delete('/purge', [FeatureFlagController::class, 'purge']);
         });
 
-    Route::get($toVersionedPath($version, 'system/ui/crud-schema/{resource}'), [CrudSchemaController::class, 'show'])
-        ->middleware(['tenant.context', 'api.auth']);
+    Route::get($toVersionedPath($version, 'system/ui/crud-schema/{resource}'), [CrudSchemaController::class, 'show']);
 };

@@ -30,9 +30,11 @@ class CacheOpenApiSpec
             return $next($request);
         }
 
+        $ttlSeconds = max(1, (int) config('api.docs.cache_ttl_seconds', 600));
         $cacheKey = $this->cacheKey($request);
         $cached = Cache::get($cacheKey);
         if (is_array($cached) && isset($cached['body']) && is_string($cached['body'])) {
+            Cache::touch($cacheKey, now()->addSeconds($ttlSeconds));
             $headers = is_array($cached['headers'] ?? null) ? $cached['headers'] : [];
 
             return response($cached['body'], 200, $headers);
@@ -51,7 +53,7 @@ class CacheOpenApiSpec
                     'Content-Type' => $response->headers->get('Content-Type', 'application/json'),
                 ],
             ],
-            now()->addSeconds(max(1, (int) config('api.docs.cache_ttl_seconds', 600)))
+            now()->addSeconds($ttlSeconds)
         );
 
         return $response;
