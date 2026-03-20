@@ -68,7 +68,7 @@ final class ListAuditLogsQueryAction
         }
 
         if ($input->logType !== '') {
-            $query->where('log_type', $input->logType);
+            $query->withLogType($input->logType);
         }
 
         if ($input->userName !== '') {
@@ -78,17 +78,17 @@ final class ListAuditLogsQueryAction
         }
 
         if ($input->requestId !== '') {
-            $query->where('request_id', 'like', '%'.$input->requestId.'%');
+            $query->matchingRequestId($input->requestId);
         }
 
         if ($input->dateFrom === '' && $input->dateTo === '') {
             $defaultFrom = now($userTimezone)->subDays(7)->utc();
-            $query->where('created_at', '>=', $defaultFrom);
+            $query->fromTimestamp($defaultFrom);
         }
 
         if ($input->dateFrom !== '') {
             $from = Carbon::parse($input->dateFrom, $userTimezone)->utc();
-            $query->where('created_at', '>=', $from);
+            $query->fromTimestamp($from);
         }
 
         if ($input->dateTo !== '') {
@@ -98,7 +98,7 @@ final class ListAuditLogsQueryAction
                 $to = $to->copy()->addMinute()->subSecond();
             }
 
-            $query->where('created_at', '<=', $to);
+            $query->untilTimestamp($to);
         }
     }
 }

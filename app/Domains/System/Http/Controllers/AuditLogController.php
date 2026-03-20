@@ -64,7 +64,7 @@ class AuditLogController extends ApiController
         $total = (clone $query)->count();
 
         $records = AuditLogListResource::collection(
-            $query->orderByDesc('id')
+            $query->latestFirst()
                 ->forPage($input->current, $input->size)
                 ->get()
         )->resolve($request);

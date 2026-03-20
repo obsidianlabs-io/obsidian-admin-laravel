@@ -321,15 +321,15 @@ class AuditPolicyService
 
             $deleted = $this->runPruneQuery(
                 AuditLog::query()
-                    ->where('action', $action)
-                    ->where('created_at', '<', $cutoff),
+                    ->forAction($action)
+                    ->beforeTimestamp($cutoff),
                 $dryRun
             );
             $totalDeleted += $deleted;
         }
 
         $unknownCutoff = $now->copy()->subDays($this->optionalDefaultRetentionDays());
-        $unknownQuery = AuditLog::query()->where('created_at', '<', $unknownCutoff);
+        $unknownQuery = AuditLog::query()->beforeTimestamp($unknownCutoff);
         if ($knownActions !== []) {
             $unknownQuery->whereNotIn('action', $knownActions);
         }

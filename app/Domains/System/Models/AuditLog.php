@@ -7,7 +7,10 @@ namespace App\Domains\System\Models;
 use App\Domains\Access\Models\User;
 use App\Domains\Tenant\Models\Tenant;
 use App\Policies\AuditLogPolicy;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -60,6 +63,69 @@ class AuditLog extends Model
             'new_values' => 'array',
             'request_id' => 'string',
         ];
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function withLogType(Builder $query, string $logType): void
+    {
+        $query->where('log_type', $logType);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function matchingRequestId(Builder $query, string $requestId): void
+    {
+        $query->where('request_id', 'like', '%'.$requestId.'%');
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function forAction(Builder $query, string $action): void
+    {
+        $query->where('action', $action);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function beforeTimestamp(Builder $query, CarbonInterface $cutoff): void
+    {
+        $query->where('created_at', '<', $cutoff);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function fromTimestamp(Builder $query, CarbonInterface $from): void
+    {
+        $query->where('created_at', '>=', $from);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function untilTimestamp(Builder $query, CarbonInterface $to): void
+    {
+        $query->where('created_at', '<=', $to);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function latestFirst(Builder $query): void
+    {
+        $query->orderByDesc('id');
     }
 
     /**
