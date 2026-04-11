@@ -22,11 +22,11 @@ abstract class BaseApiRequest extends FormRequest
     {
         /** @var array<string, list<string>> $errors */
         $errors = collect($validator->errors()->toArray())
-            ->map(function ($messages): array {
-                return collect(is_array($messages) ? $messages : [$messages])
-                    ->map(static fn (mixed $message): string => (string) $message)
-                    ->values()
-                    ->all();
+            ->map(static function (array $messages): array {
+                return array_values(array_map(
+                    static fn (mixed $message): string => (string) $message,
+                    $messages
+                ));
             })
             ->all();
 
