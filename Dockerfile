@@ -4,7 +4,8 @@ FROM php:8.4-fpm-alpine AS php-base
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-RUN apk add --no-cache \
+RUN apk upgrade --no-cache \
+    && apk add --no-cache \
     bash \
     fcgi \
     icu-libs \
