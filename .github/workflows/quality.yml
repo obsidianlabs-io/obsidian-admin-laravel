@@ -77,9 +77,9 @@ jobs:
           persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
         with:
-          version: 10.17.1
+          package_json_file: obsidian-admin-vue/package.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
