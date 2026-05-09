@@ -51,7 +51,7 @@ class ResolveTenantContext
                 $tenantContext->code(),
                 $tenantContext->message(),
                 [],
-                $this->resolveHttpStatus($tenantContext->code())
+                ApiResultCode::resolveHttpStatus($tenantContext->code())
             );
         }
         if ($roleScope->failed()) {
@@ -60,7 +60,7 @@ class ResolveTenantContext
                 $roleScope->code(),
                 $roleScope->message(),
                 [],
-                $this->resolveHttpStatus($roleScope->code())
+                ApiResultCode::resolveHttpStatus($roleScope->code())
             );
         }
 
@@ -84,13 +84,6 @@ class ResolveTenantContext
         // AuthenticateApiToken will handle that when it runs next.
 
         return $next($request);
-    }
-
-    private function resolveHttpStatus(string $code): int
-    {
-        $enum = ApiResultCode::tryFrom($code);
-
-        return $enum?->httpStatus() ?? 200;
     }
 
     /**

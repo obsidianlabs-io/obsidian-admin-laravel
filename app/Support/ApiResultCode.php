@@ -37,4 +37,9 @@ enum ApiResultCode: string
             self::SUCCESS => 200,
         };
     }
+
+    public static function resolveHttpStatus(string $code): int
+    {
+        return self::tryFrom($code)?->httpStatus() ?? 200;
+    }
 }

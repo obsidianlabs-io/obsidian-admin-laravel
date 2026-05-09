@@ -26,9 +26,12 @@ class AuthenticateApiToken
         $authResult = $this->tokenResolver->resolveFromRequest($request, $ability);
 
         if ($authResult->failed()) {
-            $httpStatus = $authResult->code() === ApiResultCode::TOKEN_EXPIRED->value ? 401 : 401;
-
-            return $this->error($request, $authResult->code(), $authResult->message(), $httpStatus);
+            return $this->error(
+                $request,
+                $authResult->code(),
+                $authResult->message(),
+                ApiResultCode::resolveHttpStatus($authResult->code())
+            );
         }
 
         $user = $authResult->user();

@@ -46,20 +46,10 @@ abstract class ApiController extends Controller
 
         // Auto-map semantic HTTP status from business error codes when not explicitly provided
         if ($httpStatus === 200) {
-            $httpStatus = $code instanceof ApiResultCode ? $code->httpStatus() : $this->resolveHttpStatus($codeValue);
+            $httpStatus = $code instanceof ApiResultCode ? $code->httpStatus() : ApiResultCode::resolveHttpStatus($codeValue);
         }
 
         return $this->responseFactory()->error($codeValue, $msg, $data, $httpStatus);
-    }
-
-    /**
-     * Map business error codes to semantic HTTP status codes.
-     */
-    private function resolveHttpStatus(string $code): int
-    {
-        $enum = ApiResultCode::tryFrom($code);
-
-        return $enum?->httpStatus() ?? 200;
     }
 
     /**

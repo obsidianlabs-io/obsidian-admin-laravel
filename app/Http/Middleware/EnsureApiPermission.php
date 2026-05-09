@@ -40,8 +40,6 @@ class EnsureApiPermission
 
     private function error(Request $request, string $code, string $msg): Response
     {
-        $httpStatus = $code === ApiResultCode::UNAUTHORIZED->value ? 401 : 403;
-
-        return ApiErrorResponse::json($request, $code, $msg, [], $httpStatus);
+        return ApiErrorResponse::json($request, $code, $msg, [], ApiResultCode::resolveHttpStatus($code));
     }
 }
