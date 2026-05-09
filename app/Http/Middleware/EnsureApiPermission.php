@@ -6,16 +6,13 @@ namespace App\Http\Middleware;
 
 use App\Domains\Access\Models\User;
 use App\Support\ApiErrorResponse;
+use App\Support\ApiResultCode;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureApiPermission
 {
-    private const FORBIDDEN_CODE = '1003';
-
-    private const UNAUTHORIZED_CODE = '8888';
-
     /**
      * Handle an incoming request.
      *
@@ -25,7 +22,7 @@ class EnsureApiPermission
     {
         $user = $request->attributes->get('auth_user');
         if (! $user instanceof User) {
-            return $this->error($request, self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error($request, ApiResultCode::UNAUTHORIZED->value, 'Unauthorized');
         }
 
         if ($permissionCodes === []) {
@@ -38,11 +35,13 @@ class EnsureApiPermission
             }
         }
 
-        return $this->error($request, self::FORBIDDEN_CODE, 'Forbidden');
+        return $this->error($request, ApiResultCode::FORBIDDEN->value, 'Forbidden');
     }
 
     private function error(Request $request, string $code, string $msg): Response
     {
-        return ApiErrorResponse::json($request, $code, $msg);
+        $httpStatus = $code === ApiResultCode::UNAUTHORIZED->value ? 401 : 403;
+
+        return ApiErrorResponse::json($request, $code, $msg, [], $httpStatus);
     }
 }

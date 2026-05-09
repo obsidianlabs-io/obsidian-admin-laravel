@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Support\ApiResultCode;
 use Tests\TestCase;
 
 class ValidationLocaleTest extends TestCase
@@ -16,8 +17,8 @@ class ValidationLocaleTest extends TestCase
             'Accept-Language' => 'zh-CN',
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1001');
+        $response->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::LOGIN_FAILED->value);
 
         $this->assertStringContainsString('密码', (string) $response->json('msg'));
         $this->assertStringContainsString('密码', (string) $response->json('data.errors.password.0'));
@@ -32,8 +33,8 @@ class ValidationLocaleTest extends TestCase
             'X-Locale' => 'en-US',
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1001');
+        $response->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::LOGIN_FAILED->value);
 
         $this->assertStringContainsString('password', strtolower((string) $response->json('msg')));
         $this->assertStringContainsString('password', strtolower((string) $response->json('data.errors.password.0')));

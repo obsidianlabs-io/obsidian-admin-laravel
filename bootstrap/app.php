@@ -10,6 +10,7 @@ use App\Http\Middleware\RecordApiAccessLog;
 use App\Http\Middleware\ResolveTenantContext;
 use App\Http\Middleware\SetRequestLocale;
 use App\Support\ApiErrorResponse;
+use App\Support\ApiResultCode;
 use App\Support\TrustedProxyConfig;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -94,7 +95,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $message = 'Validation failed';
             }
 
-            return ApiErrorResponse::json($request, '1002', $message);
+            return ApiErrorResponse::json($request, ApiResultCode::PARAM_ERROR->value, $message, [], 422);
         });
 
         $exceptions->render(function (AuthenticationException $exception, Request $request) use ($isApiRequest) {
@@ -107,7 +108,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $message = 'Unauthorized';
             }
 
-            return ApiErrorResponse::json($request, '8888', $message);
+            return ApiErrorResponse::json($request, ApiResultCode::UNAUTHORIZED->value, $message, [], 401);
         });
 
         $exceptions->render(function (AuthorizationException $exception, Request $request) use ($isApiRequest) {
@@ -120,7 +121,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $message = 'Forbidden';
             }
 
-            return ApiErrorResponse::json($request, '1003', $message);
+            return ApiErrorResponse::json($request, ApiResultCode::FORBIDDEN->value, $message, [], 403);
         });
 
         $exceptions->render(function (ThrottleRequestsException $exception, Request $request) use ($isApiRequest) {
@@ -136,7 +137,7 @@ return Application::configure(basePath: dirname(__DIR__))
             $retryAfter = (int) ($exception->getHeaders()['Retry-After'] ?? 0);
             $data = $retryAfter > 0 ? ['retryAfter' => $retryAfter] : [];
 
-            return ApiErrorResponse::json($request, '4290', $message, $data);
+            return ApiErrorResponse::json($request, ApiResultCode::TOO_MANY_REQUESTS->value, $message, $data, 429);
         });
 
         $exceptions->render(function (ModelNotFoundException $exception, Request $request) use ($isApiRequest) {
@@ -146,7 +147,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             unset($exception);
 
-            return ApiErrorResponse::json($request, '4040', 'Not Found');
+            return ApiErrorResponse::json($request, ApiResultCode::NOT_FOUND->value, 'Not Found', [], 404);
         });
 
         $exceptions->render(function (NotFoundHttpException $exception, Request $request) use ($isApiRequest) {
@@ -156,7 +157,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             unset($exception);
 
-            return ApiErrorResponse::json($request, '4040', 'Not Found');
+            return ApiErrorResponse::json($request, ApiResultCode::NOT_FOUND->value, 'Not Found', [], 404);
         });
 
         $exceptions->render(function (MethodNotAllowedHttpException $exception, Request $request) use ($isApiRequest) {
@@ -166,7 +167,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             unset($exception);
 
-            return ApiErrorResponse::json($request, '4050', 'Method Not Allowed');
+            return ApiErrorResponse::json($request, ApiResultCode::METHOD_NOT_ALLOWED->value, 'Method Not Allowed', [], 405);
         });
 
         $exceptions->render(function (Throwable $exception, Request $request) use ($isApiRequest) {
@@ -182,6 +183,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 }
             }
 
-            return ApiErrorResponse::json($request, '5000', $message);
+            return ApiErrorResponse::json($request, ApiResultCode::SERVER_ERROR->value, $message, [], 500);
         });
     })->create();

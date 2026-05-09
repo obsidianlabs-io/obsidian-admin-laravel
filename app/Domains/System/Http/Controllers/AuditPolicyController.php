@@ -17,6 +17,7 @@ use App\Http\Requests\Api\Audit\ListAuditPoliciesRequest;
 use App\Http\Requests\Api\Audit\ListAuditPolicyHistoryRequest;
 use App\Http\Requests\Api\Audit\UpdateAuditPoliciesRequest;
 use App\Support\ApiDateTime;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -64,7 +65,7 @@ class AuditPolicyController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $input = $request->toDTO();
         $changeReason = $input->changeReason;
@@ -76,7 +77,7 @@ class AuditPolicyController extends ApiController
                 changeReason: $changeReason
             );
         } catch (InvalidArgumentException $exception) {
-            return $this->error(self::PARAM_ERROR_CODE, $exception->getMessage());
+            return $this->error(ApiResultCode::PARAM_ERROR, $exception->getMessage());
         }
 
         event(AuditPolicyUpdatedEvent::fromRequest($user, $request, $changeReason, $result));
@@ -109,14 +110,14 @@ class AuditPolicyController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return ApiAuthResult::failure(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         if (! $this->tenantContextService->isSuperAdmin($user)) {
-            return ApiAuthResult::failure(self::FORBIDDEN_CODE, 'Forbidden');
+            return ApiAuthResult::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         if (! $user->hasPermission($permissionCode)) {
-            return ApiAuthResult::failure(self::FORBIDDEN_CODE, 'Forbidden');
+            return ApiAuthResult::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $selectedTenantRaw = $request->header('X-Tenant-Id');
@@ -124,7 +125,7 @@ class AuditPolicyController extends ApiController
             ? (int) trim($selectedTenantRaw)
             : 0;
         if ($selectedTenantId > 0) {
-            return ApiAuthResult::failure(self::FORBIDDEN_CODE, 'Switch to No Tenant to manage audit policy');
+            return ApiAuthResult::failure(ApiResultCode::FORBIDDEN, 'Switch to No Tenant to manage audit policy');
         }
 
         return ApiAuthResult::success($user, $authResult->token());

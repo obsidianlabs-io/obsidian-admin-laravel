@@ -15,6 +15,7 @@ use App\Http\Requests\Api\User\CreateUserRequest;
 use App\Http\Requests\Api\User\ListUsersRequest;
 use App\Http\Requests\Api\User\UpdateUserRequest;
 use App\Support\ApiDateTime;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -93,11 +94,11 @@ class UserManagementController extends AbstractUserController
         $user = $userTenantScopeService->findUserInTenantScope($id, $tenantId, $isSuper);
         if (! $user) {
             return User::query()->whereKey($id)->exists()
-                ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
-                : $this->error(self::PARAM_ERROR_CODE, 'User not found');
+                ? $this->error(ApiResultCode::FORBIDDEN, 'Forbidden')
+                : $this->error(ApiResultCode::PARAM_ERROR, 'User not found');
         }
         if (! $this->isUserLevelAllowed($actorLevel, $user)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $optimisticLockError = $this->ensureOptimisticLock($request, $user, 'User');
@@ -108,17 +109,17 @@ class UserManagementController extends AbstractUserController
         $input = $request->toDTO();
         $roleLookup = $this->findActiveRoleByCode($input->roleCode, $tenantId, (int) ($user->tenant_id ?? 0));
         if ($roleLookup->failed()) {
-            return $this->error(self::PARAM_ERROR_CODE, $roleLookup->message());
+            return $this->error(ApiResultCode::PARAM_ERROR, $roleLookup->message());
         }
 
         $roleModel = $roleLookup->requireRole();
         if (! $this->isRoleLevelAllowed($actorLevel, $roleModel)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $targetTenantId = $user->tenant_id ? (int) $user->tenant_id : null;
         if (! $this->isRoleInTenantScope($roleModel, $targetTenantId)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Role does not belong to user tenant');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Role does not belong to user tenant');
         }
 
         $oldValues = [
@@ -162,15 +163,15 @@ class UserManagementController extends AbstractUserController
 
         $roleLookup = $this->findActiveRoleByCode($input->roleCode, $tenantId);
         if ($roleLookup->failed()) {
-            return $this->error(self::PARAM_ERROR_CODE, $roleLookup->message());
+            return $this->error(ApiResultCode::PARAM_ERROR, $roleLookup->message());
         }
 
         $roleModel = $roleLookup->requireRole();
         if (! $this->isRoleLevelAllowed($actorLevel, $roleModel)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
         if (! $this->isRoleInTenantScope($roleModel, $tenantId)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Role does not belong to selected tenant');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Role does not belong to selected tenant');
         }
         $targetTenantId = $roleModel->tenant_id !== null ? (int) $roleModel->tenant_id : null;
         $bindingResult = $userTenantScopeService->resolveOrganizationTeamBinding(
@@ -179,7 +180,7 @@ class UserManagementController extends AbstractUserController
             $input->teamId
         );
         if ($bindingResult->failed()) {
-            return $this->error(self::PARAM_ERROR_CODE, $bindingResult->message());
+            return $this->error(ApiResultCode::PARAM_ERROR, $bindingResult->message());
         }
         $organizationId = $bindingResult->organizationId();
         $teamId = $bindingResult->teamId();
@@ -232,11 +233,11 @@ class UserManagementController extends AbstractUserController
         $user = $userTenantScopeService->findUserInTenantScope($id, $tenantId, $isSuper);
         if (! $user) {
             return User::query()->whereKey($id)->exists()
-                ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
-                : $this->error(self::PARAM_ERROR_CODE, 'User not found');
+                ? $this->error(ApiResultCode::FORBIDDEN, 'Forbidden')
+                : $this->error(ApiResultCode::PARAM_ERROR, 'User not found');
         }
         if (! $this->isUserLevelAllowed($actorLevel, $user)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $optimisticLockError = $this->ensureOptimisticLock($request, $user, 'User');
@@ -248,16 +249,16 @@ class UserManagementController extends AbstractUserController
 
         $roleLookup = $this->findActiveRoleByCode($input->roleCode, $tenantId, (int) ($user->tenant_id ?? 0));
         if ($roleLookup->failed()) {
-            return $this->error(self::PARAM_ERROR_CODE, $roleLookup->message());
+            return $this->error(ApiResultCode::PARAM_ERROR, $roleLookup->message());
         }
 
         $roleModel = $roleLookup->requireRole();
         if (! $this->isRoleLevelAllowed($actorLevel, $roleModel)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
         $targetTenantId = $user->tenant_id ? (int) $user->tenant_id : null;
         if (! $this->isRoleInTenantScope($roleModel, $targetTenantId)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Role does not belong to user tenant');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Role does not belong to user tenant');
         }
         $bindingResult = $userTenantScopeService->resolveOrganizationTeamBinding(
             $targetTenantId,
@@ -265,7 +266,7 @@ class UserManagementController extends AbstractUserController
             $input->teamId
         );
         if ($bindingResult->failed()) {
-            return $this->error(self::PARAM_ERROR_CODE, $bindingResult->message());
+            return $this->error(ApiResultCode::PARAM_ERROR, $bindingResult->message());
         }
         $organizationId = $bindingResult->organizationId();
         $teamId = $bindingResult->teamId();
@@ -326,17 +327,17 @@ class UserManagementController extends AbstractUserController
         $isSuper = $context->isSuper();
 
         if ($authUser->id === $id) {
-            return $this->error(self::FORBIDDEN_CODE, 'Current user cannot be deleted');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Current user cannot be deleted');
         }
 
         $user = $userTenantScopeService->findUserInTenantScope($id, $tenantId, $isSuper);
         if (! $user) {
             return User::query()->whereKey($id)->exists()
-                ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
-                : $this->error(self::PARAM_ERROR_CODE, 'User not found');
+                ? $this->error(ApiResultCode::FORBIDDEN, 'Forbidden')
+                : $this->error(ApiResultCode::PARAM_ERROR, 'User not found');
         }
         if (! $this->isUserLevelAllowed($actorLevel, $user)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $oldValues = [

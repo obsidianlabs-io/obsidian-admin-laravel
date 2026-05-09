@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Domains\Tenant\Models\Tenant;
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,7 +28,7 @@ class FeatureRolloutCommandTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.routeRules.permission.enabled', false);
     }
 
@@ -47,7 +48,7 @@ class FeatureRolloutCommandTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.routeRules.role.enabled', false);
 
         $this->artisan(sprintf('feature:rollout menu.role reset --tenant=%d --roles=R_ADMIN', $tenantId))
@@ -59,7 +60,7 @@ class FeatureRolloutCommandTest extends TestCase
         ]);
 
         $responseAfterReset->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.routeRules.role.enabled', true);
     }
 
@@ -71,7 +72,7 @@ class FeatureRolloutCommandTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         return (string) $response->json('data.token');
     }

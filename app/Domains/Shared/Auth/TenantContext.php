@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domains\Shared\Auth;
 
+use App\Support\ApiResultCode;
+
 final readonly class TenantContext
 {
     /**
@@ -25,12 +27,12 @@ final readonly class TenantContext
         ?int $tenantId,
         string $tenantName,
         array $tenants = [],
-        string $code = '0000',
+        string|ApiResultCode $code = ApiResultCode::SUCCESS,
         string $message = 'ok',
     ): self {
         return new self(
             ok: true,
-            code: $code,
+            code: $code instanceof ApiResultCode ? $code->value : $code,
             message: $message,
             tenantId: $tenantId,
             tenantName: $tenantName,
@@ -38,11 +40,11 @@ final readonly class TenantContext
         );
     }
 
-    public static function failure(string $code, string $message): self
+    public static function failure(string|ApiResultCode $code, string $message): self
     {
         return new self(
             ok: false,
-            code: $code,
+            code: $code instanceof ApiResultCode ? $code->value : $code,
             message: $message,
         );
     }

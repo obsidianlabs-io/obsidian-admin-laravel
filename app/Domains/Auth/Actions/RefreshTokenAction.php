@@ -11,12 +11,11 @@ use App\Domains\Auth\Services\SessionProjector;
 use App\Domains\Auth\Services\TokenIssuer;
 use App\Domains\Auth\Services\UserAgentParser;
 use App\DTOs\Auth\RefreshTokenInputDTO;
+use App\Support\ApiResultCode;
 use Laravel\Sanctum\PersonalAccessToken;
 
 final class RefreshTokenAction
 {
-    private const UNAUTHORIZED_CODE = '8888';
-
     public function __construct(
         private readonly SessionProjector $sessionProjector,
         private readonly TokenIssuer $tokenIssuer,
@@ -29,30 +28,30 @@ final class RefreshTokenAction
         $token = PersonalAccessToken::findToken($input->refreshToken);
 
         if (! $token || ! $token->can('refresh-token')) {
-            return RefreshTokenResult::failure(self::UNAUTHORIZED_CODE, 'Refresh token is invalid');
+            return RefreshTokenResult::failure(ApiResultCode::UNAUTHORIZED, 'Refresh token is invalid');
         }
 
         if ($token->expires_at !== null && $token->expires_at->isPast()) {
             $token->delete();
 
-            return RefreshTokenResult::failure(self::UNAUTHORIZED_CODE, 'Refresh token has expired');
+            return RefreshTokenResult::failure(ApiResultCode::UNAUTHORIZED, 'Refresh token has expired');
         }
 
         $tokenable = $token->tokenable;
         if (! $tokenable instanceof User || $tokenable->status !== '1') {
-            return RefreshTokenResult::failure(self::UNAUTHORIZED_CODE, 'Refresh token is invalid');
+            return RefreshTokenResult::failure(ApiResultCode::UNAUTHORIZED, 'Refresh token is invalid');
         }
 
         if ($this->authUserStateGuard->isTenantUserWithInactiveTenant($tokenable)) {
             $token->delete();
 
-            return RefreshTokenResult::failure(self::UNAUTHORIZED_CODE, 'Tenant is inactive');
+            return RefreshTokenResult::failure(ApiResultCode::UNAUTHORIZED, 'Tenant is inactive');
         }
 
         if ($this->authUserStateGuard->isUserWithInactiveRole($tokenable)) {
             $token->delete();
 
-            return RefreshTokenResult::failure(self::UNAUTHORIZED_CODE, 'Role is inactive');
+            return RefreshTokenResult::failure(ApiResultCode::UNAUTHORIZED, 'Role is inactive');
         }
 
         $baseSessionClientContext = $this->sessionProjector->resolveSessionClientContextMetadata($token);

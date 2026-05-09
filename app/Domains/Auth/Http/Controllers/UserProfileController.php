@@ -10,6 +10,7 @@ use App\Http\Requests\Api\Auth\UpdatePreferredLocaleRequest;
 use App\Http\Requests\Api\Auth\UpdateProfileRequest;
 use App\Http\Requests\Api\Auth\UpdateUserPreferencesRequest;
 use App\Support\ApiDateTime;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -92,7 +93,7 @@ class UserProfileController extends AbstractUserController
 
         $input = $request->toDTO();
         if ($input->password !== null && ! Hash::check((string) $input->currentPassword, $user->password)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Current password is incorrect');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Current password is incorrect');
         }
 
         $result = $updateOwnProfile->handle($user, $input->toUpdateOwnProfileDTO());

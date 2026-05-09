@@ -9,6 +9,7 @@ use App\Http\Requests\Api\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Api\Auth\ResetPasswordRequest;
 use App\Http\Requests\Api\Auth\TwoFactorCodeRequest;
 use App\Support\ApiDateTime;
+use App\Support\ApiResultCode;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,7 +49,7 @@ class AuthSecurityController extends AbstractUserController
         );
 
         if ($status !== Password::PASSWORD_RESET) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Password reset failed');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Password reset failed');
         }
 
         return $this->success([], 'Password has been reset');
@@ -119,7 +120,7 @@ class AuthSecurityController extends AbstractUserController
         $input = $request->toDTO();
 
         if (! $this->verifyUserTotpCode($user, $input->otpCode)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Two-factor code is invalid');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Two-factor code is invalid');
         }
 
         $this->applyTwoFactorState(
@@ -144,7 +145,7 @@ class AuthSecurityController extends AbstractUserController
         $input = $request->toDTO();
 
         if (! $this->verifyUserTotpCode($user, $input->otpCode)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Two-factor code is invalid');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Two-factor code is invalid');
         }
 
         $this->applyTwoFactorState(

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Support\ApiResultCode;
 use Illuminate\Support\Facades\Route;
 use RuntimeException;
 use Tests\TestCase;
@@ -23,8 +24,8 @@ class ApiExceptionHandlingTest extends TestCase
     {
         $response = $this->getJson('/api/testing/route-does-not-exist');
 
-        $response->assertOk()
-            ->assertJsonPath('code', '4040')
+        $response->assertNotFound()
+            ->assertJsonPath('code', ApiResultCode::NOT_FOUND->value)
             ->assertJsonPath('msg', 'Not Found')
             ->assertJsonStructure([
                 'code',
@@ -40,8 +41,8 @@ class ApiExceptionHandlingTest extends TestCase
         $response = $this->getJson('/api/testing/boom');
         $expectedMessage = (bool) config('app.debug', false) ? 'boom' : 'Server error';
 
-        $response->assertOk()
-            ->assertJsonPath('code', '5000')
+        $response->assertStatus(500)
+            ->assertJsonPath('code', ApiResultCode::SERVER_ERROR->value)
             ->assertJsonPath('msg', $expectedMessage)
             ->assertJsonStructure([
                 'code',

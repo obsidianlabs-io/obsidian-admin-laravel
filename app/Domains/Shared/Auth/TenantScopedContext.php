@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Shared\Auth;
 
 use App\Domains\Access\Models\User;
+use App\Support\ApiResultCode;
 use LogicException;
 
 final readonly class TenantScopedContext
@@ -22,7 +23,7 @@ final readonly class TenantScopedContext
     {
         return new self(
             ok: true,
-            code: '0000',
+            code: ApiResultCode::SUCCESS->value,
             message: 'ok',
             user: $user,
             tenantId: $tenantId,
@@ -30,11 +31,11 @@ final readonly class TenantScopedContext
         );
     }
 
-    public static function failure(string $code, string $message): self
+    public static function failure(string|ApiResultCode $code, string $message): self
     {
         return new self(
             ok: false,
-            code: $code,
+            code: $code instanceof ApiResultCode ? $code->value : $code,
             message: $message,
         );
     }

@@ -69,7 +69,7 @@ class OpenApiContractTest extends TestCase
             'password' => 'Aa123456',
             'password_confirmation' => 'Aa123456',
         ]);
-        $resetPasswordResponse->assertOk()
+        $resetPasswordResponse->assertUnprocessable()
             ->assertJsonStructure(['code', 'msg', 'data']);
     }
 

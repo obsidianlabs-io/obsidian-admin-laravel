@@ -8,6 +8,7 @@ use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Tenant\Models\Tenant;
 use App\Jobs\WriteAuditLogJob;
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -26,7 +27,7 @@ class PlatformHardeningApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertHeader('X-Request-Id')
             ->assertHeader('X-Trace-Id')
             ->assertHeader('traceparent');
@@ -53,7 +54,7 @@ class PlatformHardeningApiTest extends TestCase
         ]);
 
         $login->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $token = (string) $login->json('data.token');
         $this->assertNotSame('', $token);
@@ -63,7 +64,7 @@ class PlatformHardeningApiTest extends TestCase
         ]);
 
         $userInfo->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.userName', 'Admin');
     }
 
@@ -86,9 +87,9 @@ class PlatformHardeningApiTest extends TestCase
         $second = $this->postJson('/api/tenant', $payload, $headers);
 
         $first->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
         $second->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertHeader('X-Idempotent-Replay', '1');
 
         $secondTraceId = (string) $second->headers->get('X-Trace-Id', '');
@@ -126,9 +127,9 @@ class PlatformHardeningApiTest extends TestCase
         $second = $this->putJson('/api/tenant/'.$tenant->id, $payload, $headers);
 
         $first->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
         $second->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertHeader('X-Idempotent-Replay', '1');
 
         $secondTraceId = (string) $second->headers->get('X-Trace-Id', '');
@@ -160,8 +161,8 @@ class PlatformHardeningApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1009')
+        $response->assertConflict()
+            ->assertJsonPath('code', ApiResultCode::CONFLICT->value)
             ->assertJsonPath('msg', 'Tenant has been modified by another user. Please refresh and retry.');
 
         $tenant->refresh();
@@ -195,7 +196,7 @@ class PlatformHardeningApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
         $firstPage->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.paginationMode', 'cursor')
             ->assertJsonPath('data.hasMore', true);
 
@@ -210,7 +211,7 @@ class PlatformHardeningApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
         $secondPage->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.paginationMode', 'cursor');
 
         $secondRecords = $secondPage->json('data.records');
@@ -233,8 +234,8 @@ class PlatformHardeningApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
 
         $this->assertNull(User::query()->withTrashed()->findOrFail($tenantAdmin->id)->deleted_at);
@@ -248,7 +249,7 @@ class PlatformHardeningApiTest extends TestCase
         $headers = ['Authorization' => 'Bearer '.$token];
 
         $firstAllResponse = $this->getJson('/api/permission/all', $headers);
-        $firstAllResponse->assertOk()->assertJsonPath('code', '0000');
+        $firstAllResponse->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $createResponse = $this->postJson('/api/permission', [
             'permissionCode' => 'report.cursor.view',
@@ -258,11 +259,11 @@ class PlatformHardeningApiTest extends TestCase
         ], $headers);
 
         $createResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $secondAllResponse = $this->getJson('/api/permission/all', $headers);
         $secondAllResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $permissionCodes = collect($secondAllResponse->json('data.records'))
             ->map(static fn (array $record): string => (string) ($record['permissionCode'] ?? ''))
@@ -284,7 +285,7 @@ class PlatformHardeningApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertHeader('traceparent')
             ->assertHeader('X-Trace-Id', '11111111111111111111111111111111');
 
@@ -309,7 +310,7 @@ class PlatformHardeningApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         Queue::assertPushed(WriteAuditLogJob::class);
     }
@@ -376,7 +377,7 @@ class PlatformHardeningApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         return (string) $response->json('data.token');
     }

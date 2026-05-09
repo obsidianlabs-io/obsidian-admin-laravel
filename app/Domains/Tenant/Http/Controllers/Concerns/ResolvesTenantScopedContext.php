@@ -7,6 +7,7 @@ namespace App\Domains\Tenant\Http\Controllers\Concerns;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\TenantScopedContext;
 use App\Domains\Tenant\Services\TenantContextService;
+use App\Support\ApiResultCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -33,7 +34,7 @@ trait ResolvesTenantScopedContext
             );
 
             if ($permissionCodes === []) {
-                return TenantScopedContext::failure(self::FORBIDDEN_CODE, 'Forbidden');
+                return TenantScopedContext::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
             }
 
             $authResult = $this->authenticateAndAuthorizeAny($request, 'access-api', $permissionCodes);
@@ -47,12 +48,12 @@ trait ResolvesTenantScopedContext
 
         $authUser = $authResult->user();
         if (! $authUser instanceof User) {
-            return TenantScopedContext::failure(self::FORBIDDEN_CODE, 'Forbidden');
+            return TenantScopedContext::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $user = $authUser;
         if (! Gate::forUser($user)->allows($ability, $policyModelClass)) {
-            return TenantScopedContext::failure(self::FORBIDDEN_CODE, 'Forbidden');
+            return TenantScopedContext::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $tenantContext = $tenantContextService->resolveTenantContext($request, $user);
@@ -62,7 +63,7 @@ trait ResolvesTenantScopedContext
 
         $tenantId = $tenantContext->tenantId();
         if (! is_int($tenantId) || $tenantId <= 0) {
-            return TenantScopedContext::failure(self::PARAM_ERROR_CODE, 'Please select a tenant first');
+            return TenantScopedContext::failure(ApiResultCode::PARAM_ERROR, 'Please select a tenant first');
         }
 
         return TenantScopedContext::success($user, $tenantId, $tenantContext->tenantName());

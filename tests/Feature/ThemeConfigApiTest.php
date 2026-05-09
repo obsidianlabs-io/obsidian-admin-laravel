@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Domains\Tenant\Models\Tenant;
+use App\Support\ApiResultCode;
 use Database\Seeders\ThemeProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -29,7 +30,7 @@ class ThemeConfigApiTest extends TestCase
         ]);
 
         $showResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.scopeType', 'platform');
 
         $updateResponse = $this->putJson('/api/theme/config', [
@@ -56,7 +57,7 @@ class ThemeConfigApiTest extends TestCase
         ]);
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.scopeType', 'platform')
             ->assertJsonPath('data.config.themeColor', '#1f7ae0')
             ->assertJsonPath('data.config.themeRadius', 8)
@@ -82,7 +83,7 @@ class ThemeConfigApiTest extends TestCase
         ]);
 
         $userInfoResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.themeConfig.themeColor', '#1f7ae0')
             ->assertJsonPath('data.themeConfig.themeRadius', 8)
             ->assertJsonPath('data.themeConfig.headerHeight', 60)
@@ -127,14 +128,14 @@ class ThemeConfigApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $showResponse->assertOk()
-            ->assertJsonPath('code', '1003');
+        $showResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value);
 
-        $updateResponse->assertOk()
-            ->assertJsonPath('code', '1003');
+        $updateResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value);
 
-        $resetResponse->assertOk()
-            ->assertJsonPath('code', '1003');
+        $resetResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value);
     }
 
     public function test_super_admin_receives_same_theme_config_with_or_without_tenant_switch(): void
@@ -155,7 +156,7 @@ class ThemeConfigApiTest extends TestCase
         ], [
             'Authorization' => 'Bearer '.$token,
         ])->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $platformScopeResponse = $this->getJson('/api/auth/getUserInfo', [
             'Authorization' => 'Bearer '.$token,
@@ -167,12 +168,12 @@ class ThemeConfigApiTest extends TestCase
         ]);
 
         $platformScopeResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.themeConfig.themeColor', '#4f46e5')
             ->assertJsonPath('data.themeConfig.themeRadius', 9);
 
         $tenantScopeResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.themeConfig.themeColor', '#4f46e5')
             ->assertJsonPath('data.themeConfig.themeRadius', 9);
     }
@@ -200,16 +201,16 @@ class ThemeConfigApiTest extends TestCase
         ], $headers);
         $resetResponse = $this->postJson('/api/theme/config/reset', [], $headers);
 
-        $showResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $showResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Switch to No Tenant to manage theme configuration');
 
-        $updateResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $updateResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Switch to No Tenant to manage theme configuration');
 
-        $resetResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $resetResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Switch to No Tenant to manage theme configuration');
     }
 
@@ -227,8 +228,8 @@ class ThemeConfigApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $showResponse->assertOk()
-            ->assertJsonPath('code', '1003');
+        $showResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value);
     }
 
     public function test_guest_can_read_public_theme_config_for_login_page(): void
@@ -247,12 +248,12 @@ class ThemeConfigApiTest extends TestCase
         ], [
             'Authorization' => 'Bearer '.$token,
         ])->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $publicResponse = $this->getJson('/api/theme/public-config');
 
         $publicResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.editable', false)
             ->assertJsonPath('data.config.themeSchemaVisible', false)
             ->assertJsonPath('data.config.multilingualVisible', false);
@@ -273,7 +274,7 @@ class ThemeConfigApiTest extends TestCase
         $response = $this->getJson('/api/theme/public-config');
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.version', 1)
             ->assertJsonPath('data.config.themeSchemaVisible', false)
             ->assertJsonPath('data.config.globalSearchVisible', false);

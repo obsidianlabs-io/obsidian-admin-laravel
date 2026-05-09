@@ -20,6 +20,7 @@ use App\Domains\Tenant\Models\Tenant;
 use App\Http\Requests\Api\Tenant\ListTenantsRequest;
 use App\Http\Requests\Api\Tenant\StoreTenantRequest;
 use App\Http\Requests\Api\Tenant\UpdateTenantRequest;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -257,6 +258,6 @@ class TenantController extends ApiController
 
     private function tenantNotFoundResponse(): JsonResponse
     {
-        return $this->error(self::PARAM_ERROR_CODE, 'Tenant not found');
+        return $this->error(ApiResultCode::PARAM_ERROR, 'Tenant not found');
     }
 }

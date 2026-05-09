@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Services\IdempotencyService;
 use App\Support\ApiErrorResponse;
+use App\Support\ApiResultCode;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -47,7 +48,7 @@ class HandleIdempotentRequests
         if ($state->hasError()) {
             return ApiErrorResponse::json(
                 $request,
-                '1002',
+                ApiResultCode::PARAM_ERROR->value,
                 (string) $state->errorMessage(),
                 [],
                 409

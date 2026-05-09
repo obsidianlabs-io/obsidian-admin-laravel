@@ -19,7 +19,7 @@ final class ApiResponseFactory
         ?Request $request = null
     ): JsonResponse {
         return response()->json([
-            'code' => '0000',
+            'code' => ApiResultCode::SUCCESS->value,
             'msg' => $message,
             'data' => $data,
             ...RequestTraceContext::payload($request),

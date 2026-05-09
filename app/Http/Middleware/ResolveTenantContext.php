@@ -4,22 +4,25 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Domains\Access\Models\User;
+use App\Domains\Shared\Auth\ApiTokenResolver;
 use App\Domains\Shared\Auth\RoleScopeContext;
 use App\Domains\Shared\Auth\TenantContext;
 use App\Domains\Shared\Auth\TenantOptionData;
 use App\Domains\Tenant\Services\TenantContextService;
 use App\Support\ApiErrorResponse;
+use App\Support\ApiResultCode;
 use App\Support\RequestContext;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 class ResolveTenantContext
 {
-    public function __construct(private readonly TenantContextService $tenantContextService) {}
+    public function __construct(
+        private readonly TenantContextService $tenantContextService,
+        private readonly ApiTokenResolver $tokenResolver
+    ) {}
 
     /**
      * Handle an incoming request.
@@ -28,28 +31,15 @@ class ResolveTenantContext
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $plainToken = $request->bearerToken();
-        if (! $plainToken) {
+        $authResult = $this->tokenResolver->resolveFromRequestIfPresent($request, 'access-api');
+
+        if ($authResult->failed()) {
+            // Pass through on failure (public routes, unauthenticated requests)
             return $next($request);
         }
 
-        $token = PersonalAccessToken::findToken($plainToken);
-        if (! $token || ! $token->can('access-api')) {
-            return $next($request);
-        }
-
-        if ($token->expires_at !== null && $token->expires_at->isPast()) {
-            return $next($request);
-        }
-
-        $tokenable = $token->tokenable;
-        if (! $tokenable instanceof User || $tokenable->status !== '1') {
-            return $next($request);
-        }
-
-        $tokenable->loadMissing('role:id,code,name,level,status,tenant_id');
-        $role = $tokenable->getRelationValue('role');
-        if (! $role || (string) $role->status !== '1') {
+        $tokenable = $authResult->user();
+        if ($tokenable === null) {
             return $next($request);
         }
 
@@ -59,14 +49,18 @@ class ResolveTenantContext
             return ApiErrorResponse::json(
                 $request,
                 $tenantContext->code(),
-                $tenantContext->message()
+                $tenantContext->message(),
+                [],
+                $this->resolveHttpStatus($tenantContext->code())
             );
         }
         if ($roleScope->failed()) {
             return ApiErrorResponse::json(
                 $request,
                 $roleScope->code(),
-                $roleScope->message()
+                $roleScope->message(),
+                [],
+                $this->resolveHttpStatus($roleScope->code())
             );
         }
 
@@ -86,7 +80,17 @@ class ResolveTenantContext
             'is_super_admin' => $roleScope->isSuper(),
         ]);
 
+        // Note: Does NOT update last_used_at (same as original behavior).
+        // AuthenticateApiToken will handle that when it runs next.
+
         return $next($request);
+    }
+
+    private function resolveHttpStatus(string $code): int
+    {
+        $enum = ApiResultCode::tryFrom($code);
+
+        return $enum?->httpStatus() ?? 200;
     }
 
     /**

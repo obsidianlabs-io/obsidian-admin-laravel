@@ -20,6 +20,7 @@ use App\Domains\Tenant\Services\TenantContextService;
 use App\Http\Requests\Api\Team\ListTeamsRequest;
 use App\Http\Requests\Api\Team\StoreTeamRequest;
 use App\Http\Requests\Api\Team\UpdateTeamRequest;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -43,13 +44,13 @@ class TeamController extends ApiController
 
         $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $input = $request->toDTO();
         $organizationId = $input->organizationId;
 
         if ($organizationId !== null && ! $this->organizationExistsInTenant($tenantId, $organizationId)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Organization not found');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Organization not found');
         }
 
         $query = $listTeamsQuery->handle($tenantId, $input);
@@ -89,11 +90,11 @@ class TeamController extends ApiController
 
         $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $organizationId = (int) $request->query('organizationId', 0);
         if ($organizationId > 0 && ! $this->organizationExistsInTenant($tenantId, $organizationId)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Organization not found');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Organization not found');
         }
 
         $records = $this->apiCacheService->remember(
@@ -139,18 +140,18 @@ class TeamController extends ApiController
 
         $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $user = $context->requireUser();
         $dto = $request->toDTO();
 
         if (! $this->organizationExistsInTenant($tenantId, $dto->organizationId)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Organization not found');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Organization not found');
         }
 
         $uniqueError = $this->validateTeamUniqueness($dto->organizationId, $dto->teamCode, $dto->teamName);
         if ($uniqueError !== null) {
-            return $this->error(self::PARAM_ERROR_CODE, $uniqueError);
+            return $this->error(ApiResultCode::PARAM_ERROR, $uniqueError);
         }
 
         return $this->withIdempotency($request, $user, function () use ($tenantId, $dto, $user, $request): JsonResponse {
@@ -178,7 +179,7 @@ class TeamController extends ApiController
 
         $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $user = $context->requireUser();
         $team = $this->resolveTenantTeam($tenantId, $id, ['users']);
@@ -193,17 +194,17 @@ class TeamController extends ApiController
 
         $dto = $request->toDTO();
         if (! $this->organizationExistsInTenant($tenantId, $dto->organizationId)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Organization not found');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Organization not found');
         }
 
         $organizationChanged = (int) $team->organization_id !== $dto->organizationId;
         if ($organizationChanged && (int) ($team->users_count ?? 0) > 0) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Team has assigned users and cannot move organization');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Team has assigned users and cannot move organization');
         }
 
         $uniqueError = $this->validateTeamUniqueness($dto->organizationId, $dto->teamCode, $dto->teamName, $team->id);
         if ($uniqueError !== null) {
-            return $this->error(self::PARAM_ERROR_CODE, $uniqueError);
+            return $this->error(ApiResultCode::PARAM_ERROR, $uniqueError);
         }
 
         $oldValues = TeamSnapshot::fromModel($team)->toArray();
@@ -232,7 +233,7 @@ class TeamController extends ApiController
 
         $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $user = $context->requireUser();
         $team = $this->resolveTenantTeam($tenantId, $id, ['users']);
@@ -360,7 +361,7 @@ class TeamController extends ApiController
     private function teamScopeErrorResponse(int $id): JsonResponse
     {
         return Team::query()->whereKey($id)->exists()
-            ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
-            : $this->error(self::PARAM_ERROR_CODE, 'Team not found');
+            ? $this->error(ApiResultCode::FORBIDDEN, 'Forbidden')
+            : $this->error(ApiResultCode::PARAM_ERROR, 'Team not found');
     }
 }

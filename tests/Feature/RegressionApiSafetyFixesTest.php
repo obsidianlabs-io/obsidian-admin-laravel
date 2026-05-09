@@ -9,6 +9,7 @@ use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\System\Models\AuditLog;
 use App\Domains\Tenant\Models\Tenant;
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -28,7 +29,7 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.currentTenantId', '')
             ->assertJsonPath('data.currentTenantName', 'No Tenants')
             ->assertJsonPath('data.menuScope', 'platform')
@@ -45,8 +46,8 @@ class RegressionApiSafetyFixesTest extends TestCase
             'X-Tenant-Id' => '999999',
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Selected tenant is invalid or inactive');
     }
 
@@ -61,8 +62,8 @@ class RegressionApiSafetyFixesTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Switch to No Tenant to manage tenants');
     }
 
@@ -89,7 +90,7 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.records.0.requestId', 'req-visible-123');
     }
 
@@ -110,8 +111,8 @@ class RegressionApiSafetyFixesTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1002')
+        $response->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Permission code cannot be modified');
     }
 
@@ -131,8 +132,8 @@ class RegressionApiSafetyFixesTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1002')
+        $response->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Role code is reserved');
     }
 
@@ -159,8 +160,8 @@ class RegressionApiSafetyFixesTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Role level must be lower than your current role level');
     }
 
@@ -199,12 +200,12 @@ class RegressionApiSafetyFixesTest extends TestCase
 
         $deleteResponse = $this->deleteJson('/api/user/'.$peerAdmin->id, [], $headers);
 
-        $updateResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $updateResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
 
-        $deleteResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $deleteResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
 
         $peerAdmin->refresh();
@@ -229,8 +230,8 @@ class RegressionApiSafetyFixesTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenantId,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -248,7 +249,7 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $records = collect($response->json('data.records', []));
 
@@ -270,7 +271,7 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.actorLevel', 500);
 
         $records = collect($response->json('data.records', []));
@@ -289,8 +290,8 @@ class RegressionApiSafetyFixesTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -307,7 +308,7 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.key', 'menu.permission')
             ->assertJsonStructure([
                 'code',
@@ -327,8 +328,8 @@ class RegressionApiSafetyFixesTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonStructure([
                 'code',
                 'msg',
@@ -354,7 +355,7 @@ class RegressionApiSafetyFixesTest extends TestCase
             'status' => '1',
         ], $headers);
 
-        $first->assertOk()->assertJsonPath('code', '0000');
+        $first->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $second = $this->postJson('/api/tenant', [
             'tenantCode' => 'TENANT_EXTRA_B',
@@ -362,8 +363,8 @@ class RegressionApiSafetyFixesTest extends TestCase
             'status' => '1',
         ], $headers);
 
-        $second->assertStatus(409)
-            ->assertJsonPath('code', '1002')
+        $second->assertConflict()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonStructure([
                 'code',
                 'msg',
@@ -383,7 +384,7 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonMissingPath('data.paginationMode')
             ->assertJsonStructure([
                 'code',
@@ -410,7 +411,7 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $loginWithSpaces = $this->postJson('/api/auth/login', [
             'userName' => 'Admin',
@@ -423,10 +424,10 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $loginWithSpaces->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
-        $loginTrimmed->assertOk()
-            ->assertJsonPath('code', '1001');
+        $loginTrimmed->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::LOGIN_FAILED->value);
     }
 
     public function test_admin_update_user_password_preserves_leading_and_trailing_spaces(): void
@@ -454,7 +455,7 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $loginWithSpaces = $this->postJson('/api/auth/login', [
             'userName' => 'User',
@@ -467,10 +468,10 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $loginWithSpaces->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
-        $loginTrimmed->assertOk()
-            ->assertJsonPath('code', '1001');
+        $loginTrimmed->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::LOGIN_FAILED->value);
     }
 
     private function loginAndGetToken(string $userName): string
@@ -481,7 +482,7 @@ class RegressionApiSafetyFixesTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         return (string) $response->json('data.token');
     }

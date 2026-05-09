@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -21,7 +22,7 @@ class FeatureFlagApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.current', 1)
             ->assertJsonPath('data.size', 50);
 
@@ -50,7 +51,7 @@ class FeatureFlagApiTest extends TestCase
         ]);
 
         $toggleResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.key', 'menu.permission')
             ->assertJsonPath('data.global_override', false);
 
@@ -61,7 +62,7 @@ class FeatureFlagApiTest extends TestCase
         ]);
 
         $purgeResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.key', 'menu.permission')
             ->assertJsonPath('data.global_override', null);
     }
@@ -74,7 +75,7 @@ class FeatureFlagApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         return (string) $response->json('data.token');
     }

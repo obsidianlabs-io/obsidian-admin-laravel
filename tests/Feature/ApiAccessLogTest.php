@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Domains\System\Models\ApiAccessLog;
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -26,7 +27,7 @@ class ApiAccessLogTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $this->assertDatabaseHas('api_access_logs', [
             'path' => 'api/auth/login',

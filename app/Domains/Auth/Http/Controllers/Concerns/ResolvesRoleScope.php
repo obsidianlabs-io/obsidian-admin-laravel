@@ -7,6 +7,7 @@ namespace App\Domains\Auth\Http\Controllers\Concerns;
 use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\RoleLookupResult;
+use App\Support\ApiResultCode;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -32,7 +33,7 @@ trait ResolvesRoleScope
                 ->exists();
 
             return RoleLookupResult::failure(
-                '1002',
+                ApiResultCode::PARAM_ERROR->value,
                 $inactiveRoleExists ? 'Role is inactive' : 'Role not found'
             );
         }

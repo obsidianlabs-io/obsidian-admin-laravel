@@ -6,13 +6,14 @@ namespace App\Http\Requests\Api\Auth;
 
 use App\DTOs\Auth\LoginInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
+use App\Support\ApiResultCode;
 use App\Support\AppLocale;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 
 class LoginRequest extends BaseApiRequest
 {
-    protected string $errorCode = '1001';
+    protected ApiResultCode $errorCode = ApiResultCode::LOGIN_FAILED;
 
     protected function prepareForValidation(): void
     {

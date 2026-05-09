@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domains\Shared\Auth;
 
+use App\Support\ApiResultCode;
+
 final readonly class AssignablePermissionIdsResult
 {
     /**
@@ -23,17 +25,17 @@ final readonly class AssignablePermissionIdsResult
     {
         return new self(
             ok: true,
-            code: '0000',
+            code: ApiResultCode::SUCCESS->value,
             message: 'ok',
             permissionIds: $permissionIds,
         );
     }
 
-    public static function failure(string $code, string $message): self
+    public static function failure(string|ApiResultCode $code, string $message): self
     {
         return new self(
             ok: false,
-            code: $code,
+            code: $code instanceof ApiResultCode ? $code->value : $code,
             message: $message,
         );
     }

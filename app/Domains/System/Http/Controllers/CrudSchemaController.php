@@ -7,6 +7,7 @@ namespace App\Domains\System\Http\Controllers;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Services\CrudSchemaService;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Middleware;
@@ -25,17 +26,17 @@ final class CrudSchemaController extends ApiController
         }
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         $schema = $this->crudSchemaService->find($resource);
         if ($schema === null) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Schema not found');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Schema not found');
         }
 
         $permissionCode = $this->crudSchemaService->requiredPermissionCode($resource);
         if ($permissionCode !== null && ! $user->hasPermission($permissionCode)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         return $this->success($schema->toArray());

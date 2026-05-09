@@ -9,6 +9,7 @@ use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Auth\Services\TotpService;
 use App\Domains\Tenant\Models\Tenant;
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
@@ -28,7 +29,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonStructure([
                 'code',
                 'msg',
@@ -59,7 +60,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $this->assertDatabaseHas('user_preferences', [
             'user_id' => $user->id,
@@ -79,8 +80,8 @@ class AuthApiTest extends TestCase
             'password' => '123456',
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '8888');
+        $response->assertUnauthorized()
+            ->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value);
     }
 
     public function test_tenant_user_cannot_login_when_tenant_is_inactive(): void
@@ -95,8 +96,8 @@ class AuthApiTest extends TestCase
             'password' => '123456',
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '8888')
+        $response->assertUnauthorized()
+            ->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value)
             ->assertJsonPath('msg', 'Tenant is inactive');
     }
 
@@ -113,8 +114,8 @@ class AuthApiTest extends TestCase
             'password' => '123456',
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '8888')
+        $response->assertUnauthorized()
+            ->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value)
             ->assertJsonPath('msg', 'Role is inactive');
     }
 
@@ -134,14 +135,14 @@ class AuthApiTest extends TestCase
         $secondResponse = $this->postJson('/api/auth/login', $payload);
         $thirdResponse = $this->postJson('/api/auth/login', $payload);
 
-        $firstResponse->assertOk()
-            ->assertJsonPath('code', '1001')
+        $firstResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::LOGIN_FAILED->value)
             ->assertJsonPath('msg', 'Username or password is incorrect');
-        $secondResponse->assertOk()
-            ->assertJsonPath('code', '1001')
+        $secondResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::LOGIN_FAILED->value)
             ->assertJsonPath('msg', 'Username or password is incorrect');
-        $thirdResponse->assertOk()
-            ->assertJsonPath('code', '1001');
+        $thirdResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::LOGIN_FAILED->value);
 
         $this->assertStringContainsString('Too many login attempts', (string) $thirdResponse->json('msg'));
     }
@@ -170,8 +171,8 @@ class AuthApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1002');
+        $response->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value);
 
         $this->assertStringContainsString('password', strtolower((string) $response->json('msg')));
         $this->assertDatabaseMissing('users', [
@@ -205,8 +206,8 @@ class AuthApiTest extends TestCase
             'Accept-Language' => 'zh-CN',
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1002');
+        $response->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value);
 
         $message = (string) $response->json('msg');
         $this->assertStringContainsString('密码', $message);
@@ -230,7 +231,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.userName', 'Admin')
             ->assertJsonPath('data.locale', 'en-US')
             ->assertJsonPath('data.timezone', 'Asia/Kuala_Lumpur')
@@ -257,7 +258,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.menuScope', 'tenant')
             ->assertJsonPath('data.routeRules.tenant.noTenantOnly', true)
             ->assertJsonPath('data.routeRules.permission.noTenantOnly', true);
@@ -301,7 +302,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $platformScopeResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.menuScope', 'platform');
 
         $platformMenus = $platformScopeResponse->json('data.menus');
@@ -321,7 +322,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $tenantScopeResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.menuScope', 'tenant');
 
         $tenantMenus = $tenantScopeResponse->json('data.menus');
@@ -352,7 +353,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.menuScope', 'tenant')
             ->assertJsonStructure([
                 'data' => [
@@ -384,7 +385,7 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
         $infoResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $menuRouteKeys = $this->collectMenuRouteKeys($infoResponse->json('data.menus'));
         $this->assertContains('user', $menuRouteKeys);
@@ -393,7 +394,7 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
         $listResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
     }
 
     public function test_authenticated_user_can_get_profile(): void
@@ -412,7 +413,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.userName', 'Admin')
             ->assertJsonPath('data.locale', 'en-US')
             ->assertJsonPath('data.timezone', 'Asia/Kuala_Lumpur')
@@ -457,7 +458,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.locale', 'en-US');
 
         $adminUser = User::query()->where('name', 'Admin')->firstOrFail();
@@ -471,7 +472,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $infoResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.locale', 'en-US');
     }
 
@@ -493,7 +494,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.themeSchema', 'dark');
 
         $adminUser = User::query()->where('name', 'Admin')->firstOrFail();
@@ -507,7 +508,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $infoResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.themeSchema', 'dark');
     }
 
@@ -529,7 +530,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.timezone', 'Asia/Kuala_Lumpur');
 
         $adminUser = User::query()->where('name', 'Admin')->firstOrFail();
@@ -543,7 +544,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $infoResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.timezone', 'Asia/Kuala_Lumpur');
     }
 
@@ -563,7 +564,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.defaultTimezone', 'UTC')
             ->assertJsonStructure([
                 'data' => [
@@ -655,7 +656,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.userName', 'AdminPrime')
             ->assertJsonPath('data.email', 'admin.prime@obsidian.local')
             ->assertJsonPath('data.timezone', 'Asia/Kuala_Lumpur');
@@ -676,7 +677,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $reLoginResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
     }
 
     public function test_profile_update_with_wrong_current_password_is_rejected(): void
@@ -700,8 +701,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1002')
+        $response->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Current password is incorrect');
     }
 
@@ -721,7 +722,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonStructure([
                 'code',
                 'msg',
@@ -747,8 +748,8 @@ class AuthApiTest extends TestCase
             'refreshToken' => $refreshToken,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '8888')
+        $response->assertUnauthorized()
+            ->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value)
             ->assertJsonPath('msg', 'Tenant is inactive');
 
         $this->assertNull(PersonalAccessToken::findToken($refreshToken));
@@ -773,8 +774,8 @@ class AuthApiTest extends TestCase
             'refreshToken' => $refreshToken,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '8888')
+        $response->assertUnauthorized()
+            ->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value)
             ->assertJsonPath('msg', 'Role is inactive');
 
         $this->assertNull(PersonalAccessToken::findToken($refreshToken));
@@ -805,7 +806,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.singleDeviceLogin', false);
 
         $records = collect($response->json('data.records', []));
@@ -839,7 +840,7 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$currentToken,
         ]);
 
-        $listResponse->assertOk()->assertJsonPath('code', '0000');
+        $listResponse->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
         $targetSessionId = collect($listResponse->json('data.records', []))
             ->firstWhere('current', false)['sessionId'] ?? null;
 
@@ -851,7 +852,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $revokeResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.revokedCurrentSession', false);
 
         $oldSessionInfoResponse = $this->getJson('/api/auth/getUserInfo', [
@@ -861,8 +862,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$currentToken,
         ]);
 
-        $oldSessionInfoResponse->assertOk()->assertJsonPath('code', '8888');
-        $currentSessionInfoResponse->assertOk()->assertJsonPath('code', '0000');
+        $oldSessionInfoResponse->assertUnauthorized()->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value);
+        $currentSessionInfoResponse->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
     }
 
     public function test_authenticated_user_can_update_auth_session_alias(): void
@@ -882,7 +883,7 @@ class AuthApiTest extends TestCase
         $listResponse = $this->getJson('/api/auth/sessions', [
             'Authorization' => 'Bearer '.$token,
         ]);
-        $listResponse->assertOk()->assertJsonPath('code', '0000');
+        $listResponse->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $sessionId = collect($listResponse->json('data.records', []))
             ->firstWhere('current', true)['sessionId'] ?? null;
@@ -900,7 +901,7 @@ class AuthApiTest extends TestCase
         );
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.sessionId', $sessionId)
             ->assertJsonPath('data.deviceAlias', 'Office MacBook');
 
@@ -908,7 +909,7 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $verifyResponse->assertOk()->assertJsonPath('code', '0000');
+        $verifyResponse->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $updatedCurrent = collect($verifyResponse->json('data.records', []))
             ->firstWhere('current', true);
@@ -935,7 +936,7 @@ class AuthApiTest extends TestCase
         $listBefore = $this->getJson('/api/auth/sessions', [
             'Authorization' => 'Bearer '.$accessToken,
         ]);
-        $listBefore->assertOk()->assertJsonPath('code', '0000');
+        $listBefore->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
         $sessionId = collect($listBefore->json('data.records', []))
             ->firstWhere('current', true)['sessionId'] ?? null;
 
@@ -949,7 +950,7 @@ class AuthApiTest extends TestCase
                 'Authorization' => 'Bearer '.$accessToken,
                 'Idempotency-Key' => 'alias-preserve-'.$sessionId,
             ]
-        )->assertOk()->assertJsonPath('code', '0000');
+        )->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $refresh = $this->postJson('/api/auth/refreshToken', [
             'refreshToken' => $refreshToken,
@@ -957,14 +958,14 @@ class AuthApiTest extends TestCase
             'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
         ]);
 
-        $refresh->assertOk()->assertJsonPath('code', '0000');
+        $refresh->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $newAccessToken = (string) $refresh->json('data.token');
         $listAfter = $this->getJson('/api/auth/sessions', [
             'Authorization' => 'Bearer '.$newAccessToken,
         ]);
 
-        $listAfter->assertOk()->assertJsonPath('code', '0000');
+        $listAfter->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $currentSession = collect($listAfter->json('data.records', []))
             ->firstWhere('current', true);
@@ -991,7 +992,7 @@ class AuthApiTest extends TestCase
             'refreshToken' => $firstRefreshToken,
         ]);
 
-        $refresh->assertOk()->assertJsonPath('code', '0000');
+        $refresh->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $rotatedAccessToken = (string) $refresh->json('data.token');
         $rotatedRefreshToken = (string) $refresh->json('data.refreshToken');
@@ -1002,15 +1003,15 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$rotatedAccessToken,
         ]);
 
-        $logout->assertOk()->assertJsonPath('code', '0000');
+        $logout->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $this->getJson('/api/auth/getUserInfo', [
             'Authorization' => 'Bearer '.$firstAccessToken,
-        ])->assertOk()->assertJsonPath('code', '8888');
+        ])->assertUnauthorized()->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value);
 
         $this->postJson('/api/auth/refreshToken', [
             'refreshToken' => $rotatedRefreshToken,
-        ])->assertOk()->assertJsonPath('code', '8888');
+        ])->assertUnauthorized()->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value);
     }
 
     public function test_authenticated_user_can_get_user_list(): void
@@ -1042,7 +1043,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.current', 1)
             ->assertJsonPath('data.size', 10)
             ->assertJsonPath('data.total', 1)
@@ -1116,18 +1117,18 @@ class AuthApiTest extends TestCase
         ]);
 
         $noTenantResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1);
         $this->assertContains('GlobalOps', array_column($noTenantResponse->json('data.records'), 'userName'));
         $this->assertNotContains('BranchUser', array_column($noTenantResponse->json('data.records'), 'userName'));
 
         $mainTenantResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 2);
         $this->assertNotContains('BranchUser', array_column($mainTenantResponse->json('data.records'), 'userName'));
 
         $branchTenantResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 3);
         $this->assertContains('BranchUser', array_column($branchTenantResponse->json('data.records'), 'userName'));
     }
@@ -1148,7 +1149,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1);
 
         $this->assertNotContains('Super', array_column($response->json('data.records'), 'userName'));
@@ -1173,7 +1174,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 0)
             ->assertJsonPath('data.records', []);
     }
@@ -1199,7 +1200,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.records.0.userName', 'User')
             ->assertJsonPath('data.records.0.status', '2');
@@ -1223,7 +1224,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.records.0.roleCode', 'R_ADMIN');
 
@@ -1253,12 +1254,12 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $roleResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $roleResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
 
-        $permissionResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $permissionResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -1281,7 +1282,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonStructure([
                 'code',
                 'msg',
@@ -1331,15 +1332,15 @@ class AuthApiTest extends TestCase
         ]);
 
         $roleAllResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonStructure([
                 'code',
                 'msg',
                 'data' => ['records'],
             ]);
 
-        $roleListResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $roleListResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -1364,11 +1365,11 @@ class AuthApiTest extends TestCase
         ]);
 
         $roleResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1);
 
         $permissionResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', $expectedPermissionTotal);
     }
 
@@ -1390,8 +1391,8 @@ class AuthApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Switch to No Tenant to manage permissions');
     }
 
@@ -1423,8 +1424,8 @@ class AuthApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -1444,7 +1445,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $permissionCodes = array_column($response->json('data.records'), 'permissionCode');
 
@@ -1476,7 +1477,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $permissionCodes = array_column($response->json('data.records'), 'permissionCode');
 
@@ -1509,7 +1510,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $permissionCodes = array_column($response->json('data.records'), 'permissionCode');
 
@@ -1547,8 +1548,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $createForbiddenResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $createForbiddenResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Some permissions are not assignable in current tenant scope');
 
         $createAllowedResponse = $this->postJson('/api/role', [
@@ -1563,7 +1564,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $createAllowedResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $roleId = (int) $createAllowedResponse->json('data.id');
 
@@ -1578,8 +1579,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $updateForbiddenResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $updateForbiddenResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Some permissions are not assignable in current tenant scope');
     }
 
@@ -1609,7 +1610,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $createResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.roleCode', 'R_BRANCH_EDITOR');
 
         $globalRoleListResponse = $this->getJson('/api/role/list?current=1&size=20', [
@@ -1625,11 +1626,11 @@ class AuthApiTest extends TestCase
         $branchCodes = array_column($branchRoleListResponse->json('data.records'), 'roleCode');
 
         $globalRoleListResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
         $this->assertNotContains('R_BRANCH_EDITOR', $globalCodes);
 
         $branchRoleListResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
         $this->assertContains('R_BRANCH_EDITOR', $branchCodes);
     }
 
@@ -1661,8 +1662,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $updateGlobalResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $updateGlobalResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
 
         $createTenantRoleResponse = $this->postJson('/api/role', [
@@ -1677,7 +1678,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $createTenantRoleResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.roleCode', 'R_ADMIN_TENANT_EDITOR');
 
         $tenantRoleId = (int) $createTenantRoleResponse->json('data.id');
@@ -1694,7 +1695,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $updateTenantRoleResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.roleName', 'Admin Tenant Editor Updated');
 
         $this->assertDatabaseHas('roles', [
@@ -1726,7 +1727,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $listResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
         $listResponse->assertJsonPath('data.actorLevel', 500);
 
         $roleCodes = array_column($listResponse->json('data.records'), 'roleCode');
@@ -1747,8 +1748,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $updateResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $updateResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -1768,7 +1769,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $records = $response->json('data.records');
         $this->assertIsArray($records);
@@ -1797,8 +1798,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -1818,7 +1819,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $infoResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $buttons = $infoResponse->json('data.buttons');
         $this->assertIsArray($buttons);
@@ -1829,8 +1830,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $tenantListResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $tenantListResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -1858,7 +1859,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $infoResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
         $buttons = $infoResponse->json('data.buttons');
         $this->assertIsArray($buttons);
         $this->assertContains('tenant.view', $buttons);
@@ -1867,8 +1868,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $tenantListResponse->assertOk()
-            ->assertJsonPath('code', '1003')
+        $tenantListResponse->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -1888,7 +1889,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $infoResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $buttons = $infoResponse->json('data.buttons');
         $this->assertIsArray($buttons);
@@ -1916,7 +1917,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $createResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.tenantCode', 'TENANT_TEST');
 
         $tenantId = (int) $createResponse->json('data.id');
@@ -1930,7 +1931,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.tenantCode', 'TENANT_TEST2')
             ->assertJsonPath('data.status', '2');
 
@@ -1939,7 +1940,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $deleteResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
     }
 
     public function test_active_tenant_delete_request_deactivates_before_soft_delete(): void
@@ -1965,7 +1966,7 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
         $firstDeleteResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.action', 'deactivated');
 
         $this->assertDatabaseHas('tenants', [
@@ -1978,7 +1979,7 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
         $secondDeleteResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.action', 'soft_deleted');
 
         $this->assertSoftDeleted('tenants', [
@@ -2011,7 +2012,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.roleCode', 'R_ADMIN');
 
         $user->refresh();
@@ -2043,8 +2044,8 @@ class AuthApiTest extends TestCase
             'X-Tenant-Id' => (string) $user->tenant_id,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1002')
+        $response->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Role is inactive');
 
         $user->refresh();
@@ -2076,7 +2077,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $createResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.userName', 'CrudUser');
 
         $createdUserId = (int) $createResponse->json('data.userId');
@@ -2100,7 +2101,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.userName', 'CrudUserUpdated')
             ->assertJsonPath('data.roleCode', 'R_ADMIN')
             ->assertJsonPath('data.status', '2');
@@ -2118,7 +2119,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $deleteResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $this->assertSoftDeleted('users', [
             'id' => $createdUserId,
@@ -2154,7 +2155,7 @@ class AuthApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
         $firstDeleteResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.action', 'deactivated');
 
         $this->assertDatabaseHas('users', [
@@ -2168,7 +2169,7 @@ class AuthApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
         $secondDeleteResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.action', 'soft_deleted');
 
         $this->assertSoftDeleted('users', [
@@ -2196,7 +2197,7 @@ class AuthApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
         $firstDeleteResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.action', 'deactivated');
 
         $this->assertDatabaseHas('roles', [
@@ -2209,8 +2210,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
-        $secondDeleteResponse->assertOk()
-            ->assertJsonPath('code', '1009')
+        $secondDeleteResponse->assertConflict()
+            ->assertJsonPath('code', ApiResultCode::CONFLICT->value)
             ->assertJsonPath('data.reason', 'dependency_exists');
         $this->assertGreaterThan(0, (int) $secondDeleteResponse->json('data.dependencies.users'));
     }
@@ -2230,7 +2231,7 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
         $firstDeleteResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.action', 'deactivated');
 
         $this->assertDatabaseHas('permissions', [
@@ -2242,8 +2243,8 @@ class AuthApiTest extends TestCase
         $secondDeleteResponse = $this->deleteJson('/api/permission/'.$permission->id, [], [
             'Authorization' => 'Bearer '.$token,
         ]);
-        $secondDeleteResponse->assertOk()
-            ->assertJsonPath('code', '1009')
+        $secondDeleteResponse->assertConflict()
+            ->assertJsonPath('code', ApiResultCode::CONFLICT->value)
             ->assertJsonPath('data.reason', 'dependency_exists');
         $this->assertGreaterThan(0, (int) $secondDeleteResponse->json('data.dependencies.roles'));
     }
@@ -2270,7 +2271,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $createResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.roleCode', 'R_SUPER');
 
         $this->assertDatabaseHas('users', [
@@ -2310,8 +2311,8 @@ class AuthApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
 
-        $assignResponse->assertOk()
-            ->assertJsonPath('code', '1002')
+        $assignResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Role does not belong to user tenant');
 
         $createResponse = $this->postJson('/api/user', [
@@ -2325,8 +2326,8 @@ class AuthApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
 
-        $createResponse->assertOk()
-            ->assertJsonPath('code', '1002')
+        $createResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Role does not belong to selected tenant');
 
         $updateResponse = $this->putJson('/api/user/'.$targetUser->id, [
@@ -2339,8 +2340,8 @@ class AuthApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
 
-        $updateResponse->assertOk()
-            ->assertJsonPath('code', '1002')
+        $updateResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Role does not belong to user tenant');
     }
 
@@ -2353,7 +2354,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
     }
 
     public function test_super_admin_login_requires_otp_when_two_factor_enabled(): void
@@ -2369,7 +2370,7 @@ class AuthApiTest extends TestCase
         $setupResponse = $this->postJson('/api/auth/2fa/setup', [], [
             'Authorization' => 'Bearer '.$token,
         ]);
-        $setupResponse->assertOk()->assertJsonPath('code', '0000');
+        $setupResponse->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
         $secret = (string) $setupResponse->json('data.secret');
 
         /** @var TotpService $totpService */
@@ -2383,7 +2384,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $enableResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.enabled', true);
 
         $otpMissingLoginResponse = $this->postJson('/api/auth/login', [
@@ -2392,7 +2393,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $otpMissingLoginResponse->assertOk()
-            ->assertJsonPath('code', '4020')
+            ->assertJsonPath('code', ApiResultCode::TWO_FACTOR_REQUIRED->value)
             ->assertJsonPath('msg', 'Two-factor code required');
 
         $otpLoginResponse = $this->postJson('/api/auth/login', [
@@ -2402,7 +2403,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $otpLoginResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonStructure([
                 'code',
                 'msg',
@@ -2423,7 +2424,7 @@ class AuthApiTest extends TestCase
         $setupResponse = $this->postJson('/api/auth/2fa/setup', [], [
             'Authorization' => 'Bearer '.$token,
         ]);
-        $setupResponse->assertOk()->assertJsonPath('code', '0000');
+        $setupResponse->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
         $secret = (string) $setupResponse->json('data.secret');
 
         /** @var TotpService $totpService */
@@ -2434,7 +2435,7 @@ class AuthApiTest extends TestCase
         ], [
             'Authorization' => 'Bearer '.$token,
         ]);
-        $enableResponse->assertOk()->assertJsonPath('code', '0000');
+        $enableResponse->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $replayCandidateCode = $totpService->codeForOffset($secret, 1);
 
@@ -2451,10 +2452,10 @@ class AuthApiTest extends TestCase
         ]);
 
         $firstOtpLoginResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
-        $secondOtpLoginResponse->assertOk()
-            ->assertJsonPath('code', '1001')
+        $secondOtpLoginResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::LOGIN_FAILED->value)
             ->assertJsonPath('msg', 'Two-factor code is invalid');
     }
 
@@ -2483,8 +2484,8 @@ class AuthApiTest extends TestCase
             'Authorization' => 'Bearer '.$secondToken,
         ]);
 
-        $firstInfo->assertOk()->assertJsonPath('code', '0000');
-        $secondInfo->assertOk()->assertJsonPath('code', '0000');
+        $firstInfo->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
+        $secondInfo->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
     }
 
     public function test_platform_scoped_non_super_user_can_login_without_tenant_id(): void
@@ -2520,7 +2521,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $loginResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $token = (string) $loginResponse->json('data.token');
 
@@ -2529,7 +2530,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $userInfoResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.currentTenantId', '')
             ->assertJsonPath('data.currentTenantName', 'Platform')
             ->assertJsonPath('data.menuScope', 'platform');
@@ -2569,7 +2570,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $loginResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $token = (string) $loginResponse->json('data.token');
 
@@ -2579,7 +2580,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $userInfoResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.currentTenantId', '')
             ->assertJsonPath('data.currentTenantName', 'Platform')
             ->assertJsonPath('data.menuScope', 'platform');

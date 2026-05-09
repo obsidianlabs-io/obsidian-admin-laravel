@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Domains\Access\Models\User;
 use App\Domains\System\Models\AuditLog;
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -41,7 +42,7 @@ class AuditPolicyApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $this->assertDatabaseMissing('audit_logs', [
             'action' => 'user.locale.update',
@@ -60,7 +61,7 @@ class AuditPolicyApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $records = $response->json('data.records');
         $this->assertIsArray($records);
@@ -80,8 +81,8 @@ class AuditPolicyApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -105,8 +106,8 @@ class AuditPolicyApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1002');
+        $response->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value);
 
         $this->assertStringContainsString('cannot be disabled', (string) $response->json('msg'));
     }
@@ -134,7 +135,7 @@ class AuditPolicyApiTest extends TestCase
         ]);
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         // Force direct writes for this assertion path to avoid queue fakes/config
         // leakage from other tests swallowing the locale audit job.
@@ -150,7 +151,7 @@ class AuditPolicyApiTest extends TestCase
         ]);
 
         $localeResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'user.locale.update',
@@ -167,7 +168,7 @@ class AuditPolicyApiTest extends TestCase
         ]);
 
         $branchLocaleResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'user.locale.update',
@@ -198,8 +199,8 @@ class AuditPolicyApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1002');
+        $response->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value);
     }
 
     public function test_super_admin_can_view_audit_policy_history(): void
@@ -223,7 +224,7 @@ class AuditPolicyApiTest extends TestCase
         ]);
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.revisionId', fn (mixed $id): bool => is_string($id) && $id !== '');
 
         $historyResponse = $this->getJson('/api/audit/policy/history?current=1&size=10', [
@@ -231,7 +232,7 @@ class AuditPolicyApiTest extends TestCase
         ]);
 
         $historyResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', fn (mixed $total): bool => is_int($total) && $total >= 1)
             ->assertJsonPath('data.records.0.changeReason', 'Enable locale update logging');
     }
@@ -244,7 +245,7 @@ class AuditPolicyApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         return (string) $response->json('data.token');
     }
@@ -256,7 +257,7 @@ class AuditPolicyApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $currentLocale = trim((string) ($response->json('data.locale') ?? ''));
 

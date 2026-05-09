@@ -19,6 +19,7 @@ use App\DTOs\Permission\UpdatePermissionDTO;
 use App\Http\Requests\Api\Permission\ListPermissionsRequest;
 use App\Http\Requests\Api\Permission\StorePermissionRequest;
 use App\Http\Requests\Api\Permission\UpdatePermissionRequest;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -151,7 +152,7 @@ class PermissionController extends ApiController
         $oldValues = PermissionSnapshot::fromModel($permission)->toArray();
         $input = $request->toDTO();
         if ($input->permissionCode !== (string) $permission->code) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Permission code cannot be modified');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Permission code cannot be modified');
         }
 
         $permission = $this->permissionService->update($permission, $input->toUpdatePermissionDTO((string) $permission->status));
@@ -255,6 +256,6 @@ class PermissionController extends ApiController
 
     private function permissionNotFoundResponse(): JsonResponse
     {
-        return $this->error(self::PARAM_ERROR_CODE, 'Permission not found');
+        return $this->error(ApiResultCode::PARAM_ERROR, 'Permission not found');
     }
 }

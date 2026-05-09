@@ -21,6 +21,7 @@ use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\System\Services\ThemeConfigService;
 use App\Domains\Tenant\Services\TenantContextService;
+use App\Support\ApiResultCode;
 use Illuminate\Http\Request;
 
 abstract class AbstractUserController extends ApiController
@@ -82,12 +83,12 @@ abstract class AbstractUserController extends ApiController
 
         $authUser = $authResult->user();
         if (! $authUser instanceof User) {
-            return ManagementContext::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return ManagementContext::failure(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         $actorLevel = $this->resolveUserRoleLevel($authUser);
         if ($actorLevel <= 0) {
-            return ManagementContext::failure(self::FORBIDDEN_CODE, 'Forbidden');
+            return ManagementContext::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $tenantContext = $this->resolveTenantContext($request, $authUser);
@@ -117,7 +118,7 @@ abstract class AbstractUserController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return ApiAuthResult::failure(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         return $authResult;

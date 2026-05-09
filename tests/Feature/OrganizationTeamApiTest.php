@@ -8,6 +8,7 @@ use App\Domains\Access\Models\User;
 use App\Domains\Tenant\Models\Organization;
 use App\Domains\Tenant\Models\Team;
 use App\Domains\Tenant\Models\Tenant;
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -37,7 +38,7 @@ class OrganizationTeamApiTest extends TestCase
         ]);
 
         $createOrganizationResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.organizationCode', 'ORG_MAIN_DEV');
 
         $organizationId = (int) $createOrganizationResponse->json('data.id');
@@ -47,7 +48,7 @@ class OrganizationTeamApiTest extends TestCase
         ]);
 
         $listOrganizationResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $createTeamResponse = $this->postJson('/api/team', [
             'organizationId' => $organizationId,
@@ -61,7 +62,7 @@ class OrganizationTeamApiTest extends TestCase
         ]);
 
         $createTeamResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.teamCode', 'TEAM_MAIN_DEV_CORE');
 
         $teamId = (int) $createTeamResponse->json('data.id');
@@ -71,7 +72,7 @@ class OrganizationTeamApiTest extends TestCase
         ]);
 
         $listTeamResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $updateTeamResponse = $this->putJson('/api/team/'.$teamId, [
             'organizationId' => $organizationId,
@@ -85,7 +86,7 @@ class OrganizationTeamApiTest extends TestCase
         ]);
 
         $updateTeamResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.teamName', 'Main Dev Core Team Updated')
             ->assertJsonPath('data.status', '2');
 
@@ -94,14 +95,14 @@ class OrganizationTeamApiTest extends TestCase
         ]);
 
         $deleteTeamResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $deleteOrganizationResponse = $this->deleteJson('/api/organization/'.$organizationId, [], [
             'Authorization' => 'Bearer '.$token,
         ]);
 
         $deleteOrganizationResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
     }
 
     public function test_super_admin_without_selected_tenant_cannot_access_tenant_scoped_org_team_apis(): void
@@ -121,16 +122,16 @@ class OrganizationTeamApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $organizationListWithoutTenant->assertOk()
-            ->assertJsonPath('code', '1002')
+        $organizationListWithoutTenant->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Please select a tenant first');
 
         $teamListWithoutTenant = $this->getJson('/api/team/list?current=1&size=10', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $teamListWithoutTenant->assertOk()
-            ->assertJsonPath('code', '1002')
+        $teamListWithoutTenant->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Please select a tenant first');
 
         $organizationListWithTenant = $this->getJson('/api/organization/list?current=1&size=10', [
@@ -139,7 +140,7 @@ class OrganizationTeamApiTest extends TestCase
         ]);
 
         $organizationListWithTenant->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
     }
 
     public function test_user_create_with_team_auto_binds_organization(): void
@@ -166,7 +167,7 @@ class OrganizationTeamApiTest extends TestCase
         ]);
 
         $createResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.teamId', (string) $team->id)
             ->assertJsonPath('data.organizationId', (string) $team->organization_id);
 
@@ -202,8 +203,8 @@ class OrganizationTeamApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $createResponse->assertOk()
-            ->assertJsonPath('code', '1002')
+        $createResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Team does not belong to selected organization');
     }
 
@@ -232,8 +233,8 @@ class OrganizationTeamApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $createResponse->assertOk()
-            ->assertJsonPath('code', '1002')
+        $createResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Organization and team are not available for platform users');
 
         $this->assertDatabaseMissing('users', [
@@ -261,8 +262,8 @@ class OrganizationTeamApiTest extends TestCase
             'X-Tenant-Id' => (string) $organization->tenant_id,
         ]);
 
-        $createResponse->assertOk()
-            ->assertJsonPath('code', '1002')
+        $createResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Organization is inactive');
     }
 
@@ -286,8 +287,8 @@ class OrganizationTeamApiTest extends TestCase
             'X-Tenant-Id' => (string) $team->tenant_id,
         ]);
 
-        $createResponse->assertOk()
-            ->assertJsonPath('code', '1002')
+        $createResponse->assertUnprocessable()
+            ->assertJsonPath('code', ApiResultCode::PARAM_ERROR->value)
             ->assertJsonPath('msg', 'Team is inactive');
     }
 
@@ -307,8 +308,8 @@ class OrganizationTeamApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Organization is inactive');
     }
 
@@ -320,7 +321,7 @@ class OrganizationTeamApiTest extends TestCase
         ]);
 
         $loginResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         return (string) $loginResponse->json('data.token');
     }

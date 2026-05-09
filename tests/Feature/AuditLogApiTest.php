@@ -9,6 +9,7 @@ use App\Domains\System\Models\AuditLog;
 use App\Domains\System\Models\AuditPolicy;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Models\Tenant;
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -53,7 +54,7 @@ class AuditLogApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.records.0.tenantId', (string) $mainTenant->id);
     }
@@ -68,8 +69,8 @@ class AuditLogApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -109,7 +110,7 @@ class AuditLogApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.records.0.tenantId', '')
             ->assertJsonPath('data.records.0.tenantName', 'No Tenant');
@@ -152,7 +153,7 @@ class AuditLogApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.records.0.tenantId', (string) $mainTenant->id);
     }
@@ -195,7 +196,7 @@ class AuditLogApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.records.0.action', 'role.update')
             ->assertJsonPath('data.records.0.logType', 'permission');
@@ -241,7 +242,7 @@ class AuditLogApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.records.0.requestId', 'req-abc-123');
     }
@@ -295,7 +296,7 @@ class AuditLogApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.records.0.requestId', 'req-recent');
     }
@@ -409,7 +410,7 @@ class AuditLogApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         return (string) $response->json('data.token');
     }

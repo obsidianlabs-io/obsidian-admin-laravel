@@ -6,11 +6,12 @@ namespace App\Http\Requests\Api\Auth;
 
 use App\DTOs\Auth\RegisterInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
+use App\Support\ApiResultCode;
 use App\Support\Validation\PasswordPolicy;
 
 class RegisterRequest extends BaseApiRequest
 {
-    protected string $errorCode = '1001';
+    protected ApiResultCode $errorCode = ApiResultCode::LOGIN_FAILED;
 
     /**
      * @return array<string, mixed>

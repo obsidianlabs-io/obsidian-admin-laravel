@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Tenant\Models\Tenant;
+use App\Support\ApiResultCode;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -26,8 +27,8 @@ class TenantBoundaryApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
 
         $this->assertNull(User::query()->withTrashed()->findOrFail($branchUser->id)->deleted_at);
@@ -49,8 +50,8 @@ class TenantBoundaryApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -77,8 +78,8 @@ class TenantBoundaryApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -95,7 +96,7 @@ class TenantBoundaryApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $records = $response->json('data.records');
         $this->assertIsArray($records);
@@ -123,7 +124,7 @@ class TenantBoundaryApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $records = $response->json('data.records');
         $this->assertIsArray($records);
@@ -166,8 +167,8 @@ class TenantBoundaryApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
 
         $this->assertNull(User::query()->withTrashed()->findOrFail($branchUser->id)->deleted_at);
@@ -186,8 +187,8 @@ class TenantBoundaryApiTest extends TestCase
             'Authorization' => 'Bearer '.$tenantUserToken,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '8888')
+        $response->assertUnauthorized()
+            ->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value)
             ->assertJsonPath('msg', 'Tenant is inactive');
     }
 
@@ -199,7 +200,7 @@ class TenantBoundaryApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         return (string) $response->json('data.token');
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Auth\Actions\Results;
 
+use App\Support\ApiResultCode;
 use LogicException;
 
 final readonly class RevokeSessionActionResult
@@ -32,11 +33,11 @@ final readonly class RevokeSessionActionResult
         );
     }
 
-    public static function failure(string $code, string $message): self
+    public static function failure(string|ApiResultCode $code, string $message): self
     {
         return new self(
             ok: false,
-            code: $code,
+            code: $code instanceof ApiResultCode ? $code->value : $code,
             message: $message,
             sessionId: null,
             deletedTokenCount: 0,

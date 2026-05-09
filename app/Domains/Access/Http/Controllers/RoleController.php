@@ -27,6 +27,7 @@ use App\Http\Requests\Api\Role\ListRolesRequest;
 use App\Http\Requests\Api\Role\StoreRoleRequest;
 use App\Http\Requests\Api\Role\SyncRolePermissionsRequest;
 use App\Http\Requests\Api\Role\UpdateRoleRequest;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -58,7 +59,7 @@ class RoleController extends ApiController
 
         $user = $context->requireUser();
         if (! ($user->hasPermission('role.view') || $user->hasPermission('role.manage'))) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
         $scopeTenantId = $context->tenantId();
         $isSuper = $context->isSuper();
@@ -157,7 +158,7 @@ class RoleController extends ApiController
 
         $user = $context->requireUser();
         if (! ($user->hasPermission('role.view') || $user->hasPermission('user.manage') || $user->hasPermission('user.view'))) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $scopeTenantId = $context->tenantId();
@@ -247,7 +248,7 @@ class RoleController extends ApiController
             $isSuper
         );
         if ($permissionResolution->failed()) {
-            return $this->error(self::FORBIDDEN_CODE, $permissionResolution->message());
+            return $this->error(ApiResultCode::FORBIDDEN, $permissionResolution->message());
         }
         $permissionIds = $permissionResolution->permissionIds();
 
@@ -283,7 +284,7 @@ class RoleController extends ApiController
             return $this->roleScopeErrorResponse($id);
         }
         if (! $this->roleScopeGuardService->canManageRoleLevel($actorLevel, $role)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $optimisticLockError = $this->ensureOptimisticLock($request, $role, 'Role');
@@ -320,7 +321,7 @@ class RoleController extends ApiController
                 $context->isSuper()
             );
             if ($permissionResolution->failed()) {
-                return $this->error(self::FORBIDDEN_CODE, $permissionResolution->message());
+                return $this->error(ApiResultCode::FORBIDDEN, $permissionResolution->message());
             }
             $permissionIds = $permissionResolution->permissionIds();
         }
@@ -362,11 +363,11 @@ class RoleController extends ApiController
             return $this->roleScopeErrorResponse($id);
         }
         if (! $this->roleScopeGuardService->canManageRoleLevel($actorLevel, $role)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         if ($this->roleScopeGuardService->isReservedRoleCode((string) $role->code)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Super role cannot be deleted');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Super role cannot be deleted');
         }
 
         $oldValues = RoleSnapshot::forStatusAudit($role)->toArray();
@@ -432,7 +433,7 @@ class RoleController extends ApiController
             return $this->roleScopeErrorResponse($id);
         }
         if (! $this->roleScopeGuardService->canManageRoleLevel($actorLevel, $role)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $optimisticLockError = $this->ensureOptimisticLock($request, $role, 'Role');
@@ -447,7 +448,7 @@ class RoleController extends ApiController
             $context->isSuper()
         );
         if ($permissionResolution->failed()) {
-            return $this->error(self::FORBIDDEN_CODE, $permissionResolution->message());
+            return $this->error(ApiResultCode::FORBIDDEN, $permissionResolution->message());
         }
         $permissionIds = $permissionResolution->permissionIds();
 
@@ -474,12 +475,12 @@ class RoleController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return ManagementContext::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return ManagementContext::failure(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         $actorLevel = $this->roleScopeGuardService->resolveUserRoleLevel($user);
         if ($actorLevel <= 0) {
-            return ManagementContext::failure(self::FORBIDDEN_CODE, 'Forbidden');
+            return ManagementContext::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $roleScope = $this->resolveRoleScope($request, $user);
@@ -518,8 +519,8 @@ class RoleController extends ApiController
     private function roleScopeErrorResponse(int $id): JsonResponse
     {
         return Role::query()->whereKey($id)->exists()
-            ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
-            : $this->error(self::PARAM_ERROR_CODE, 'Role not found');
+            ? $this->error(ApiResultCode::FORBIDDEN, 'Forbidden')
+            : $this->error(ApiResultCode::PARAM_ERROR, 'Role not found');
     }
 
     private function resolveRoleScope(Request $request, User $user): RoleScopeContext
@@ -533,7 +534,7 @@ class RoleController extends ApiController
             return null;
         }
 
-        return $this->error(self::PARAM_ERROR_CODE, 'Role code is reserved');
+        return $this->error(ApiResultCode::PARAM_ERROR, 'Role code is reserved');
     }
 
     private function validateRoleUniqueness(
@@ -543,11 +544,11 @@ class RoleController extends ApiController
         ?int $ignoreRoleId = null
     ): ?JsonResponse {
         if ($this->roleScopeGuardService->roleCodeExistsInScope($roleCode, $tenantId, $ignoreRoleId)) {
-            return $this->error(self::PARAM_ERROR_CODE, __('validation.unique', ['attribute' => 'role code']));
+            return $this->error(ApiResultCode::PARAM_ERROR, __('validation.unique', ['attribute' => 'role code']));
         }
 
         if ($this->roleScopeGuardService->roleNameExistsInScope($roleName, $tenantId, $ignoreRoleId)) {
-            return $this->error(self::PARAM_ERROR_CODE, __('validation.unique', ['attribute' => 'role name']));
+            return $this->error(ApiResultCode::PARAM_ERROR, __('validation.unique', ['attribute' => 'role name']));
         }
 
         return null;
@@ -557,7 +558,7 @@ class RoleController extends ApiController
     {
         if ($requestedLevel < self::ROLE_LEVEL_MIN || $requestedLevel > self::ROLE_LEVEL_MAX) {
             return $this->error(
-                self::PARAM_ERROR_CODE,
+                ApiResultCode::PARAM_ERROR,
                 'Role level must be between '.self::ROLE_LEVEL_MIN.' and '.self::ROLE_LEVEL_MAX
             );
         }
@@ -568,7 +569,7 @@ class RoleController extends ApiController
             self::ROLE_LEVEL_MIN,
             self::ROLE_LEVEL_MAX
         )) {
-            return $this->error(self::FORBIDDEN_CODE, 'Role level must be lower than your current role level');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Role level must be lower than your current role level');
         }
 
         return null;

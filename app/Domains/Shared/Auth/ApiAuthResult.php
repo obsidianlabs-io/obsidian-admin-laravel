@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Shared\Auth;
 
 use App\Domains\Access\Models\User;
+use App\Support\ApiResultCode;
 use ArrayAccess;
 use Laravel\Sanctum\PersonalAccessToken;
 use LogicException;
@@ -25,23 +26,23 @@ final readonly class ApiAuthResult implements ArrayAccess
     public static function success(
         User $user,
         ?PersonalAccessToken $token = null,
-        string $code = '0000',
+        string|ApiResultCode $code = ApiResultCode::SUCCESS,
         string $message = 'ok'
     ): self {
         return new self(
             ok: true,
-            code: $code,
+            code: $code instanceof ApiResultCode ? $code->value : $code,
             message: $message,
             user: $user,
             token: $token
         );
     }
 
-    public static function failure(string $code, string $message): self
+    public static function failure(string|ApiResultCode $code, string $message): self
     {
         return new self(
             ok: false,
-            code: $code,
+            code: $code instanceof ApiResultCode ? $code->value : $code,
             message: $message
         );
     }

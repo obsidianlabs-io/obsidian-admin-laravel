@@ -13,6 +13,7 @@ use App\Domains\System\Models\ThemeProfile;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\System\Services\ThemeConfigService;
 use App\Http\Requests\Api\Theme\UpdateThemeConfigRequest;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -32,7 +33,7 @@ class ThemeConfigController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         $accessError = $this->resolveThemeConfigAccessError($request, $user);
@@ -77,7 +78,7 @@ class ThemeConfigController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         $accessError = $this->resolveThemeConfigAccessError($request, $user);
@@ -88,7 +89,7 @@ class ThemeConfigController extends ApiController
         $scope = $this->resolveScope($user);
         $input = $request->toDTO();
         if (! $input->hasChanges()) {
-            return $this->error(self::PARAM_ERROR_CODE, 'No theme fields to update');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'No theme fields to update');
         }
 
         $before = $this->themeConfigService->describeScopeConfig(
@@ -135,7 +136,7 @@ class ThemeConfigController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         $accessError = $this->resolveThemeConfigAccessError($request, $user);
@@ -186,13 +187,13 @@ class ThemeConfigController extends ApiController
     private function resolveThemeConfigAccessError(Request $request, User $user): ?JsonResponse
     {
         if (! $this->isSuperAdmin($user)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $selectedTenantHeader = $request->header('X-Tenant-Id');
         $selectedTenantId = is_numeric($selectedTenantHeader) ? (int) $selectedTenantHeader : 0;
         if ($selectedTenantId > 0) {
-            return $this->error(self::FORBIDDEN_CODE, 'Switch to No Tenant to manage theme configuration');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Switch to No Tenant to manage theme configuration');
         }
 
         return null;

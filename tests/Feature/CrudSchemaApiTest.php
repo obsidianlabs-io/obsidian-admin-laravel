@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -26,7 +27,7 @@ class CrudSchemaApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.resource', 'user')
             ->assertJsonPath('data.permission', 'user.view')
             ->assertJsonPath('data.columns.0.key', 'index');
@@ -38,8 +39,8 @@ class CrudSchemaApiTest extends TestCase
 
         $response = $this->getJson('/api/system/ui/crud-schema/user');
 
-        $response->assertOk()
-            ->assertJsonPath('code', '8888')
+        $response->assertUnauthorized()
+            ->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value)
             ->assertJsonPath('msg', 'Unauthorized');
     }
 }

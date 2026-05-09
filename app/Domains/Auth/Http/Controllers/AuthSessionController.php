@@ -35,6 +35,7 @@ use App\Http\Requests\Api\Auth\RefreshTokenRequest;
 use App\Http\Requests\Api\Auth\RegisterRequest;
 use App\Http\Requests\Api\Auth\RevokeSessionRequest;
 use App\Http\Requests\Api\Auth\UpdateSessionAliasRequest;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -69,12 +70,12 @@ class AuthSessionController extends ApiController
         $defaultTenantId = $this->activeTenantResolver->findActiveTenantIdByCode('TENANT_MAIN');
         $defaultRoleLookup = $this->findActiveRoleByCode('R_USER', $defaultTenantId);
         if ($defaultRoleLookup->failed()) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Default tenant role is not configured');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Default tenant role is not configured');
         }
 
         $defaultRoleModel = $defaultRoleLookup->requireRole();
         if (! $this->isRoleInTenantScope($defaultRoleModel, $defaultTenantId)) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Default tenant role is not configured');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Default tenant role is not configured');
         }
 
         $defaultRoleId = (int) $defaultRoleModel->id;
@@ -113,7 +114,7 @@ class AuthSessionController extends ApiController
         $throttleKey = $this->resolveLoginThrottleKey($request, $input->loginKey());
         if ($this->tooManyLoginAttempts($throttleKey)) {
             return $this->error(
-                self::LOGIN_FAILED_CODE,
+                ApiResultCode::LOGIN_FAILED,
                 sprintf('Too many login attempts. Try again in %d seconds.', $this->availableLoginThrottleSeconds($throttleKey))
             );
         }
@@ -128,31 +129,31 @@ class AuthSessionController extends ApiController
         if (! $user || ! Hash::check($input->password, $user->password)) {
             $this->incrementLoginAttempts($throttleKey);
 
-            return $this->error(self::LOGIN_FAILED_CODE, 'Username or password is incorrect');
+            return $this->error(ApiResultCode::LOGIN_FAILED, 'Username or password is incorrect');
         }
 
         if ($user->status !== '1') {
             $this->incrementLoginAttempts($throttleKey);
 
-            return $this->error(self::UNAUTHORIZED_CODE, 'User is inactive');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'User is inactive');
         }
 
         if ($this->authUserStateGuard->isTenantUserWithInactiveTenant($user)) {
             $this->incrementLoginAttempts($throttleKey);
 
-            return $this->error(self::UNAUTHORIZED_CODE, 'Tenant is inactive');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Tenant is inactive');
         }
 
         if ($this->authUserStateGuard->isUserWithInactiveRole($user)) {
             $this->incrementLoginAttempts($throttleKey);
 
-            return $this->error(self::UNAUTHORIZED_CODE, 'Role is inactive');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Role is inactive');
         }
 
         if ((bool) config('security.require_email_verification', false) && ! $user->email_verified_at) {
             $this->incrementLoginAttempts($throttleKey);
 
-            return $this->error(self::UNAUTHORIZED_CODE, 'Email is not verified');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Email is not verified');
         }
 
         $requiresTwoFactor = (bool) $user->two_factor_enabled
@@ -162,12 +163,12 @@ class AuthSessionController extends ApiController
             if ($otpCode === '') {
                 $this->clearLoginAttempts($throttleKey);
 
-                return $this->error('4020', 'Two-factor code required');
+                return $this->error(ApiResultCode::TWO_FACTOR_REQUIRED, 'Two-factor code required');
             }
             if (! $this->verifyUserTotpCode($user, $otpCode)) {
                 $this->incrementLoginAttempts($throttleKey);
 
-                return $this->error(self::LOGIN_FAILED_CODE, 'Two-factor code is invalid');
+                return $this->error(ApiResultCode::LOGIN_FAILED, 'Two-factor code is invalid');
             }
         }
 
@@ -295,7 +296,7 @@ class AuthSessionController extends ApiController
     public function customError(Request $request): JsonResponse
     {
         if (! app()->environment('local', 'testing')) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $authResult = $this->resolveAuthenticatedUser($request);
@@ -305,7 +306,7 @@ class AuthSessionController extends ApiController
 
         $user = $authResult->requireUser();
         if (! $this->isSuperAdmin($user)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $code = (string) $request->query('code', '1001');

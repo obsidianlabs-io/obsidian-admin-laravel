@@ -7,12 +7,14 @@ namespace App\Domains\Shared\Http\Controllers;
 use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\ApiAuthResult;
+use App\Domains\Shared\Auth\ApiTokenResolver;
 use App\Domains\Shared\Http\Pagination\CursorPaginationPayload;
 use App\Domains\Shared\Http\Pagination\OffsetPaginationPayload;
 use App\Domains\Shared\Services\IdempotencyService;
 use App\Http\Controllers\Controller;
 use App\Support\ApiDateTime;
 use App\Support\ApiResponseFactory;
+use App\Support\ApiResultCode;
 use App\Support\RequestTraceContext;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -23,25 +25,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Laravel\Sanctum\PersonalAccessToken;
 use Throwable;
 
 abstract class ApiController extends Controller
 {
-    protected const SUCCESS_CODE = '0000';
-
-    protected const LOGIN_FAILED_CODE = '1001';
-
-    protected const PARAM_ERROR_CODE = '1002';
-
-    protected const FORBIDDEN_CODE = '1003';
-
-    protected const CONFLICT_CODE = '1009';
-
-    protected const UNAUTHORIZED_CODE = '8888';
-
-    protected const TOKEN_EXPIRED_CODE = '9999';
-
     /**
      * @param  array<string, mixed>  $data
      */
@@ -53,9 +40,26 @@ abstract class ApiController extends Controller
     /**
      * @param  array<string, mixed>  $data
      */
-    protected function error(string $code, string $msg, array $data = [], int $httpStatus = 200): JsonResponse
+    protected function error(string|ApiResultCode $code, string $msg, array $data = [], int $httpStatus = 200): JsonResponse
     {
-        return $this->responseFactory()->error($code, $msg, $data, $httpStatus);
+        $codeValue = $code instanceof ApiResultCode ? $code->value : $code;
+
+        // Auto-map semantic HTTP status from business error codes when not explicitly provided
+        if ($httpStatus === 200) {
+            $httpStatus = $code instanceof ApiResultCode ? $code->httpStatus() : $this->resolveHttpStatus($codeValue);
+        }
+
+        return $this->responseFactory()->error($codeValue, $msg, $data, $httpStatus);
+    }
+
+    /**
+     * Map business error codes to semantic HTTP status codes.
+     */
+    private function resolveHttpStatus(string $code): int
+    {
+        $enum = ApiResultCode::tryFrom($code);
+
+        return $enum?->httpStatus() ?? 200;
     }
 
     /**
@@ -72,7 +76,7 @@ abstract class ApiController extends Controller
         $state = $idempotencyService->begin($request, $actor);
 
         if ($state->hasError()) {
-            return $this->error(self::PARAM_ERROR_CODE, (string) $state->errorMessage());
+            return $this->error(ApiResultCode::PARAM_ERROR, (string) $state->errorMessage());
         }
 
         if ($state->hasReplayResponse()) {
@@ -116,7 +120,7 @@ abstract class ApiController extends Controller
             }
 
             return $this->error(
-                self::PARAM_ERROR_CODE,
+                ApiResultCode::PARAM_ERROR,
                 sprintf('%s version token is required', $resourceName)
             );
         }
@@ -124,7 +128,7 @@ abstract class ApiController extends Controller
         $parsedToken = $this->parseOptimisticLockToken($request, $token);
         if ($parsedToken === null) {
             return $this->error(
-                self::PARAM_ERROR_CODE,
+                ApiResultCode::PARAM_ERROR,
                 sprintf('%s version token is invalid', $resourceName)
             );
         }
@@ -140,7 +144,7 @@ abstract class ApiController extends Controller
         }
 
         return $this->error(
-            self::CONFLICT_CODE,
+            ApiResultCode::CONFLICT,
             sprintf('%s has been modified by another user. Please refresh and retry.', $resourceName),
             [
                 'currentVersion' => (string) $currentVersion,
@@ -295,45 +299,19 @@ abstract class ApiController extends Controller
 
     protected function authenticate(Request $request, string $ability): ApiAuthResult
     {
-        $plainToken = $request->bearerToken();
-        if (! $plainToken) {
-            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        $tokenResolver = app(ApiTokenResolver::class);
+        $authResult = $tokenResolver->resolveFromRequest($request, $ability);
+
+        if ($authResult->failed()) {
+            return $authResult;
         }
 
-        $token = PersonalAccessToken::findToken($plainToken);
-        if (! $token || ! $token->can($ability)) {
-            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
+        $token = $authResult->token();
+        if ($token !== null) {
+            $tokenResolver->touchLastUsedAt($request, $token);
         }
 
-        if ($token->expires_at !== null && $token->expires_at->isPast()) {
-            $token->delete();
-
-            return ApiAuthResult::failure(self::TOKEN_EXPIRED_CODE, 'Token expired');
-        }
-
-        $tokenable = $token->tokenable;
-        if (! $tokenable instanceof User) {
-            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
-        }
-
-        if ($tokenable->status !== '1') {
-            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'User is inactive');
-        }
-
-        $tokenable->loadMissing('role:id,code,name,level,status,tenant_id');
-        $role = $tokenable->getRelationValue('role');
-        if (! $role || (string) $role->status !== '1') {
-            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Role is inactive');
-        }
-
-        ApiDateTime::assignRequestTimezone($request, ApiDateTime::resolveUserTimezone($tokenable));
-
-        $now = now();
-        if (! $token->last_used_at || $token->last_used_at->lt($now->copy()->subMinute())) {
-            $token->forceFill(['last_used_at' => $now])->save();
-        }
-
-        return ApiAuthResult::success($tokenable, $token, self::SUCCESS_CODE, 'ok');
+        return $authResult;
     }
 
     protected function authenticateAndAuthorize(Request $request, string $ability, string $permissionCode): ApiAuthResult
@@ -346,11 +324,11 @@ abstract class ApiController extends Controller
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return ApiAuthResult::failure(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         if (! Gate::forUser($user)->allows('access-permission', $permissionCode)) {
-            return ApiAuthResult::failure(self::FORBIDDEN_CODE, 'Forbidden');
+            return ApiAuthResult::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         return $authResult;
@@ -369,7 +347,7 @@ abstract class ApiController extends Controller
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return ApiAuthResult::failure(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         foreach ($permissionCodes as $permissionCode) {
@@ -378,7 +356,7 @@ abstract class ApiController extends Controller
             }
         }
 
-        return ApiAuthResult::failure(self::FORBIDDEN_CODE, 'Forbidden');
+        return ApiAuthResult::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
     }
 
     protected function isSuperAdmin(User $user): bool
@@ -429,7 +407,7 @@ abstract class ApiController extends Controller
             }
         }
 
-        return $this->error(self::CONFLICT_CODE, $message, [
+        return $this->error(ApiResultCode::CONFLICT, $message, [
             'resource' => $resource,
             'resourceId' => (string) $resourceId,
             'reason' => 'dependency_exists',

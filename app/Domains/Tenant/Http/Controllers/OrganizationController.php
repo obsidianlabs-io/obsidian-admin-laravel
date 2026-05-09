@@ -19,6 +19,7 @@ use App\Domains\Tenant\Services\TenantContextService;
 use App\Http\Requests\Api\Organization\ListOrganizationsRequest;
 use App\Http\Requests\Api\Organization\StoreOrganizationRequest;
 use App\Http\Requests\Api\Organization\UpdateOrganizationRequest;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -42,7 +43,7 @@ class OrganizationController extends ApiController
 
         $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $input = $request->toDTO();
 
@@ -83,7 +84,7 @@ class OrganizationController extends ApiController
 
         $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $records = $this->apiCacheService->remember(
             'organizations',
@@ -121,14 +122,14 @@ class OrganizationController extends ApiController
 
         $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $user = $context->requireUser();
         $dto = $request->toDTO();
 
         $uniqueError = $this->validateTenantUniqueness($tenantId, $dto->organizationCode, $dto->organizationName);
         if ($uniqueError !== null) {
-            return $this->error(self::PARAM_ERROR_CODE, $uniqueError);
+            return $this->error(ApiResultCode::PARAM_ERROR, $uniqueError);
         }
 
         return $this->withIdempotency($request, $user, function () use ($tenantId, $dto, $user, $request): JsonResponse {
@@ -159,7 +160,7 @@ class OrganizationController extends ApiController
 
         $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $user = $context->requireUser();
         $organization = $this->resolveTenantOrganization($tenantId, $id);
@@ -175,7 +176,7 @@ class OrganizationController extends ApiController
         $dto = $request->toDTO();
         $uniqueError = $this->validateTenantUniqueness($tenantId, $dto->organizationCode, $dto->organizationName, $organization->id);
         if ($uniqueError !== null) {
-            return $this->error(self::PARAM_ERROR_CODE, $uniqueError);
+            return $this->error(ApiResultCode::PARAM_ERROR, $uniqueError);
         }
 
         $oldValues = OrganizationSnapshot::fromModel($organization)->toArray();
@@ -204,7 +205,7 @@ class OrganizationController extends ApiController
 
         $tenantId = $context->tenantId();
         if (! is_int($tenantId)) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $user = $context->requireUser();
         $organization = $this->resolveTenantOrganization($tenantId, $id, ['teams', 'users']);
@@ -329,7 +330,7 @@ class OrganizationController extends ApiController
     private function organizationScopeErrorResponse(int $id): JsonResponse
     {
         return Organization::query()->whereKey($id)->exists()
-            ? $this->error(self::FORBIDDEN_CODE, 'Forbidden')
-            : $this->error(self::PARAM_ERROR_CODE, 'Organization not found');
+            ? $this->error(ApiResultCode::FORBIDDEN, 'Forbidden')
+            : $this->error(ApiResultCode::PARAM_ERROR, 'Organization not found');
     }
 }

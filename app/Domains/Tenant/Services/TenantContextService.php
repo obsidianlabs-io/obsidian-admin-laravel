@@ -12,16 +12,11 @@ use App\Domains\Shared\Auth\TenantOptionData;
 use App\Domains\Tenant\Models\Organization;
 use App\Domains\Tenant\Models\Team;
 use App\Domains\Tenant\Models\Tenant;
+use App\Support\ApiResultCode;
 use Illuminate\Http\Request;
 
 class TenantContextService
 {
-    public const SUCCESS_CODE = '0000';
-
-    public const FORBIDDEN_CODE = '1003';
-
-    public const UNAUTHORIZED_CODE = '8888';
-
     private const NO_TENANTS_NAME = 'No Tenants';
 
     private const PLATFORM_TENANT_NAME = 'Platform';
@@ -45,7 +40,7 @@ class TenantContextService
             $headerTenantId = $this->headerTenantId($request);
             $currentTenant = $headerTenantId > 0 ? $activeTenants->firstWhere('id', $headerTenantId) : null;
             if ($headerTenantId > 0 && ! $currentTenant) {
-                return TenantContext::failure(self::FORBIDDEN_CODE, 'Selected tenant is invalid or inactive');
+                return TenantContext::failure(ApiResultCode::FORBIDDEN, 'Selected tenant is invalid or inactive');
             }
 
             /** @var list<TenantOptionData> $tenantOptions */
@@ -63,7 +58,7 @@ class TenantContextService
                 tenantId: $currentTenant ? (int) $currentTenant->id : null,
                 tenantName: $currentTenant ? (string) $currentTenant->name : self::NO_TENANTS_NAME,
                 tenants: $tenantOptions,
-                code: self::SUCCESS_CODE,
+                code: ApiResultCode::SUCCESS,
                 message: 'ok'
             );
         }
@@ -73,18 +68,18 @@ class TenantContextService
                 tenantId: null,
                 tenantName: self::PLATFORM_TENANT_NAME,
                 tenants: [],
-                code: self::SUCCESS_CODE,
+                code: ApiResultCode::SUCCESS,
                 message: 'ok'
             );
         }
 
         if (! $user->tenant_id || ! $user->tenant || $user->tenant->status !== '1') {
-            return TenantContext::failure(self::UNAUTHORIZED_CODE, self::TENANT_INACTIVE_MESSAGE);
+            return TenantContext::failure(ApiResultCode::UNAUTHORIZED, self::TENANT_INACTIVE_MESSAGE);
         }
 
         $inactiveAssignmentMessage = $this->resolveInactiveOrganizationOrTeamMessage($user);
         if ($inactiveAssignmentMessage !== null) {
-            return TenantContext::failure(self::FORBIDDEN_CODE, $inactiveAssignmentMessage);
+            return TenantContext::failure(ApiResultCode::FORBIDDEN, $inactiveAssignmentMessage);
         }
 
         return TenantContext::success(
@@ -96,7 +91,7 @@ class TenantContextService
                     tenantName: (string) $user->tenant->name,
                 ),
             ],
-            code: self::SUCCESS_CODE,
+            code: ApiResultCode::SUCCESS->value,
             message: 'ok'
         );
     }
@@ -114,7 +109,7 @@ class TenantContextService
 
             $headerTenantId = $this->headerTenantId($request);
             if ($headerTenantId > 0 && ! in_array($headerTenantId, $activeTenantIds, true)) {
-                return RoleScopeContext::failure(self::FORBIDDEN_CODE, 'Selected tenant is invalid or inactive');
+                return RoleScopeContext::failure(ApiResultCode::FORBIDDEN, 'Selected tenant is invalid or inactive');
             }
             $tenantId = in_array($headerTenantId, $activeTenantIds, true) ? $headerTenantId : null;
 
@@ -132,12 +127,12 @@ class TenantContextService
         }
 
         if (! $user->tenant_id || ! $user->tenant || $user->tenant->status !== '1') {
-            return RoleScopeContext::failure(self::UNAUTHORIZED_CODE, self::TENANT_INACTIVE_MESSAGE);
+            return RoleScopeContext::failure(ApiResultCode::UNAUTHORIZED, self::TENANT_INACTIVE_MESSAGE);
         }
 
         $inactiveAssignmentMessage = $this->resolveInactiveOrganizationOrTeamMessage($user);
         if ($inactiveAssignmentMessage !== null) {
-            return RoleScopeContext::failure(self::FORBIDDEN_CODE, $inactiveAssignmentMessage);
+            return RoleScopeContext::failure(ApiResultCode::FORBIDDEN, $inactiveAssignmentMessage);
         }
 
         return RoleScopeContext::success(

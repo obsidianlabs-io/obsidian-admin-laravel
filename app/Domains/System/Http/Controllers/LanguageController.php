@@ -18,6 +18,7 @@ use App\Domains\System\Services\LanguageService;
 use App\Http\Requests\Api\Language\ListLanguageTranslationsRequest;
 use App\Http\Requests\Api\Language\StoreLanguageTranslationRequest;
 use App\Http\Requests\Api\Language\UpdateLanguageTranslationRequest;
+use App\Support\ApiResultCode;
 use App\Support\LocaleDefaults;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -203,12 +204,12 @@ class LanguageController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $input = $request->toDTO();
         $language = Language::query()->where('code', $input->locale)->first();
         if (! $language) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Language locale not found');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Language locale not found');
         }
 
         return $this->withIdempotency($request, $user, function () use ($language, $input, $user, $request): JsonResponse {
@@ -237,7 +238,7 @@ class LanguageController extends ApiController
 
         $translation = LanguageTranslation::query()->find($id);
         if (! $translation) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Language translation not found');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Language translation not found');
         }
 
         $optimisticLockError = $this->ensureOptimisticLock($request, $translation, 'Language translation');
@@ -247,12 +248,12 @@ class LanguageController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $input = $request->toDTO();
         $language = Language::query()->where('code', $input->locale)->first();
         if (! $language) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Language locale not found');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Language locale not found');
         }
 
         $oldValues = LanguageTranslationSnapshot::forContentAudit(
@@ -288,12 +289,12 @@ class LanguageController extends ApiController
 
         $translation = LanguageTranslation::query()->with('language:id,code')->find($id);
         if (! $translation) {
-            return $this->error(self::PARAM_ERROR_CODE, 'Language translation not found');
+            return $this->error(ApiResultCode::PARAM_ERROR, 'Language translation not found');
         }
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
         $oldValues = LanguageTranslationSnapshot::forContentAudit(
             $translation,
@@ -321,17 +322,17 @@ class LanguageController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return ApiAuthResult::failure(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return ApiAuthResult::failure(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         if (! $this->isSuperAdmin($user)) {
-            return ApiAuthResult::failure(self::FORBIDDEN_CODE, 'Forbidden');
+            return ApiAuthResult::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $selectedTenantHeader = $request->header('X-Tenant-Id');
         $selectedTenantId = is_numeric($selectedTenantHeader) ? (int) $selectedTenantHeader : 0;
         if ($selectedTenantId > 0) {
-            return ApiAuthResult::failure(self::FORBIDDEN_CODE, 'Switch to No Tenant to manage languages');
+            return ApiAuthResult::failure(ApiResultCode::FORBIDDEN, 'Switch to No Tenant to manage languages');
         }
 
         return ApiAuthResult::success($user, $authResult->token());

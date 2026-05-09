@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Auth\Actions\Results;
 
 use App\Domains\Auth\Services\Results\TokenPairResult;
+use App\Support\ApiResultCode;
 use LogicException;
 
 final readonly class RefreshTokenResult
@@ -26,12 +27,12 @@ final readonly class RefreshTokenResult
         );
     }
 
-    public static function failure(string $code, string $message): self
+    public static function failure(string|ApiResultCode $code, string $message): self
     {
         return new self(
             ok: false,
             tokens: null,
-            code: $code,
+            code: $code instanceof ApiResultCode ? $code->value : $code,
             message: $message,
         );
     }

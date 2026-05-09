@@ -7,12 +7,11 @@ namespace App\Domains\Auth\Actions;
 use App\Domains\Access\Models\User;
 use App\Domains\Auth\Actions\Results\UpdateSessionAliasActionResult;
 use App\Domains\Auth\Services\SessionProjector;
+use App\Support\ApiResultCode;
 use Laravel\Sanctum\PersonalAccessToken;
 
 final class UpdateSessionAliasAction
 {
-    private const PARAM_ERROR_CODE = '1001';
-
     public function __construct(private readonly SessionProjector $sessionProjector) {}
 
     public function handle(
@@ -29,7 +28,7 @@ final class UpdateSessionAliasAction
         );
 
         if ($result->updatedTokenCount() <= 0) {
-            return UpdateSessionAliasActionResult::failure(self::PARAM_ERROR_CODE, 'Session not found');
+            return UpdateSessionAliasActionResult::failure(ApiResultCode::LOGIN_FAILED, 'Session not found');
         }
 
         return UpdateSessionAliasActionResult::success(

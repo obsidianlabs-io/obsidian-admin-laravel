@@ -12,6 +12,7 @@ use App\Domains\System\Models\AuditLog;
 use App\Domains\Tenant\Services\TenantContextService;
 use App\Http\Requests\Api\Audit\ListAuditLogsRequest;
 use App\Support\ApiDateTime;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 
@@ -29,11 +30,11 @@ class AuditLogController extends ApiController
 
         $user = $authResult->user();
         if (! $user instanceof User) {
-            return $this->error(self::UNAUTHORIZED_CODE, 'Unauthorized');
+            return $this->error(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         if (! Gate::forUser($user)->allows('viewAny', AuditLog::class)) {
-            return $this->error(self::FORBIDDEN_CODE, 'Forbidden');
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
         }
 
         $roleScope = $this->tenantContextService->resolveRoleScope($request, $user);

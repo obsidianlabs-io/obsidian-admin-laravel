@@ -9,6 +9,7 @@ use App\Domains\Access\Models\UserPreference;
 use App\Domains\System\Models\Language;
 use App\Domains\System\Models\LanguageTranslation;
 use App\Domains\Tenant\Models\Tenant;
+use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -25,7 +26,7 @@ class LanguageApiTest extends TestCase
         $response = $this->getJson('/api/system/bootstrap');
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.defaultLocale', 'zh-CN');
     }
 
@@ -45,7 +46,7 @@ class LanguageApiTest extends TestCase
         $response = $this->getJson('/api/language/messages?locale=zh-CN');
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.locale', 'zh-CN')
             ->assertJsonPath('data.notModified', false);
 
@@ -60,7 +61,7 @@ class LanguageApiTest extends TestCase
         $notModifiedResponse = $this->getJson('/api/language/messages?locale=zh-CN&version='.$version);
 
         $notModifiedResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.notModified', true)
             ->assertJsonCount(0, 'data.messages');
     }
@@ -87,7 +88,7 @@ class LanguageApiTest extends TestCase
         ]);
 
         $createResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $translationId = (int) $createResponse->json('data.id');
 
@@ -96,7 +97,7 @@ class LanguageApiTest extends TestCase
         ]);
 
         $listResponse->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.records.0.translationKey', 'route.language')
             ->assertJsonPath('data.records.0.translationValue', 'Language Console');
 
@@ -111,7 +112,7 @@ class LanguageApiTest extends TestCase
         ]);
 
         $updateResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $this->assertDatabaseHas('language_translations', [
             'id' => $translationId,
@@ -124,7 +125,7 @@ class LanguageApiTest extends TestCase
         ]);
 
         $deleteResponse->assertOk()
-            ->assertJsonPath('code', '0000');
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
         $this->assertDatabaseMissing('language_translations', [
             'id' => $translationId,
@@ -146,8 +147,8 @@ class LanguageApiTest extends TestCase
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Forbidden');
     }
 
@@ -169,8 +170,8 @@ class LanguageApiTest extends TestCase
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);
 
-        $response->assertOk()
-            ->assertJsonPath('code', '1003')
+        $response->assertForbidden()
+            ->assertJsonPath('code', ApiResultCode::FORBIDDEN->value)
             ->assertJsonPath('msg', 'Switch to No Tenant to manage languages');
     }
 
@@ -210,7 +211,7 @@ class LanguageApiTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('code', '0000')
+            ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.records.0.updateTime', '2026-02-17 08:00:00')
             ->assertJsonPath('data.records.0.createTime', '2026-02-17 08:00:00');
     }
