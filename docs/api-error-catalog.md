@@ -21,6 +21,7 @@ This project uses a business-code response envelope for all API responses:
 | `1002` | Parameter/validation error | Form request validation failed |
 | `1003` | Forbidden | Authenticated but missing permission |
 | `1009` | Conflict | Optimistic lock/version mismatch |
+| `4020` | Two-factor required | Login requires OTP before session issuance |
 | `4040` | Not found | Route/model not found |
 | `4050` | Method not allowed | Wrong HTTP method for endpoint |
 | `4290` | Too many requests | Throttle / rate-limit triggered |
@@ -30,6 +31,7 @@ This project uses a business-code response envelope for all API responses:
 
 ## Notes
 
-- API keeps HTTP status `200` and uses `code` for business state in current design.
+- API always returns the response envelope, but HTTP status now follows semantic transport/auth/business outcomes where applicable.
+- Some business states, such as `4020` (two-factor required), still intentionally return HTTP `200` with a non-success `code`.
 - `requestId` and `traceId` should be logged by frontend for support/debugging.
 - For OpenAPI consumers, see `docs/openapi.yaml` (`x-error-catalog`, `components.schemas.ApiErrorResponse`).

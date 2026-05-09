@@ -23,6 +23,7 @@ class ApiErrorCatalogDocTest extends TestCase
             '1002',
             '1003',
             '1009',
+            '4020',
             '4040',
             '4050',
             '4290',

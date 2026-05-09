@@ -9,6 +9,7 @@ use App\Domains\Auth\Services\Results\SessionRecord;
 use App\Domains\Auth\Services\Results\SessionRecordsResult;
 use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Support\ApiDateTime;
+use App\Support\ApiResultCode;
 use Illuminate\Http\Request;
 
 final class AuthSessionContextService
@@ -20,7 +21,7 @@ final class AuthSessionContextService
         }
 
         if (! $authResult->token() || ! $authResult->user() instanceof User) {
-            return ApiAuthResult::failure('4010', 'Unauthorized');
+            return ApiAuthResult::failure(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
         }
 
         return $authResult;

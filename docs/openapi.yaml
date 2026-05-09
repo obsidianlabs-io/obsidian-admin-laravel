@@ -17,6 +17,7 @@ x-error-catalog:
   '1002': Parameter or validation error
   '1003': Forbidden (permission denied)
   '1009': Optimistic lock conflict
+  '4020': Two-factor required before session issuance
   '4050': Method not allowed
   '4040': Resource or route not found
   '4290': Too many requests (throttled)
