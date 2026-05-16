@@ -34,8 +34,8 @@ Supported platforms:
 
 Tag strategy:
 
-- `1.2.0`: immutable full release tag
-- `1.2`: latest patch in the current minor line
+- `1.3.1`: immutable full release tag
+- `1.3`: latest patch in the current minor line
 - `1`: latest stable minor in the current major line
 - `latest`: stable non-prerelease release only
 
@@ -44,7 +44,7 @@ Use the fully versioned tag for production rollout and rollback control.
 Pull example:
 
 ```bash
-docker pull ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.3.0
+docker pull ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.3.1
 ```
 
 Minimal container boot example:
@@ -60,7 +60,7 @@ docker run --rm -p 8080:8000 \
   -e AUDIT_QUEUE_CONNECTION=sync \
   -e LOG_CHANNEL=stderr \
   -e LOG_STACK=stderr \
-  ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.3.0
+  ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.3.1
 ```
 
 This minimal run path is only meant to validate image boot and health. For database-backed production usage, prefer `docker-compose.production.yml` or `docker-compose.octane.yml`.
@@ -70,7 +70,7 @@ Compose consumption example:
 ```yaml
 services:
   app:
-    image: ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.3.0
+    image: ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.3.1
     pull_policy: always
 ```
 

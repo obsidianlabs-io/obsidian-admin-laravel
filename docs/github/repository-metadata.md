@@ -3,7 +3,7 @@
 ## Release Title
 
 ```text
-v1.3.0 · Laravel 13 baseline and Eloquent attribute-first adoption
+v1.3.1 · system permission hardening and auth contract alignment
 ```
 
 ## Repository About

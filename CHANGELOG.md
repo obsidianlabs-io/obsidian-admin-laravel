@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-05-16
+
+### ✨ Added
+- Added explicit system permission seeds for feature flag access and CRUD schema access so fine-grained route protection can ship without role drift.
+- Added a dedicated active-tenant query action to centralize tenant option shaping for platform and auth flows.
+
+### 🔧 Changed
+- Aligned auth route naming with the published kebab-case contract, including `/auth/refresh-token` and `/auth/user-info`.
+- Promoted system feature flag and CRUD schema routes to explicit route-level permission middleware instead of relying on coarse legacy coverage.
+- Updated release metadata, compatibility notes, and OpenAPI version markers for the `v1.3.1` backend patch lane.
+
+### 🐞 Fixed
+- Fixed security baseline auth coverage by updating the public-route whitelist to recognize the `refresh-token` endpoint.
+- Fixed request-context leakage risk for long-lived workers by flushing request-scoped context in middleware termination.
+- Fixed password reset token exposure so non-production debugging output now requires both a safe environment and explicit opt-in configuration.
+
 ## [1.3.0] - 2026-03-20
 
 ### ✨ Added

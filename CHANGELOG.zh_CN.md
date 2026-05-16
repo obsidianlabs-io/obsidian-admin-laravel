@@ -9,6 +9,22 @@
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-05-16
+
+### ✨ 新增
+- 新增面向系统功能开关与 CRUD Schema 访问的显式权限种子，确保细粒度路由保护上线时不会出现角色授权漂移。
+- 新增独立的 active-tenant query action，统一平台端与认证链路中的租户选项数据构造。
+
+### 🔧 调整
+- 将认证路由名称统一对齐到公开的 kebab-case 契约，包括 `/auth/refresh-token` 与 `/auth/user-info`。
+- 将系统 feature flag 与 CRUD schema 路由切换为显式的路由级权限中间件，不再依赖粗粒度的旧保护方式。
+- 更新 `v1.3.1` patch release 所需的 release metadata、兼容性说明与 OpenAPI 版本标记。
+
+### 🐞 修复
+- 更新 security baseline 的公开路由白名单，使 `refresh-token` 端点不再被误判为缺失认证保护。
+- 在中间件 terminate 阶段清理 request-scoped context，修复长驻 worker 下的请求上下文泄漏风险。
+- 收紧密码重置 token 的调试暴露条件，只有在安全环境且显式开启配置时才返回调试 token。
+
 ## [1.3.0] - 2026-03-20
 
 ### ✨ 新增

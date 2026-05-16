@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Obsidian Admin Laravel API
-  version: 1.2.0
+  version: 1.3.1
   description: |
     Obsidian Admin Laravel API contract.
     All endpoints return a wrapper payload: `code`, `msg`, `data`, `requestId`, `traceId`.
