@@ -39,7 +39,7 @@ return [
             'auth/register',
             'auth/forgot-password',
             'auth/reset-password',
-            'auth/refreshToken',
+            'auth/refresh-token',
             'health',
             'health/live',
             'health/ready',
