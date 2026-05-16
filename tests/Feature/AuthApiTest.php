@@ -226,7 +226,7 @@ class AuthApiTest extends TestCase
 
         $token = $loginResponse->json('data.token');
 
-        $response = $this->getJson('/api/auth/getUserInfo', [
+        $response = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -253,7 +253,7 @@ class AuthApiTest extends TestCase
 
         $token = $loginResponse->json('data.token');
 
-        $response = $this->getJson('/api/auth/getUserInfo', [
+        $response = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -297,7 +297,7 @@ class AuthApiTest extends TestCase
 
         $token = $loginResponse->json('data.token');
 
-        $platformScopeResponse = $this->getJson('/api/auth/getUserInfo', [
+        $platformScopeResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -316,7 +316,7 @@ class AuthApiTest extends TestCase
         $this->assertContains('audit', $platformRouteKeys);
         $this->assertSame('menu.systemSettings', $this->findMenuByKey($platformMenus, 'platform-settings')['i18nKey'] ?? null);
 
-        $tenantScopeResponse = $this->getJson('/api/auth/getUserInfo', [
+        $tenantScopeResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
             'X-Tenant-Id' => (string) $branchTenant->id,
         ]);
@@ -381,7 +381,7 @@ class AuthApiTest extends TestCase
         ]);
         $token = $loginResponse->json('data.token');
 
-        $infoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $infoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
         $infoResponse->assertOk()
@@ -467,7 +467,7 @@ class AuthApiTest extends TestCase
             'locale' => 'en-US',
         ]);
 
-        $infoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $infoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -503,7 +503,7 @@ class AuthApiTest extends TestCase
             'theme_schema' => 'dark',
         ]);
 
-        $infoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $infoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -539,7 +539,7 @@ class AuthApiTest extends TestCase
             'timezone' => 'Asia/Kuala_Lumpur',
         ]);
 
-        $infoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $infoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -717,7 +717,7 @@ class AuthApiTest extends TestCase
 
         $refreshToken = $loginResponse->json('data.refreshToken');
 
-        $response = $this->postJson('/api/auth/refreshToken', [
+        $response = $this->postJson('/api/auth/refresh-token', [
             'refreshToken' => $refreshToken,
         ]);
 
@@ -744,7 +744,7 @@ class AuthApiTest extends TestCase
         $mainTenant = Tenant::query()->where('code', 'TENANT_MAIN')->firstOrFail();
         $mainTenant->forceFill(['status' => '2'])->save();
 
-        $response = $this->postJson('/api/auth/refreshToken', [
+        $response = $this->postJson('/api/auth/refresh-token', [
             'refreshToken' => $refreshToken,
         ]);
 
@@ -770,7 +770,7 @@ class AuthApiTest extends TestCase
         $adminRole = Role::query()->findOrFail($admin->role_id);
         $adminRole->forceFill(['status' => '2'])->save();
 
-        $response = $this->postJson('/api/auth/refreshToken', [
+        $response = $this->postJson('/api/auth/refresh-token', [
             'refreshToken' => $refreshToken,
         ]);
 
@@ -855,10 +855,10 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('code', ApiResultCode::SUCCESS->value)
             ->assertJsonPath('data.revokedCurrentSession', false);
 
-        $oldSessionInfoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $oldSessionInfoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$firstToken,
         ]);
-        $currentSessionInfoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $currentSessionInfoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$currentToken,
         ]);
 
@@ -952,7 +952,7 @@ class AuthApiTest extends TestCase
             ]
         )->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
-        $refresh = $this->postJson('/api/auth/refreshToken', [
+        $refresh = $this->postJson('/api/auth/refresh-token', [
             'refreshToken' => $refreshToken,
         ], [
             'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -988,7 +988,7 @@ class AuthApiTest extends TestCase
         $firstAccessToken = (string) $login->json('data.token');
         $firstRefreshToken = (string) $login->json('data.refreshToken');
 
-        $refresh = $this->postJson('/api/auth/refreshToken', [
+        $refresh = $this->postJson('/api/auth/refresh-token', [
             'refreshToken' => $firstRefreshToken,
         ]);
 
@@ -1005,11 +1005,11 @@ class AuthApiTest extends TestCase
 
         $logout->assertOk()->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
-        $this->getJson('/api/auth/getUserInfo', [
+        $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$firstAccessToken,
         ])->assertUnauthorized()->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value);
 
-        $this->postJson('/api/auth/refreshToken', [
+        $this->postJson('/api/auth/refresh-token', [
             'refreshToken' => $rotatedRefreshToken,
         ])->assertUnauthorized()->assertJsonPath('code', ApiResultCode::UNAUTHORIZED->value);
     }
@@ -1814,7 +1814,7 @@ class AuthApiTest extends TestCase
 
         $token = $loginResponse->json('data.token');
 
-        $infoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $infoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -1854,7 +1854,7 @@ class AuthApiTest extends TestCase
 
         $token = $loginResponse->json('data.token');
 
-        $infoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $infoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -1884,7 +1884,7 @@ class AuthApiTest extends TestCase
 
         $token = $loginResponse->json('data.token');
 
-        $infoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $infoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -2477,10 +2477,10 @@ class AuthApiTest extends TestCase
         $firstToken = (string) $firstLogin->json('data.token');
         $secondToken = (string) $secondLogin->json('data.token');
 
-        $firstInfo = $this->getJson('/api/auth/getUserInfo', [
+        $firstInfo = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$firstToken,
         ]);
-        $secondInfo = $this->getJson('/api/auth/getUserInfo', [
+        $secondInfo = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$secondToken,
         ]);
 
@@ -2525,7 +2525,7 @@ class AuthApiTest extends TestCase
 
         $token = (string) $loginResponse->json('data.token');
 
-        $userInfoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $userInfoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -2574,7 +2574,7 @@ class AuthApiTest extends TestCase
 
         $token = (string) $loginResponse->json('data.token');
 
-        $userInfoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $userInfoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
             'X-Tenant-Id' => (string) $mainTenant->id,
         ]);

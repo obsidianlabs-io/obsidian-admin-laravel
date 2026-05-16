@@ -55,11 +55,15 @@ return static function (?string $version, callable $toVersionedPath): void {
     Route::get($toVersionedPath($version, 'health'), [HealthController::class, 'show']);
 
     Route::prefix($toVersionedPath($version, 'system/feature-flags'))
+        ->middleware(['tenant.context', 'api.auth'])
         ->group(function (): void {
-            Route::get('/', [FeatureFlagController::class, 'index']);
-            Route::put('/toggle', [FeatureFlagController::class, 'toggle']);
-            Route::delete('/purge', [FeatureFlagController::class, 'purge']);
+            Route::get('/', [FeatureFlagController::class, 'index'])->middleware('api.permission:system.feature_flags.view');
+            Route::put('/toggle', [FeatureFlagController::class, 'toggle'])
+                ->middleware(['idempotent.request', 'api.permission:system.feature_flags.manage']);
+            Route::delete('/purge', [FeatureFlagController::class, 'purge'])
+                ->middleware(['idempotent.request', 'api.permission:system.feature_flags.manage']);
         });
 
-    Route::get($toVersionedPath($version, 'system/ui/crud-schema/{resource}'), [CrudSchemaController::class, 'show']);
+    Route::get($toVersionedPath($version, 'system/ui/crud-schema/{resource}'), [CrudSchemaController::class, 'show'])
+        ->middleware(['tenant.context', 'api.auth', 'api.permission:system.crud_schema.view']);
 };

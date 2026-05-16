@@ -50,6 +50,7 @@ class Laravel13FeatureAdoptionTest extends TestCase
 
         $this->assertContains('tenant.context', $middleware);
         $this->assertContains('api.auth', $middleware);
+        $this->assertContains('api.permission:system.crud_schema.view', $middleware);
     }
 
     public function test_feature_flag_routes_use_controller_middleware_attributes(): void
@@ -59,7 +60,7 @@ class Laravel13FeatureAdoptionTest extends TestCase
 
         $this->assertContains('tenant.context', $middleware);
         $this->assertContains('api.auth', $middleware);
-        $this->assertContains('api.permission:system.manage', $middleware);
+        $this->assertContains('api.permission:system.feature_flags.view', $middleware);
     }
 
     public function test_openapi_spec_cache_touch_extends_cached_spec_ttl(): void

@@ -41,6 +41,7 @@ class RoleSeeder extends VersionedSeeder
     {
         return [
             1 => SeedCatalog::roles(),
+            2 => SeedCatalog::roles(),
         ];
     }
 

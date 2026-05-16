@@ -24,12 +24,12 @@ GET api/audit/list
 GET api/audit/policy/history
 GET api/audit/policy/list
 GET api/auth/error
-GET api/auth/getUserInfo
 GET api/auth/me
 GET api/auth/menus
 GET api/auth/profile
 GET api/auth/sessions
 GET api/auth/timezones
+GET api/auth/user-info
 GET api/health
 GET api/health/live
 GET api/health/ready
@@ -58,12 +58,12 @@ GET api/v1/audit/list
 GET api/v1/audit/policy/history
 GET api/v1/audit/policy/list
 GET api/v1/auth/error
-GET api/v1/auth/getUserInfo
 GET api/v1/auth/me
 GET api/v1/auth/menus
 GET api/v1/auth/profile
 GET api/v1/auth/sessions
 GET api/v1/auth/timezones
+GET api/v1/auth/user-info
 GET api/v1/health
 GET api/v1/health/live
 GET api/v1/health/ready
@@ -94,7 +94,7 @@ POST api/auth/2fa/setup
 POST api/auth/forgot-password
 POST api/auth/login
 POST api/auth/logout
-POST api/auth/refreshToken
+POST api/auth/refresh-token
 POST api/auth/register
 POST api/auth/reset-password
 POST api/auth/verify-email
@@ -112,7 +112,7 @@ POST api/v1/auth/2fa/setup
 POST api/v1/auth/forgot-password
 POST api/v1/auth/login
 POST api/v1/auth/logout
-POST api/v1/auth/refreshToken
+POST api/v1/auth/refresh-token
 POST api/v1/auth/register
 POST api/v1/auth/reset-password
 POST api/v1/auth/verify-email

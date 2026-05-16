@@ -270,7 +270,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-  /auth/refreshToken:
+  /auth/refresh-token:
     post:
       summary: Refresh access token
       requestBody:
@@ -292,7 +292,7 @@ paths:
                 data:
                   token: 3|N7m2pQ8vL1kD5rT9yC4wX6bF0sH3jA1z
                   refreshToken: 4|K2r8sD1fG5hJ9lQ3wE7yU0iO4pA6mN2x
-  /auth/getUserInfo:
+  /auth/user-info:
     get:
       summary: Current user info
       responses:

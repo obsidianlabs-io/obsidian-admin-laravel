@@ -19,7 +19,6 @@ use Illuminate\Routing\Attributes\Controllers\Middleware;
 
 #[Middleware('tenant.context')]
 #[Middleware('api.auth')]
-#[Middleware('api.permission:system.manage')]
 class FeatureFlagController extends ApiController
 {
     public function __construct(

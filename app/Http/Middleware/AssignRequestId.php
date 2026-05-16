@@ -138,6 +138,13 @@ class AssignRequestId
         ];
     }
 
+    public function terminate(Request $request, Response $response): void
+    {
+        // Explicitly flush request-scoped context to prevent cross-request leakage
+        // in long-running processes (e.g., Laravel Octane / RoadRunner).
+        RequestContext::flush();
+    }
+
     private function randomHex(int $length): string
     {
         $byteLength = max(1, (int) ceil($length / 2));

@@ -26,7 +26,9 @@ class AuthSecurityController extends AbstractUserController
         $user = User::query()->where('email', $input->email)->first();
         if ($user) {
             $token = Password::broker()->createToken($user);
-            if (app()->environment('local', 'testing')) {
+            // Only expose reset token in non-production environments AND when explicitly enabled via config.
+            // This prevents accidental token leakage if APP_ENV is misconfigured in production.
+            if (app()->environment('local', 'testing') && (bool) config('security.expose_password_reset_tokens', false)) {
                 $responseData['resetToken'] = $token;
             }
         }

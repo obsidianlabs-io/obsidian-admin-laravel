@@ -22,7 +22,7 @@ class PlatformHardeningApiTest extends TestCase
         $this->seed();
 
         $token = $this->loginAndGetToken('Admin');
-        $response = $this->getJson('/api/auth/getUserInfo', [
+        $response = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -59,7 +59,7 @@ class PlatformHardeningApiTest extends TestCase
         $token = (string) $login->json('data.token');
         $this->assertNotSame('', $token);
 
-        $userInfo = $this->getJson('/api/v1/auth/getUserInfo', [
+        $userInfo = $this->getJson('/api/v1/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -279,7 +279,7 @@ class PlatformHardeningApiTest extends TestCase
         $token = $this->loginAndGetToken('Admin');
         $incomingTraceParent = '00-11111111111111111111111111111111-2222222222222222-01';
 
-        $response = $this->getJson('/api/auth/getUserInfo', [
+        $response = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
             'traceparent' => $incomingTraceParent,
         ]);

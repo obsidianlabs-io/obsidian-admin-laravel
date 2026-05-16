@@ -24,7 +24,7 @@ class RegressionApiSafetyFixesTest extends TestCase
 
         $token = $this->loginAndGetToken('Super');
 
-        $response = $this->getJson('/api/auth/getUserInfo', [
+        $response = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 

@@ -15,10 +15,10 @@ return static function (?string $version, callable $toVersionedPath): void {
             Route::post('/login', [AuthSessionController::class, 'login']);
             Route::post('/forgot-password', [AuthSecurityController::class, 'forgotPassword']);
             Route::post('/reset-password', [AuthSecurityController::class, 'resetPassword']);
-            Route::post('/refreshToken', [AuthSessionController::class, 'refreshToken']);
+            Route::post('/refresh-token', [AuthSessionController::class, 'refreshToken']);
 
             Route::middleware('api.auth')->group(function (): void {
-                Route::get('/getUserInfo', [UserProfileController::class, 'getUserInfo']);
+                Route::get('/user-info', [UserProfileController::class, 'getUserInfo']);
                 Route::get('/menus', [UserProfileController::class, 'menus']);
                 Route::get('/profile', [UserProfileController::class, 'getProfile']);
                 Route::put('/profile', [UserProfileController::class, 'updateProfile'])->middleware('idempotent.request');
@@ -34,7 +34,10 @@ return static function (?string $version, callable $toVersionedPath): void {
                 Route::post('/2fa/setup', [AuthSecurityController::class, 'setupTwoFactor']);
                 Route::post('/2fa/enable', [AuthSecurityController::class, 'enableTwoFactor']);
                 Route::post('/2fa/disable', [AuthSecurityController::class, 'disableTwoFactor']);
-                Route::get('/error', [AuthSessionController::class, 'customError']);
+
+                if (app()->environment('local', 'testing')) {
+                    Route::get('/error', [AuthSessionController::class, 'customError']);
+                }
             });
         });
 };

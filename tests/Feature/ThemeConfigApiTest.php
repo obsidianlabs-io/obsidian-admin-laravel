@@ -78,7 +78,7 @@ class ThemeConfigApiTest extends TestCase
             ->assertJsonPath('data.config.pageAnimateMode', 'fade-scale')
             ->assertJsonPath('data.config.fixedHeaderAndTab', false);
 
-        $userInfoResponse = $this->getJson('/api/auth/getUserInfo', [
+        $userInfoResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -158,11 +158,11 @@ class ThemeConfigApiTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('code', ApiResultCode::SUCCESS->value);
 
-        $platformScopeResponse = $this->getJson('/api/auth/getUserInfo', [
+        $platformScopeResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
-        $tenantScopeResponse = $this->getJson('/api/auth/getUserInfo', [
+        $tenantScopeResponse = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
             'X-Tenant-Id' => (string) $branchTenant->id,
         ]);

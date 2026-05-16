@@ -30,6 +30,7 @@ class PermissionSeeder extends VersionedSeeder
     {
         return [
             1 => SeedCatalog::permissions(),
+            2 => SeedCatalog::permissionExtensions(),
         ];
     }
 

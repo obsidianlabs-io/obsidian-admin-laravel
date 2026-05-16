@@ -11,6 +11,7 @@ use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Actions\CreateTenantAction;
 use App\Domains\Tenant\Actions\DeleteTenantAction;
+use App\Domains\Tenant\Actions\GetAllActiveTenantsAction;
 use App\Domains\Tenant\Actions\ListTenantsQueryAction;
 use App\Domains\Tenant\Actions\UpdateTenantAction;
 use App\Domains\Tenant\Data\TenantResponseData;
@@ -32,6 +33,7 @@ class TenantController extends ApiController
         private readonly CreateTenantAction $createTenantAction,
         private readonly UpdateTenantAction $updateTenantAction,
         private readonly DeleteTenantAction $deleteTenantAction,
+        private readonly GetAllActiveTenantsAction $getAllActiveTenantsAction,
         private readonly AuditLogService $auditLogService,
         private readonly ApiCacheService $apiCacheService
     ) {}
@@ -84,21 +86,7 @@ class TenantController extends ApiController
         $records = $this->apiCacheService->remember(
             'tenants',
             'all',
-            static function (): array {
-                return Tenant::query()
-                    ->where('status', '1')
-                    ->orderBy('id')
-                    ->get(['id', 'code', 'name'])
-                    ->map(static function (Tenant $tenant): array {
-                        return [
-                            'id' => $tenant->id,
-                            'tenantCode' => $tenant->code,
-                            'tenantName' => $tenant->name,
-                        ];
-                    })
-                    ->values()
-                    ->all();
-            }
+            fn (): array => ($this->getAllActiveTenantsAction)()
         );
 
         return $this->success([

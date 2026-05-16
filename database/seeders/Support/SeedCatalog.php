@@ -125,6 +125,18 @@ final class SeedCatalog
     }
 
     /**
+     * @return list<array{code: string, name: string, group: string, status: string}>
+     */
+    public static function permissionExtensions(): array
+    {
+        return [
+            ['code' => 'system.feature_flags.view', 'name' => 'View Feature Flags', 'group' => 'system', 'status' => '1'],
+            ['code' => 'system.feature_flags.manage', 'name' => 'Manage Feature Flags', 'group' => 'system', 'status' => '1'],
+            ['code' => 'system.crud_schema.view', 'name' => 'View CRUD Schemas', 'group' => 'system', 'status' => '1'],
+        ];
+    }
+
+    /**
      * @return list<array{
      *   code: string,
      *   name: string,

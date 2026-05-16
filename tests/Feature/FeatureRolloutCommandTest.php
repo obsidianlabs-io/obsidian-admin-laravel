@@ -23,7 +23,7 @@ class FeatureRolloutCommandTest extends TestCase
 
         $token = $this->loginAndGetToken('Super');
 
-        $response = $this->getJson('/api/auth/getUserInfo', [
+        $response = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -43,7 +43,7 @@ class FeatureRolloutCommandTest extends TestCase
             ->assertSuccessful();
 
         $token = $this->loginAndGetToken('Admin');
-        $response = $this->getJson('/api/auth/getUserInfo', [
+        $response = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
@@ -55,7 +55,7 @@ class FeatureRolloutCommandTest extends TestCase
             ->expectsOutputToContain(sprintf('[scope=tenant:%d|roles:R_ADMIN] reset: menu.role', $tenantId))
             ->assertSuccessful();
 
-        $responseAfterReset = $this->getJson('/api/auth/getUserInfo', [
+        $responseAfterReset = $this->getJson('/api/auth/user-info', [
             'Authorization' => 'Bearer '.$token,
         ]);
 
