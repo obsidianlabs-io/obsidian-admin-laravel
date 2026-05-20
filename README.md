@@ -397,6 +397,12 @@ php artisan openapi:lint
 php artisan api:contract-snapshot --check
 ```
 
+## Git Hooks
+
+This project uses [Lefthook](https://github.com/evilmartians/lefthook) for local Git hooks that enforce code quality (lint, format, static analysis, tests) before commits and pushes. Hooks are installed automatically when you run `composer install` — no extra setup needed.
+
+For full documentation on hook stages, bypass mechanisms, and troubleshooting, see [`docs/git-hooks.md`](./docs/git-hooks.md).
+
 ## Common Endpoints / Consoles
 
 - Health check: `GET /api/health`

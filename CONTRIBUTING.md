@@ -49,6 +49,65 @@ composer run octane:start
 
 Read `docs/octane.md` before changing Octane or RoadRunner behavior.
 
+## Git Hooks
+
+This project uses [Lefthook](https://github.com/evilmartians/lefthook) to run local quality checks before commits and pushes. Hooks are installed automatically when you run `composer install`. You can also install or refresh them manually:
+
+```bash
+composer run hooks:install
+```
+
+### Hook Stages
+
+#### Pre-Commit (runs on `git commit`)
+
+These checks run in parallel against staged files only:
+
+| Check | Scope | What it does |
+|-------|-------|--------------|
+| PHP Lint | `*.php` | Syntax check via `php -l` |
+| Pint Fix | `*.php` | Auto-formats and re-stages fixed files |
+| JSON Syntax | `*.json` | Validates JSON parse-ability |
+| YAML Syntax | `*.yaml`, `*.yml` | Validates YAML parse-ability |
+| Secret Scan | all staged files | Detects credentials via gitleaks (skipped if not installed) |
+| Large File Check | all staged files | Blocks files exceeding 5 MB |
+
+#### Commit-Msg (runs on `git commit`)
+
+| Check | What it does |
+|-------|--------------|
+| Conventional Commit | Validates message format: `<type>(<scope>)?: <description>` (max 72 chars) |
+
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Merge commits are accepted automatically.
+
+#### Pre-Push (runs on `git push`)
+
+| Check | Composer script |
+|-------|-----------------|
+| Branch Guard | Blocks direct pushes to `main` and `release/*` |
+| PHPStan | `composer run analyse` |
+| Architecture | `composer run quality:architecture` |
+| Docs Path Safety | `composer run docs:path-safety` |
+| OpenAPI Lint | `composer run openapi:lint` |
+| Contract Check | `composer run contract:check` |
+| Security Check | `composer run security:check` |
+
+### Bypassing Hooks
+
+For emergency fixes or WIP commits, you can skip hooks:
+
+```bash
+# Skip pre-commit and commit-msg hooks
+git commit --no-verify
+
+# Skip pre-push hooks only
+LEFTHOOK_EXCLUDE=pre-push git push
+```
+
+> Hooks complement but do NOT replace CI. CI remains the source of truth for merge eligibility.
+
+For full details, troubleshooting, and how to add new checks, see [`docs/git-hooks.md`](docs/git-hooks.md).
+
 ## Development Rules
 
 - Keep controllers thin: `FormRequest -> DTO -> Action/Service -> Resource/Response`

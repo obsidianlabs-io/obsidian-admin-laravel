@@ -1,0 +1,83 @@
+# lefthook.yml — Obsidian Admin Laravel Git Hook Configuration
+# Docs: https://github.com/evilmartians/lefthook
+#
+# Install: composer run hooks:install
+# Bypass:  git commit --no-verify
+#          LEFTHOOK_EXCLUDE=pre-push git push
+
+assert_lefthook_installed: true
+
+pre-commit:
+  parallel: true
+  commands:
+    php-lint:
+      glob: "*.php"
+      run: "php -l {staged_files}"
+      stage_fixed: true
+    pint-fix:
+      glob: "*.php"
+      run: "./vendor/bin/pint {staged_files}"
+      stage_fixed: true
+    json-syntax:
+      glob: "*.json"
+      run: |
+        php -r "
+          \$files = array_filter(explode(\"\\n\", '{staged_files}'));
+          \$failed = false;
+          foreach (\$files as \$f) {
+            if (empty(\$f)) continue;
+            json_decode(file_get_contents(\$f));
+            if (json_last_error() !== JSON_ERROR_NONE) {
+              fwrite(STDERR, \$f . ': ' . json_last_error_msg() . PHP_EOL);
+              \$failed = true;
+            }
+          }
+          exit(\$failed ? 1 : 0);
+        "
+    yaml-syntax:
+      glob: "*.{yaml,yml}"
+      run: |
+        php -r "
+          \$files = array_filter(explode(\"\\n\", '{staged_files}'));
+          \$failed = false;
+          foreach (\$files as \$f) {
+            if (empty(\$f)) continue;
+            if (!function_exists('yaml_parse_file')) {
+              fwrite(STDERR, '⚠️  yaml extension not available — skipping YAML syntax check' . PHP_EOL);
+              exit(0);
+            }
+            \$result = @yaml_parse_file(\$f);
+            if (\$result === false) {
+              fwrite(STDERR, \$f . ': YAML parse error' . PHP_EOL);
+              \$failed = true;
+            }
+          }
+          exit(\$failed ? 1 : 0);
+        "
+    secret-scan:
+      run: "command -v gitleaks >/dev/null 2>&1 && gitleaks protect --staged --no-banner || echo '⚠️  gitleaks not installed — secret scan skipped'"
+      fail_text: "🔑 Potential secret detected in staged files. Remove the secret before committing."
+    large-file-check:
+      run: "scripts/hooks/check-file-size.sh {staged_files}"
+
+commit-msg:
+  commands:
+    conventional-commit:
+      run: "scripts/hooks/validate-commit-msg.sh {1}"
+
+pre-push:
+  commands:
+    branch-guard:
+      run: "scripts/hooks/branch-guard.sh"
+    analyse:
+      run: "composer run analyse"
+    architecture:
+      run: "composer run quality:architecture"
+    path-safety:
+      run: "composer run docs:path-safety"
+    openapi-lint:
+      run: "composer run openapi:lint"
+    contract-check:
+      run: "composer run contract:check"
+    security-check:
+      run: "composer run security:check"
