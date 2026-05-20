@@ -345,6 +345,12 @@ php artisan openapi:lint
 php artisan api:contract-snapshot --check
 ```
 
+## Git Hooks
+
+本项目使用 [Lefthook](https://github.com/evilmartians/lefthook) 管理本地 Git Hooks，在提交和推送前自动执行代码质量检查（lint、格式化、静态分析、测试）。运行 `composer install` 时会自动安装 hooks，无需额外配置。
+
+完整文档（hook 阶段、绕过机制、故障排查）请参阅 [`docs/git-hooks.md`](./docs/git-hooks.md)。
+
 ## 常用入口
 
 - 健康检查：`GET /api/health`
