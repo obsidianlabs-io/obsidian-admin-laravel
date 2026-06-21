@@ -49,10 +49,7 @@ class RoleController extends ApiController
 
     public function assignablePermissions(Request $request): JsonResponse
     {
-        $context = $this->resolveRoleConsoleContext(
-            $request,
-            $this->authenticate($request, 'access-api')
-        );
+        $context = $this->resolveAuthenticatedRoleConsoleContext($request);
         if ($context->failed()) {
             return $this->error($context->code(), $context->message());
         }
@@ -92,10 +89,7 @@ class RoleController extends ApiController
 
     public function list(ListRolesRequest $request, ListRolesQueryAction $listRolesQuery): JsonResponse
     {
-        $context = $this->resolveRoleConsoleContext(
-            $request,
-            $this->authenticateAndAuthorize($request, 'access-api', 'role.view')
-        );
+        $context = $this->resolveAuthorizedRoleConsoleContext($request, 'role.view');
         if ($context->failed()) {
             return $this->error($context->code(), $context->message());
         }
@@ -148,10 +142,7 @@ class RoleController extends ApiController
 
     public function all(Request $request): JsonResponse
     {
-        $context = $this->resolveRoleConsoleContext(
-            $request,
-            $this->authenticate($request, 'access-api')
-        );
+        $context = $this->resolveAuthenticatedRoleConsoleContext($request);
         if ($context->failed()) {
             return $this->error($context->code(), $context->message());
         }
@@ -212,10 +203,7 @@ class RoleController extends ApiController
 
     public function store(StoreRoleRequest $request): JsonResponse
     {
-        $context = $this->resolveRoleConsoleContext(
-            $request,
-            $this->authenticateAndAuthorize($request, 'access-api', 'role.manage')
-        );
+        $context = $this->resolveAuthorizedRoleConsoleContext($request, 'role.manage');
         if ($context->failed()) {
             return $this->error($context->code(), $context->message());
         }
@@ -253,7 +241,7 @@ class RoleController extends ApiController
         $permissionIds = $permissionResolution->permissionIds();
 
         return $this->withIdempotency($request, $user, function () use ($input, $targetTenantId, $permissionIds, $user, $request): JsonResponse {
-            $role = $this->roleService->create($input->toCreateRoleDTO($targetTenantId), $permissionIds);
+            $role = $this->roleService->create($input->forTenant($targetTenantId), $permissionIds);
 
             $this->auditLogService->record(
                 action: 'role.create',
@@ -270,10 +258,7 @@ class RoleController extends ApiController
 
     public function update(UpdateRoleRequest $request, int $id): JsonResponse
     {
-        $context = $this->resolveRoleConsoleContext(
-            $request,
-            $this->authenticateAndAuthorize($request, 'access-api', 'role.manage')
-        );
+        $context = $this->resolveAuthorizedRoleConsoleContext($request, 'role.manage');
         if ($context->failed()) {
             return $this->error($context->code(), $context->message());
         }
@@ -349,10 +334,7 @@ class RoleController extends ApiController
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $context = $this->resolveRoleConsoleContext(
-            $request,
-            $this->authenticateAndAuthorize($request, 'access-api', 'role.manage')
-        );
+        $context = $this->resolveAuthorizedRoleConsoleContext($request, 'role.manage');
         if ($context->failed()) {
             return $this->error($context->code(), $context->message());
         }
@@ -419,10 +401,7 @@ class RoleController extends ApiController
 
     public function syncPermissions(SyncRolePermissionsRequest $request, int $id): JsonResponse
     {
-        $context = $this->resolveRoleConsoleContext(
-            $request,
-            $this->authenticateAndAuthorize($request, 'access-api', 'role.manage')
-        );
+        $context = $this->resolveAuthorizedRoleConsoleContext($request, 'role.manage');
         if ($context->failed()) {
             return $this->error($context->code(), $context->message());
         }
@@ -465,6 +444,22 @@ class RoleController extends ApiController
         );
 
         return $this->success([], 'Role permissions updated');
+    }
+
+    private function resolveAuthenticatedRoleConsoleContext(Request $request): ManagementContext
+    {
+        return $this->resolveRoleConsoleContext(
+            $request,
+            $this->authenticate($request, 'access-api')
+        );
+    }
+
+    private function resolveAuthorizedRoleConsoleContext(Request $request, string $permissionCode): ManagementContext
+    {
+        return $this->resolveRoleConsoleContext(
+            $request,
+            $this->authenticateAndAuthorize($request, 'access-api', $permissionCode)
+        );
     }
 
     private function resolveRoleConsoleContext(Request $request, ApiAuthResult $authResult): ManagementContext

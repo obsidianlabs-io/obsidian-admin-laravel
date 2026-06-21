@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTOs\Role;
 
-final readonly class StoreRoleInputDTO
+final readonly class StoreRoleInputDTO extends CreateRoleDTO
 {
     /**
      * @param  list<string>  $permissionCodes
@@ -12,21 +12,37 @@ final readonly class StoreRoleInputDTO
     public function __construct(
         public string $roleCode,
         public string $roleName,
-        public string $description,
-        public string $status,
-        public int $level,
-        public array $permissionCodes
-    ) {}
+        string $description,
+        string $status,
+        int $level,
+        public array $permissionCodes,
+        ?int $tenantId = null,
+    ) {
+        parent::__construct(
+            code: $roleCode,
+            name: $roleName,
+            description: $description,
+            status: $status,
+            tenantId: $tenantId,
+            level: $level,
+        );
+    }
+
+    public function forTenant(?int $tenantId): self
+    {
+        return new self(
+            roleCode: $this->roleCode,
+            roleName: $this->roleName,
+            description: $this->description,
+            status: $this->status,
+            level: $this->level,
+            permissionCodes: $this->permissionCodes,
+            tenantId: $tenantId,
+        );
+    }
 
     public function toCreateRoleDTO(?int $tenantId): CreateRoleDTO
     {
-        return new CreateRoleDTO(
-            code: $this->roleCode,
-            name: $this->roleName,
-            description: $this->description,
-            status: $this->status,
-            tenantId: $tenantId,
-            level: $this->level,
-        );
+        return $this->forTenant($tenantId);
     }
 }
