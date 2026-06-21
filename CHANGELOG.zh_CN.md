@@ -9,6 +9,17 @@
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-06-22
+
+### 🔧 调整
+- 将共享 API controller 的职责拆分为更聚焦的 controller concerns，覆盖 JSON 响应、认证辅助、幂等性、乐观锁、分页、删除响应与 trace 上报。
+- 通过共享 helper 收敛 RoleController 中重复的上下文解析与授权准备逻辑，同时保持既有角色 API 契约不变。
+- 补充发布期迁移规范：未来 schema 变更应使用独立 timestamp migration，不再回写到初始 application schema migration。
+
+### 🐞 修复
+- 新增 `admins` password broker alias，使使用 `AUTH_PASSWORD_BROKER=admins` 的环境可以正常执行 forgot-password 流程与 release contract 测试。
+- 保持 role store input DTO 对既有 HTTP 字段别名的兼容，同时对齐角色创建 DTO 的字段形态。
+
 ## [1.3.1] - 2026-05-16
 
 ### ✨ 新增

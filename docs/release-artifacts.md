@@ -30,7 +30,7 @@ Stable tags publish a multi-arch runtime image to:
 
 Published tag forms:
 
-- `1.3.1`
+- `1.3.2`
 - `1.3`
 - `1`
 - `latest` for stable non-prerelease tags only

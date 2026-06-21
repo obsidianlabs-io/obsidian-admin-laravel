@@ -7,15 +7,17 @@ This repository is versioned independently from `obsidian-admin-vue`.
 | Backend | Frontend | Status | Notes |
 | --- | --- | --- | --- |
 | `main` | `main` | Active development | CI and local contract tooling assume both repositories move together. |
-| `v1.3.1` | `v1.2.0` | Stable | Current documented release pair. Backend patch release with security and contract-alignment fixes and no required coordinated frontend tag. |
+| `v1.3.2` | `v1.2.2` | Stable | Current documented release pair. Backend maintenance patch that keeps the published API contract stable while pairing with the frontend architecture cleanup release. |
+| `v1.3.1` | `v1.2.1` | Stable | Previous stable release pair. Backend patch release with security and contract-alignment fixes and the coordinated frontend patch release. |
+| `v1.3.1` | `v1.2.0` | Stable | Previous stable release pair. Backend patch release with security and contract-alignment fixes and no required coordinated frontend tag. |
 | `v1.3.0` | `v1.2.0` | Stable | Previous stable release pair. Laravel 13 backend minor release without a required coordinated frontend tag. |
 | `v1.2.1` | `v1.2.0` | Stable | Previous stable release pair. |
 
 ## Current coordinated backend lane
 
 - Backend `main` now tracks the Laravel 13 baseline.
-- The current stable published pair is backend `v1.3.1` with frontend `v1.2.0`.
-- Frontend `v1.2.0` remains the compatible published frontend release because the backend `v1.3.1` patch keeps the published frontend contract intact.
+- The current stable published pair is backend `v1.3.2` with frontend `v1.2.2`.
+- Frontend `v1.2.1` remains deployable with backend `v1.3.2` because this backend patch keeps the published frontend contract intact.
 
 ## Source of truth
 

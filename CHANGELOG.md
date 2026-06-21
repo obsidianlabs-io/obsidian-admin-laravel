@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-06-22
+
+### 🔧 Changed
+- Split the shared API controller responsibilities into focused controller concerns for JSON responses, authentication helpers, idempotency, optimistic locks, pagination, deletion responses, and trace reporting.
+- Reduced repeated role controller context and authorization setup through shared helper methods while preserving the existing role API contract.
+- Added release guidance that future schema changes should use independent timestamped migrations instead of folding changes back into the initial application schema migration.
+
+### 🐞 Fixed
+- Added an `admins` password broker alias so environments using `AUTH_PASSWORD_BROKER=admins` can execute forgot-password flows and release contract tests successfully.
+- Kept the role store input DTO compatible with existing HTTP aliases while aligning it with the role creation DTO shape.
+
 ## [1.3.1] - 2026-05-16
 
 ### ✨ Added

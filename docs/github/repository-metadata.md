@@ -3,7 +3,7 @@
 ## Release Title
 
 ```text
-v1.3.1 · system permission hardening and auth contract alignment
+v1.3.2 · API controller boundary cleanup and password broker fix
 ```
 
 ## Repository About
