@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Permission;
 
-use App\DTOs\Permission\StorePermissionInputDTO;
+use App\DTOs\Permission\CreatePermissionDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 
 class StorePermissionRequest extends BaseApiRequest
@@ -23,13 +23,13 @@ class StorePermissionRequest extends BaseApiRequest
         ];
     }
 
-    public function toDTO(): StorePermissionInputDTO
+    public function toDTO(): CreatePermissionDTO
     {
         $validated = $this->validated();
 
-        return new StorePermissionInputDTO(
-            permissionCode: trim((string) $validated['permissionCode']),
-            permissionName: trim((string) $validated['permissionName']),
+        return new CreatePermissionDTO(
+            code: trim((string) $validated['permissionCode']),
+            name: trim((string) $validated['permissionName']),
             group: trim((string) ($validated['group'] ?? '')),
             description: trim((string) ($validated['description'] ?? '')),
             status: (string) ($validated['status'] ?? '1'),

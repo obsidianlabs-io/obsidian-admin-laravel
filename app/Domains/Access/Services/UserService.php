@@ -86,4 +86,26 @@ class UserService
 
         return $user;
     }
+
+    /**
+     * Resolve the role code for a user, preferring the eager-loaded relation
+     * and falling back to a direct lookup when the relation is not loaded.
+     */
+    public function resolveRoleCode(User $user): string
+    {
+        $role = $user->getRelationValue('role');
+        if ($role instanceof Role) {
+            $attributes = $role->getAttributes();
+            $code = $attributes['code'] ?? null;
+            if (is_string($code) && $code !== '') {
+                return $code;
+            }
+        }
+
+        $roleCode = $user->role_id
+            ? Role::query()->whereKey((int) $user->role_id)->value('code')
+            : null;
+
+        return is_string($roleCode) ? $roleCode : '';
+    }
 }

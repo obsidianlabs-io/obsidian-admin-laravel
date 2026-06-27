@@ -113,10 +113,10 @@ class PermissionController extends ApiController
             return $this->error($authResult->code(), $authResult->message());
         }
         $user = $authResult->requireUser();
-        $input = $request->toDTO();
+        $dto = $request->toDTO();
 
-        return $this->withIdempotency($request, $user, function () use ($input, $user, $request): JsonResponse {
-            $permission = $this->permissionService->create($input->toCreatePermissionDTO());
+        return $this->withIdempotency($request, $user, function () use ($dto, $user, $request): JsonResponse {
+            $permission = $this->permissionService->create($dto);
 
             $this->auditLogService->record(
                 action: 'permission.create',
@@ -150,12 +150,12 @@ class PermissionController extends ApiController
 
         $user = $authResult->requireUser();
         $oldValues = PermissionSnapshot::fromModel($permission)->toArray();
-        $input = $request->toDTO();
-        if ($input->permissionCode !== (string) $permission->code) {
+        $dto = $request->toDTO((string) $permission->status);
+        if ($dto->code !== (string) $permission->code) {
             return $this->error(ApiResultCode::PARAM_ERROR, 'Permission code cannot be modified');
         }
 
-        $permission = $this->permissionService->update($permission, $input->toUpdatePermissionDTO((string) $permission->status));
+        $permission = $this->permissionService->update($permission, $dto);
 
         $this->auditLogService->record(
             action: 'permission.update',

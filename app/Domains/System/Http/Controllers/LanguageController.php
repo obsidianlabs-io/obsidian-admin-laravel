@@ -19,7 +19,6 @@ use App\Http\Requests\Api\Language\ListLanguageTranslationsRequest;
 use App\Http\Requests\Api\Language\StoreLanguageTranslationRequest;
 use App\Http\Requests\Api\Language\UpdateLanguageTranslationRequest;
 use App\Support\ApiResultCode;
-use App\Support\LocaleDefaults;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -105,7 +104,7 @@ class LanguageController extends ApiController
 
     public function locales(): JsonResponse
     {
-        $records = $this->resolveRuntimeLocales();
+        $records = $this->languageService->resolveRuntimeLocales();
 
         return $this->success([
             'records' => $records,
@@ -115,7 +114,7 @@ class LanguageController extends ApiController
     public function bootstrap(): JsonResponse
     {
         return $this->success([
-            'defaultLocale' => $this->resolveDefaultLocaleCode(),
+            'defaultLocale' => $this->languageService->resolveDefaultLocaleCode(),
         ]);
     }
 
@@ -123,10 +122,10 @@ class LanguageController extends ApiController
     {
         $requestedLocale = trim((string) $request->query('locale', ''));
 
-        $language = $this->resolveRuntimeLanguage($requestedLocale);
+        $language = $this->languageService->resolveRuntimeLanguage($requestedLocale);
         if (! $language) {
             return $this->success([
-                'locale' => $requestedLocale !== '' ? $requestedLocale : $this->resolveDefaultLocaleCode(),
+                'locale' => $requestedLocale !== '' ? $requestedLocale : $this->languageService->resolveDefaultLocaleCode(),
                 'version' => '0',
                 'notModified' => true,
                 'messages' => [],
@@ -258,7 +257,7 @@ class LanguageController extends ApiController
 
         $oldValues = LanguageTranslationSnapshot::forContentAudit(
             $translation,
-            $this->resolveTranslationLocale($translation)
+            $this->languageService->resolveTranslationLocale($translation)
         )->toArray();
 
         $translation = $this->languageService->updateTranslation(
@@ -298,7 +297,7 @@ class LanguageController extends ApiController
         }
         $oldValues = LanguageTranslationSnapshot::forContentAudit(
             $translation,
-            $this->resolveTranslationLocale($translation)
+            $this->languageService->resolveTranslationLocale($translation)
         )->toArray();
 
         $this->languageService->deleteTranslation($translation);
@@ -336,80 +335,5 @@ class LanguageController extends ApiController
         }
 
         return ApiAuthResult::success($user, $authResult->token());
-    }
-
-    private function resolveRuntimeLanguage(string $requestedLocale): ?Language
-    {
-        if ($requestedLocale !== '') {
-            $direct = Language::query()
-                ->where('code', $requestedLocale)
-                ->where('status', '1')
-                ->first();
-
-            if ($direct) {
-                return $direct;
-            }
-        }
-
-        $configuredDefault = LocaleDefaults::configured();
-        $configured = Language::query()
-            ->where('code', $configuredDefault)
-            ->where('status', '1')
-            ->first();
-
-        if ($configured) {
-            return $configured;
-        }
-
-        return Language::query()
-            ->where('status', '1')
-            ->orderByDesc('is_default')
-            ->orderBy('sort')
-            ->orderBy('id')
-            ->first();
-    }
-
-    /**
-     * @return list<array{id: int, locale: string, localeName: string, isDefault: bool}>
-     */
-    private function resolveRuntimeLocales(): array
-    {
-        /** @var list<array{id: int, locale: string, localeName: string, isDefault: bool}> $locales */
-        $locales = $this->apiCacheService->remember(
-            'languages',
-            'locales',
-            static function (): array {
-                return Language::query()
-                    ->where('status', '1')
-                    ->orderByDesc('is_default')
-                    ->orderBy('sort')
-                    ->orderBy('id')
-                    ->get(['id', 'code', 'name', 'is_default'])
-                    ->map(static function (Language $language): array {
-                        return [
-                            'id' => $language->id,
-                            'locale' => (string) $language->code,
-                            'localeName' => (string) $language->name,
-                            'isDefault' => (bool) $language->is_default,
-                        ];
-                    })
-                    ->values()
-                    ->all();
-            }
-        );
-
-        return $locales;
-    }
-
-    private function resolveDefaultLocaleCode(): string
-    {
-        return LocaleDefaults::resolve();
-    }
-
-    private function resolveTranslationLocale(LanguageTranslation $translation): string
-    {
-        $language = $translation->language;
-
-        return $language instanceof Language ? (string) $language->code : '';
     }
 }

@@ -7,16 +7,14 @@ namespace App\Domains\Access\Http\Controllers;
 use App\Domains\Access\Actions\ListRolesQueryAction;
 use App\Domains\Access\Data\RoleResponseData;
 use App\Domains\Access\Data\RoleSnapshot;
+use App\Domains\Access\Http\Controllers\Concerns\ResolvesRoleConsoleContext;
+use App\Domains\Access\Http\Controllers\Concerns\ValidatesRoleBusinessRules;
 use App\Domains\Access\Http\Resources\RoleListResource;
 use App\Domains\Access\Models\Permission;
 use App\Domains\Access\Models\Role;
-use App\Domains\Access\Models\User;
 use App\Domains\Access\Services\RoleScopeGuardService;
 use App\Domains\Access\Services\RoleService;
-use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Auth\AssignablePermissionIdsResult;
-use App\Domains\Shared\Auth\ManagementContext;
-use App\Domains\Shared\Auth\RoleScopeContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Services\AuditLogService;
@@ -33,11 +31,8 @@ use Illuminate\Http\Request;
 
 class RoleController extends ApiController
 {
-    private const ROLE_LEVEL_MIN = 1;
-
-    private const ROLE_LEVEL_MAX = 999;
-
-    private const DEFAULT_ROLE_LEVEL = 100;
+    use ResolvesRoleConsoleContext;
+    use ValidatesRoleBusinessRules;
 
     public function __construct(
         private readonly RoleService $roleService,
@@ -225,8 +220,7 @@ class RoleController extends ApiController
         if ($roleUniquenessError instanceof JsonResponse) {
             return $roleUniquenessError;
         }
-        $requestedRoleLevel = $input->level;
-        $roleLevelError = $this->validateRequestedRoleLevel($requestedRoleLevel, $actorLevel);
+        $roleLevelError = $this->validateRequestedRoleLevel($input->level, $actorLevel);
         if ($roleLevelError instanceof JsonResponse) {
             return $roleLevelError;
         }
@@ -293,8 +287,7 @@ class RoleController extends ApiController
         if ($roleUniquenessError instanceof JsonResponse) {
             return $roleUniquenessError;
         }
-        $requestedRoleLevel = $input->level;
-        $roleLevelError = $this->validateRequestedRoleLevel($requestedRoleLevel, $actorLevel);
+        $roleLevelError = $this->validateRequestedRoleLevel($input->level, $actorLevel);
         if ($roleLevelError instanceof JsonResponse) {
             return $roleLevelError;
         }
@@ -446,51 +439,6 @@ class RoleController extends ApiController
         return $this->success([], 'Role permissions updated');
     }
 
-    private function resolveAuthenticatedRoleConsoleContext(Request $request): ManagementContext
-    {
-        return $this->resolveRoleConsoleContext(
-            $request,
-            $this->authenticate($request, 'access-api')
-        );
-    }
-
-    private function resolveAuthorizedRoleConsoleContext(Request $request, string $permissionCode): ManagementContext
-    {
-        return $this->resolveRoleConsoleContext(
-            $request,
-            $this->authenticateAndAuthorize($request, 'access-api', $permissionCode)
-        );
-    }
-
-    private function resolveRoleConsoleContext(Request $request, ApiAuthResult $authResult): ManagementContext
-    {
-        if ($authResult->failed()) {
-            return ManagementContext::failure($authResult->code(), $authResult->message());
-        }
-
-        $user = $authResult->user();
-        if (! $user instanceof User) {
-            return ManagementContext::failure(ApiResultCode::UNAUTHORIZED, 'Unauthorized');
-        }
-
-        $actorLevel = $this->roleScopeGuardService->resolveUserRoleLevel($user);
-        if ($actorLevel <= 0) {
-            return ManagementContext::failure(ApiResultCode::FORBIDDEN, 'Forbidden');
-        }
-
-        $roleScope = $this->resolveRoleScope($request, $user);
-        if ($roleScope->failed()) {
-            return ManagementContext::failure($roleScope->code(), $roleScope->message());
-        }
-
-        return ManagementContext::success(
-            user: $user,
-            actorLevel: $actorLevel,
-            tenantId: $roleScope->tenantId(),
-            isSuper: $roleScope->isSuper()
-        );
-    }
-
     /**
      * @param  list<string>  $permissionCodes
      */
@@ -516,57 +464,5 @@ class RoleController extends ApiController
         return Role::query()->whereKey($id)->exists()
             ? $this->error(ApiResultCode::FORBIDDEN, 'Forbidden')
             : $this->error(ApiResultCode::PARAM_ERROR, 'Role not found');
-    }
-
-    private function resolveRoleScope(Request $request, User $user): RoleScopeContext
-    {
-        return $this->tenantContextService->resolveRoleScope($request, $user);
-    }
-
-    private function validateReservedRoleCode(string $roleCode, ?Role $existingRole = null): ?JsonResponse
-    {
-        if ($this->roleScopeGuardService->isRoleCodeChangeAllowed($roleCode, $existingRole)) {
-            return null;
-        }
-
-        return $this->error(ApiResultCode::PARAM_ERROR, 'Role code is reserved');
-    }
-
-    private function validateRoleUniqueness(
-        string $roleCode,
-        string $roleName,
-        ?int $tenantId,
-        ?int $ignoreRoleId = null
-    ): ?JsonResponse {
-        if ($this->roleScopeGuardService->roleCodeExistsInScope($roleCode, $tenantId, $ignoreRoleId)) {
-            return $this->error(ApiResultCode::PARAM_ERROR, __('validation.unique', ['attribute' => 'role code']));
-        }
-
-        if ($this->roleScopeGuardService->roleNameExistsInScope($roleName, $tenantId, $ignoreRoleId)) {
-            return $this->error(ApiResultCode::PARAM_ERROR, __('validation.unique', ['attribute' => 'role name']));
-        }
-
-        return null;
-    }
-
-    private function validateRequestedRoleLevel(int $requestedLevel, int $actorLevel): ?JsonResponse
-    {
-        if ($requestedLevel < self::ROLE_LEVEL_MIN || $requestedLevel > self::ROLE_LEVEL_MAX) {
-            return $this->error(
-                ApiResultCode::PARAM_ERROR,
-                'Role level must be between '.self::ROLE_LEVEL_MIN.' and '.self::ROLE_LEVEL_MAX
-            );
-        }
-
-        if (! $this->roleScopeGuardService->isRequestedRoleLevelAllowed(
-            $requestedLevel,
-            $actorLevel,
-            self::ROLE_LEVEL_MIN,
-            self::ROLE_LEVEL_MAX
-        )) {
-            return $this->error(ApiResultCode::FORBIDDEN, 'Role level must be lower than your current role level');
-        }
-
-        return null;
     }
 }

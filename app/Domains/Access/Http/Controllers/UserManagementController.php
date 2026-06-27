@@ -6,7 +6,6 @@ namespace App\Domains\Access\Http\Controllers;
 
 use App\Domains\Access\Actions\ListUsersQueryAction;
 use App\Domains\Access\Http\Resources\UserListResource;
-use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Services\UserTenantScopeService;
 use App\Domains\Auth\Http\Controllers\AbstractUserController;
@@ -123,7 +122,7 @@ class UserManagementController extends AbstractUserController
         }
 
         $oldValues = [
-            'roleCode' => $this->resolveRoleCode($user),
+            'roleCode' => $this->userService->resolveRoleCode($user),
             'roleId' => (int) ($user->role_id ?? 0),
         ];
         $this->userService->assignRole($user, $roleModel);
@@ -274,7 +273,7 @@ class UserManagementController extends AbstractUserController
         $oldValues = [
             'userName' => $user->name,
             'email' => $user->email,
-            'roleCode' => $this->resolveRoleCode($user),
+            'roleCode' => $this->userService->resolveRoleCode($user),
             'status' => (string) $user->status,
             'organizationId' => $user->organization_id ? (int) $user->organization_id : null,
             'teamId' => $user->team_id ? (int) $user->team_id : null,
@@ -376,23 +375,5 @@ class UserManagementController extends AbstractUserController
         );
 
         return $this->deletionActionSuccess('user', (int) $id, 'soft_deleted', 'User deleted');
-    }
-
-    private function resolveRoleCode(User $user): string
-    {
-        $role = $user->getRelationValue('role');
-        if ($role instanceof Role) {
-            $attributes = $role->getAttributes();
-            $code = $attributes['code'] ?? null;
-            if (is_string($code) && $code !== '') {
-                return $code;
-            }
-        }
-
-        $roleCode = $user->role_id
-            ? Role::query()->whereKey((int) $user->role_id)->value('code')
-            : null;
-
-        return is_string($roleCode) ? $roleCode : '';
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Permission;
 
-use App\DTOs\Permission\UpdatePermissionInputDTO;
+use App\DTOs\Permission\UpdatePermissionDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 use Illuminate\Validation\Rule;
 
@@ -29,16 +29,16 @@ class UpdatePermissionRequest extends BaseApiRequest
         ];
     }
 
-    public function toDTO(): UpdatePermissionInputDTO
+    public function toDTO(?string $fallbackStatus = null): UpdatePermissionDTO
     {
         $validated = $this->validated();
 
-        return new UpdatePermissionInputDTO(
-            permissionCode: trim((string) $validated['permissionCode']),
-            permissionName: trim((string) $validated['permissionName']),
+        return new UpdatePermissionDTO(
+            code: trim((string) $validated['permissionCode']),
+            name: trim((string) $validated['permissionName']),
             group: trim((string) ($validated['group'] ?? '')),
             description: trim((string) ($validated['description'] ?? '')),
-            status: array_key_exists('status', $validated) ? (string) $validated['status'] : null,
+            status: array_key_exists('status', $validated) ? (string) $validated['status'] : ($fallbackStatus ?? ''),
         );
     }
 }
