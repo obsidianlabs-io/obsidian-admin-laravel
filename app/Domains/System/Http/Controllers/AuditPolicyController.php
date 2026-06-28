@@ -80,7 +80,7 @@ class AuditPolicyController extends ApiController
             return $this->error(ApiResultCode::PARAM_ERROR, $exception->getMessage());
         }
 
-        event(AuditPolicyUpdatedEvent::fromRequest($user, $request, $changeReason, $result));
+        event(AuditPolicyUpdatedEvent::make($user, $changeReason, $result));
         event(new SystemRealtimeUpdated(
             topic: 'audit-policy',
             action: 'audit-policy.update',

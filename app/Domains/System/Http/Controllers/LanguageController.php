@@ -6,6 +6,7 @@ namespace App\Domains\System\Http\Controllers;
 
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\ApiAuthResult;
+use App\Domains\Shared\Data\AuditContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Actions\ListLanguageTranslationsQueryAction;
@@ -13,7 +14,6 @@ use App\Domains\System\Data\LanguageTranslationSnapshot;
 use App\Domains\System\Http\Resources\LanguageTranslationListResource;
 use App\Domains\System\Models\Language;
 use App\Domains\System\Models\LanguageTranslation;
-use App\Domains\System\Services\AuditLogService;
 use App\Domains\System\Services\LanguageService;
 use App\Http\Requests\Api\Language\ListLanguageTranslationsRequest;
 use App\Http\Requests\Api\Language\StoreLanguageTranslationRequest;
@@ -26,7 +26,6 @@ class LanguageController extends ApiController
 {
     public function __construct(
         private readonly LanguageService $languageService,
-        private readonly AuditLogService $auditLogService,
         private readonly ApiCacheService $apiCacheService
     ) {}
 
@@ -211,15 +210,10 @@ class LanguageController extends ApiController
             return $this->error(ApiResultCode::PARAM_ERROR, 'Language locale not found');
         }
 
-        return $this->withIdempotency($request, $user, function () use ($language, $input, $user, $request): JsonResponse {
-            $translation = $this->languageService->createTranslation($input->toCreateLanguageTranslationDTO((int) $language->id));
-
-            $this->auditLogService->record(
-                action: 'language.translation.create',
-                auditable: $translation,
-                actor: $user,
-                request: $request,
-                newValues: LanguageTranslationSnapshot::forCreateAudit($translation, (string) $language->code)->toArray()
+        return $this->withIdempotency($request, $user, function () use ($language, $input, $user): JsonResponse {
+            $translation = $this->languageService->createTranslation(
+                $input->toCreateLanguageTranslationDTO((int) $language->id),
+                new AuditContext(actor: $user)
             );
 
             return $this->success([
@@ -262,16 +256,11 @@ class LanguageController extends ApiController
 
         $translation = $this->languageService->updateTranslation(
             $translation,
-            $input->toUpdateLanguageTranslationDTO((int) $language->id, (string) $translation->status)
-        );
-
-        $this->auditLogService->record(
-            action: 'language.translation.update',
-            auditable: $translation,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues,
-            newValues: LanguageTranslationSnapshot::forContentAudit($translation, (string) $language->code)->toArray()
+            $input->toUpdateLanguageTranslationDTO((int) $language->id, (string) $translation->status),
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues
+            )
         );
 
         return $this->success([
@@ -300,13 +289,12 @@ class LanguageController extends ApiController
             $this->languageService->resolveTranslationLocale($translation)
         )->toArray();
 
-        $this->languageService->deleteTranslation($translation);
-        $this->auditLogService->record(
-            action: 'language.translation.delete',
-            auditable: $translation,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues
+        $this->languageService->deleteTranslation(
+            $translation,
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues
+            )
         );
 
         return $this->success([], 'Language translation deleted');

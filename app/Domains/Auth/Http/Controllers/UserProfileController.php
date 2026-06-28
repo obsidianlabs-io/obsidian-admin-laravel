@@ -6,6 +6,7 @@ namespace App\Domains\Auth\Http\Controllers;
 
 use App\Domains\Access\Models\UserPreference;
 use App\Domains\Auth\Actions\UpdateOwnProfileAction;
+use App\Domains\Shared\Events\DomainAuditEvent;
 use App\Http\Requests\Api\Auth\UpdatePreferredLocaleRequest;
 use App\Http\Requests\Api\Auth\UpdateProfileRequest;
 use App\Http\Requests\Api\Auth\UpdateUserPreferencesRequest;
@@ -13,6 +14,7 @@ use App\Support\ApiDateTime;
 use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class UserProfileController extends AbstractUserController
@@ -96,18 +98,22 @@ class UserProfileController extends AbstractUserController
             return $this->error(ApiResultCode::PARAM_ERROR, 'Current password is incorrect');
         }
 
-        $result = $updateOwnProfile->handle($user, $input->toUpdateOwnProfileDTO());
+        $result = DB::transaction(function () use ($updateOwnProfile, $user, $input) {
+            return $updateOwnProfile->handle($user, $input->toUpdateOwnProfileDTO());
+        });
+
         ApiDateTime::assignRequestTimezone($request, $result->timezone());
 
-        $this->auditLogService->record(
-            action: 'user.profile.update',
-            auditable: $user,
-            actor: $user,
-            request: $request,
-            oldValues: $result->oldProfile()->toArray(),
-            newValues: $result->newProfile()->toArray(),
-            tenantId: $user->tenant_id ? (int) $user->tenant_id : null
-        );
+        DB::afterCommit(static function () use ($user, $result) {
+            event(DomainAuditEvent::make(
+                action: 'user.profile.update',
+                auditable: $user,
+                actor: $user,
+                oldValues: $result->oldProfile()->toArray(),
+                newValues: $result->newProfile()->toArray(),
+                tenantId: $user->tenant_id ? (int) $user->tenant_id : null
+            ));
+        });
 
         return $this->success($this->resolveProfile($user)->toArray(), 'Profile updated');
     }
@@ -131,17 +137,20 @@ class UserProfileController extends AbstractUserController
             ], 'Preferred locale updated');
         }
 
-        $this->upsertUserPreference((int) $user->id, ['locale' => $locale]);
+        DB::transaction(function () use ($user, $locale) {
+            $this->upsertUserPreference((int) $user->id, ['locale' => $locale]);
+        });
 
-        $this->auditLogService->record(
-            action: 'user.locale.update',
-            auditable: $user,
-            actor: $user,
-            request: $request,
-            oldValues: ['locale' => $oldLocale],
-            newValues: ['locale' => $locale],
-            tenantId: $user->tenant_id ? (int) $user->tenant_id : null
-        );
+        DB::afterCommit(static function () use ($user, $oldLocale, $locale) {
+            event(DomainAuditEvent::make(
+                action: 'user.locale.update',
+                auditable: $user,
+                actor: $user,
+                oldValues: ['locale' => $oldLocale],
+                newValues: ['locale' => $locale],
+                tenantId: $user->tenant_id ? (int) $user->tenant_id : null
+            ));
+        });
 
         return $this->success([
             'locale' => $locale,
@@ -180,25 +189,28 @@ class UserProfileController extends AbstractUserController
             $payload['timezone'] = $timezone;
         }
 
-        $this->upsertUserPreference((int) $user->id, $payload);
+        DB::transaction(function () use ($user, $payload) {
+            $this->upsertUserPreference((int) $user->id, $payload);
+        });
 
         ApiDateTime::assignRequestTimezone($request, $timezone);
 
-        $this->auditLogService->record(
-            action: 'user.preferences.update',
-            auditable: $user,
-            actor: $user,
-            request: $request,
-            oldValues: [
-                'themeSchema' => $oldThemeSchema,
-                'timezone' => $oldTimezone,
-            ],
-            newValues: [
-                'themeSchema' => $themeSchema,
-                'timezone' => $timezone,
-            ],
-            tenantId: $user->tenant_id ? (int) $user->tenant_id : null
-        );
+        DB::afterCommit(static function () use ($user, $oldThemeSchema, $oldTimezone, $themeSchema, $timezone) {
+            event(DomainAuditEvent::make(
+                action: 'user.preferences.update',
+                auditable: $user,
+                actor: $user,
+                oldValues: [
+                    'themeSchema' => $oldThemeSchema,
+                    'timezone' => $oldTimezone,
+                ],
+                newValues: [
+                    'themeSchema' => $themeSchema,
+                    'timezone' => $timezone,
+                ],
+                tenantId: $user->tenant_id ? (int) $user->tenant_id : null
+            ));
+        });
 
         return $this->success([
             'themeSchema' => $themeSchema,

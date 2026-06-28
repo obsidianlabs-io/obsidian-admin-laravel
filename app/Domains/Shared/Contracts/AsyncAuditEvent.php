@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\System\Contracts;
+namespace App\Domains\Shared\Contracts;
 
 interface AsyncAuditEvent
 {

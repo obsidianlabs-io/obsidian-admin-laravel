@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\System\Services;
 
 use App\Domains\Access\Models\User;
+use App\Domains\Shared\Data\AuditContext;
+use App\Domains\Shared\Events\DomainAuditEvent;
 use App\Domains\System\Data\EffectiveThemeConfigData;
 use App\Domains\System\Data\ThemeActorScopeData;
 use App\Domains\System\Data\ThemeScopeConfigData;
@@ -101,8 +103,10 @@ class ThemeConfigService
         ?int $scopeId,
         string $scopeName,
         UpdateThemeConfigInputDTO $changes,
-        int $actorUserId
+        ?AuditContext $audit = null
     ): ThemeScopeConfigData {
+        $before = $this->describeScopeConfig($scopeType, $scopeId, $scopeName);
+        $actorUserId = $audit ? (int) $audit->actor->id : 0;
         $scopeType = $this->normalizeScopeType($scopeType);
         $scopeKey = ThemeProfile::scopeKey($scopeType, $scopeId);
         $normalizedChanges = $this->extractEditableConfig($changes->toArray());
@@ -153,17 +157,38 @@ class ThemeConfigService
 
         $this->forgetScopeCache($scopeType, $scopeId);
 
-        return new ThemeScopeConfigData(
+        $updatedData = new ThemeScopeConfigData(
             scopeType: $scopeType,
             scopeId: $scopeId,
             scopeName: $scopeName,
             config: $this->sanitizeConfig($this->normalizeStoredConfig($profile->getAttribute('config'))),
             version: (int) $profile->version,
         );
+
+        if ($audit !== null) {
+            DB::afterCommit(static function () use ($audit, $before, $updatedData) {
+                event(DomainAuditEvent::make(
+                    action: $audit->overrideAction ?? 'theme.config.update',
+                    auditable: 'theme-profile',
+                    actor: $audit->actor,
+                    oldValues: $before->toAuditArray(),
+                    newValues: $updatedData->toAuditArray(),
+                    tenantId: $updatedData->scopeType === 'tenant' ? $updatedData->scopeId : null,
+                ));
+            });
+        }
+
+        return $updatedData;
     }
 
-    public function resetScopeConfig(string $scopeType, ?int $scopeId, string $scopeName, int $actorUserId): ThemeScopeConfigData
-    {
+    public function resetScopeConfig(
+        string $scopeType,
+        ?int $scopeId,
+        string $scopeName,
+        ?AuditContext $audit = null
+    ): ThemeScopeConfigData {
+        $before = $this->describeScopeConfig($scopeType, $scopeId, $scopeName);
+        $actorUserId = $audit ? (int) $audit->actor->id : 0;
         $scopeType = $this->normalizeScopeType($scopeType);
         $scopeKey = ThemeProfile::scopeKey($scopeType, $scopeId);
 
@@ -200,13 +225,28 @@ class ThemeConfigService
 
         $this->forgetScopeCache($scopeType, $scopeId);
 
-        return new ThemeScopeConfigData(
+        $updatedData = new ThemeScopeConfigData(
             scopeType: $scopeType,
             scopeId: $scopeId,
             scopeName: $scopeName,
             config: $this->sanitizeConfig([]),
             version: (int) $profile->version,
         );
+
+        if ($audit !== null) {
+            DB::afterCommit(static function () use ($audit, $before, $updatedData) {
+                event(DomainAuditEvent::make(
+                    action: $audit->overrideAction ?? 'theme.config.reset',
+                    auditable: 'theme-profile',
+                    actor: $audit->actor,
+                    oldValues: $before->toAuditArray(),
+                    newValues: $updatedData->toAuditArray(),
+                    tenantId: $updatedData->scopeType === 'tenant' ? $updatedData->scopeId : null,
+                ));
+            });
+        }
+
+        return $updatedData;
     }
 
     /**

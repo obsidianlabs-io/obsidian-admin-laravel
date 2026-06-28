@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace App\Domains\Auth\Events;
 
 use App\Domains\Access\Models\User;
-use App\Domains\System\Contracts\AsyncAuditEvent;
+use App\Domains\Shared\Contracts\AsyncAuditEvent;
+use App\Support\RequestContext;
 use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Http\Request;
-use Illuminate\Queue\SerializesModels;
 
 final class UserLoggedOutEvent implements AsyncAuditEvent
 {
     use Dispatchable;
-    use SerializesModels;
 
     public function __construct(
         private readonly int $userId,
@@ -23,16 +21,14 @@ final class UserLoggedOutEvent implements AsyncAuditEvent
         private readonly ?string $requestId
     ) {}
 
-    public static function fromRequest(User $user, Request $request): self
+    public static function make(User $user): self
     {
-        $requestId = trim((string) ($request->attributes->get('request_id', '') ?? ''));
-
         return new self(
             userId: (int) $user->id,
             tenantId: $user->tenant_id ? (int) $user->tenant_id : null,
-            ipAddress: $request->ip(),
-            userAgent: $request->userAgent(),
-            requestId: $requestId !== '' ? $requestId : null
+            ipAddress: RequestContext::ipAddress(),
+            userAgent: RequestContext::userAgent(),
+            requestId: RequestContext::requestId()
         );
     }
 

@@ -5,16 +5,14 @@ declare(strict_types=1);
 namespace App\Domains\System\Events;
 
 use App\Domains\Access\Models\User;
-use App\Domains\System\Contracts\AsyncAuditEvent;
+use App\Domains\Shared\Contracts\AsyncAuditEvent;
 use App\Domains\System\Data\AuditPolicyGlobalUpdateResultData;
+use App\Support\RequestContext;
 use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Http\Request;
-use Illuminate\Queue\SerializesModels;
 
 final class AuditPolicyUpdatedEvent implements AsyncAuditEvent
 {
     use Dispatchable;
-    use SerializesModels;
 
     /**
      * @param  list<array{
@@ -35,14 +33,11 @@ final class AuditPolicyUpdatedEvent implements AsyncAuditEvent
         private readonly ?string $requestId
     ) {}
 
-    public static function fromRequest(
+    public static function make(
         User $user,
-        Request $request,
         string $changeReason,
         AuditPolicyGlobalUpdateResultData $result
     ): self {
-        $requestId = trim((string) ($request->attributes->get('request_id', '') ?? ''));
-
         return new self(
             changedByUserId: (int) $user->id,
             changeReason: $changeReason,
@@ -50,9 +45,9 @@ final class AuditPolicyUpdatedEvent implements AsyncAuditEvent
             clearedTenantOverrides: $result->clearedTenantOverrides,
             revisionId: $result->revisionId,
             changes: $result->changesToArray(),
-            ipAddress: $request->ip(),
-            userAgent: $request->userAgent(),
-            requestId: $requestId !== '' ? $requestId : null
+            ipAddress: RequestContext::ipAddress(),
+            userAgent: RequestContext::userAgent(),
+            requestId: RequestContext::requestId()
         );
     }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Domains\System\Listeners\RecordAsyncAuditEvent;
 use App\Http\Middleware\CacheOpenApiSpec;
 use App\Jobs\WriteAuditLogJob;
 use DateTimeInterface;
@@ -36,10 +35,6 @@ class Laravel13FeatureAdoptionTest extends TestCase
         $this->assertSame(
             [$expectedConnection !== '' ? $expectedConnection : null, $expectedQueue !== '' ? $expectedQueue : null],
             $routes[WriteAuditLogJob::class] ?? null
-        );
-        $this->assertSame(
-            [$expectedConnection !== '' ? $expectedConnection : null, $expectedQueue !== '' ? $expectedQueue : null],
-            $routes[RecordAsyncAuditEvent::class] ?? null
         );
     }
 

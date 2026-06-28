@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Domains\System\Services\AuditLogService;
-use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class WriteAuditLogJob implements ShouldQueueAfterCommit
+class WriteAuditLogJob implements ShouldQueue
 {
     use Queueable;
 
@@ -24,9 +24,6 @@ class WriteAuditLogJob implements ShouldQueueAfterCommit
     /**
      * @param  array{
      *   user_id: int|null,
-     *   tenant_id: int|null,
-     *   action: string,
-     *   log_type: string,
      *   auditable_type: string,
      *   auditable_id: int|null,
      *   old_values: array<string, mixed>|null,
@@ -34,10 +31,13 @@ class WriteAuditLogJob implements ShouldQueueAfterCommit
      *   ip_address: string|null,
      *   user_agent: string|null,
      *   request_id: string|null
-     * }  $payload
+     * }  $payloadData
      */
-    public function __construct(private readonly array $payload)
-    {
+    public function __construct(
+        private readonly string $actionName,
+        private readonly array $payloadData,
+        private readonly ?int $tenantIdValue
+    ) {
         $this->tries = max(1, (int) config('audit.queue.tries', 5));
         $this->backoff = $this->normalizeBackoff(config('audit.queue.backoff', [5, 30, 120]));
         $this->timeout = max(1, (int) config('audit.queue.timeout', 15));
@@ -45,7 +45,11 @@ class WriteAuditLogJob implements ShouldQueueAfterCommit
 
     public function handle(AuditLogService $auditLogService): void
     {
-        $auditLogService->writeAuditLogPayload($this->payload);
+        $auditLogService->recordPreparedPayload(
+            action: $this->actionName,
+            payload: $this->payloadData,
+            tenantId: $this->tenantIdValue
+        );
     }
 
     /**
@@ -61,11 +65,9 @@ class WriteAuditLogJob implements ShouldQueueAfterCommit
             return [5, 30, 120];
         }
 
-        $normalized = array_values(array_map(
+        return array_values(array_map(
             static fn (mixed $value): int => max(1, (int) $value),
             $configured
         ));
-
-        return $normalized;
     }
 }

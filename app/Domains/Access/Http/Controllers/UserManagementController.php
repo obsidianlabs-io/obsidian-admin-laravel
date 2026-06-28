@@ -9,6 +9,7 @@ use App\Domains\Access\Http\Resources\UserListResource;
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Services\UserTenantScopeService;
 use App\Domains\Auth\Http\Controllers\AbstractUserController;
+use App\Domains\Shared\Data\AuditContext;
 use App\Http\Requests\Api\User\AssignUserRoleRequest;
 use App\Http\Requests\Api\User\CreateUserRequest;
 use App\Http\Requests\Api\User\ListUsersRequest;
@@ -125,18 +126,17 @@ class UserManagementController extends AbstractUserController
             'roleCode' => $this->userService->resolveRoleCode($user),
             'roleId' => (int) ($user->role_id ?? 0),
         ];
-        $this->userService->assignRole($user, $roleModel);
-        $this->auditLogService->record(
-            action: 'user.assign_role',
-            auditable: $user,
-            actor: $authUser,
-            request: $request,
-            oldValues: $oldValues,
-            newValues: [
-                'roleCode' => $roleModel->code,
-                'roleId' => $roleModel->id,
-            ],
-            tenantId: $targetTenantId
+        $this->userService->assignRole(
+            $user,
+            $roleModel,
+            new AuditContext(
+                actor: $authUser,
+                oldValues: $oldValues,
+                newValues: [
+                    'roleCode' => $roleModel->code,
+                    'roleId' => $roleModel->id,
+                ]
+            )
         );
 
         return $this->success([
@@ -184,24 +184,10 @@ class UserManagementController extends AbstractUserController
         $organizationId = $bindingResult->organizationId();
         $teamId = $bindingResult->teamId();
 
-        return $this->withIdempotency($request, $authUser, function () use ($input, $roleModel, $targetTenantId, $organizationId, $teamId, $authUser, $request): JsonResponse {
+        return $this->withIdempotency($request, $authUser, function () use ($input, $roleModel, $targetTenantId, $organizationId, $teamId, $authUser): JsonResponse {
             $user = $this->userService->create(
-                $input->toCreateUserDTO($roleModel->id, $targetTenantId, $organizationId, $teamId)
-            );
-            $this->auditLogService->record(
-                action: 'user.create',
-                auditable: $user,
-                actor: $authUser,
-                request: $request,
-                newValues: [
-                    'userName' => $user->name,
-                    'email' => $user->email,
-                    'roleCode' => $roleModel->code,
-                    'status' => (string) $user->status,
-                    'organizationId' => $organizationId,
-                    'teamId' => $teamId,
-                ],
-                tenantId: $targetTenantId
+                $input->toCreateUserDTO($roleModel->id, $targetTenantId, $organizationId, $teamId),
+                new AuditContext(actor: $authUser)
             );
 
             return $this->success([
@@ -280,23 +266,11 @@ class UserManagementController extends AbstractUserController
         ];
         $this->userService->update(
             $user,
-            $input->toUpdateUserDTO($roleModel->id, $targetTenantId, $organizationId, $teamId, (string) $user->status)
-        );
-        $this->auditLogService->record(
-            action: 'user.update',
-            auditable: $user,
-            actor: $authUser,
-            request: $request,
-            oldValues: $oldValues,
-            newValues: [
-                'userName' => $user->name,
-                'email' => $user->email,
-                'roleCode' => $roleModel->code,
-                'status' => (string) $user->status,
-                'organizationId' => $organizationId,
-                'teamId' => $teamId,
-            ],
-            tenantId: $targetTenantId
+            $input->toUpdateUserDTO($roleModel->id, $targetTenantId, $organizationId, $teamId, (string) $user->status),
+            new AuditContext(
+                actor: $authUser,
+                oldValues: $oldValues
+            )
         );
 
         return $this->success([
@@ -346,32 +320,23 @@ class UserManagementController extends AbstractUserController
         ];
 
         if ((string) $user->status === '1') {
-            $this->userService->deactivate($user);
-            $this->auditLogService->record(
-                action: 'user.deactivate',
-                auditable: $user,
-                actor: $authUser,
-                request: $request,
-                oldValues: $oldValues,
-                newValues: [
-                    'userName' => $user->name,
-                    'email' => $user->email,
-                    'status' => (string) $user->status,
-                ],
-                tenantId: $user->tenant_id ? (int) $user->tenant_id : null
+            $this->userService->deactivate(
+                $user,
+                new AuditContext(
+                    actor: $authUser,
+                    oldValues: $oldValues
+                )
             );
 
             return $this->deletionActionSuccess('user', (int) $user->id, 'deactivated', 'User deactivated');
         }
 
-        $this->userService->delete($user);
-        $this->auditLogService->record(
-            action: 'user.soft_delete',
-            auditable: $user,
-            actor: $authUser,
-            request: $request,
-            oldValues: $oldValues,
-            tenantId: $user->tenant_id ? (int) $user->tenant_id : null
+        $this->userService->delete(
+            $user,
+            new AuditContext(
+                actor: $authUser,
+                oldValues: $oldValues
+            )
         );
 
         return $this->deletionActionSuccess('user', (int) $id, 'soft_deleted', 'User deleted');

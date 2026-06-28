@@ -18,7 +18,6 @@ use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Auth\ManagementContext;
 use App\Domains\Shared\Auth\TenantContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
-use App\Domains\System\Services\AuditLogService;
 use App\Domains\System\Services\ThemeConfigService;
 use App\Domains\Tenant\Services\TenantContextService;
 use App\Support\ApiResultCode;
@@ -34,7 +33,6 @@ abstract class AbstractUserController extends ApiController
         protected readonly TenantContextService $tenantContextService,
         protected readonly MenuMetadataService $menuMetadataService,
         protected readonly ThemeConfigService $themeConfigService,
-        protected readonly AuditLogService $auditLogService,
         protected readonly TotpService $totpService,
         protected readonly ResolveUserContextAction $resolveUserContext,
         protected readonly ResolveUserInfoAction $resolveUserInfo,
