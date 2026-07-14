@@ -13,15 +13,4 @@ final readonly class UpdateLanguageTranslationInputDTO
         public string $description,
         public ?string $status
     ) {}
-
-    public function toUpdateLanguageTranslationDTO(int $languageId, string $fallbackStatus): UpdateLanguageTranslationDTO
-    {
-        return new UpdateLanguageTranslationDTO(
-            languageId: $languageId,
-            translationKey: $this->translationKey,
-            translationValue: $this->translationValue,
-            description: $this->description,
-            status: $this->status ?? $fallbackStatus,
-        );
-    }
 }

@@ -25,10 +25,9 @@ use App\Domains\Auth\Services\TokenIssuer;
 use App\Domains\Auth\Services\TotpService;
 use App\Domains\Auth\Services\UserAgentParser;
 use App\Domains\Shared\Auth\ApiAuthResult;
+use App\Domains\Shared\Events\DomainAuditEvent;
 use App\Domains\Shared\Http\Controllers\ApiController;
-use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Contracts\ActiveTenantResolver;
-use App\DTOs\User\CreateUserDTO;
 use App\Http\Requests\Api\Auth\LoginRequest;
 use App\Http\Requests\Api\Auth\LogoutRequest;
 use App\Http\Requests\Api\Auth\RefreshTokenRequest;
@@ -38,6 +37,7 @@ use App\Http\Requests\Api\Auth\UpdateSessionAliasRequest;
 use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AuthSessionController extends ApiController
@@ -53,7 +53,6 @@ class AuthSessionController extends ApiController
         private readonly UserAgentParser $userAgentParser,
         private readonly AuthUserStateGuard $authUserStateGuard,
         private readonly AuthSessionContextService $authSessionContextService,
-        private readonly AuditLogService $auditLogService,
         protected readonly TotpService $totpService,
         private readonly ResolveUserContextAction $resolveUserContext,
         private readonly ActiveTenantResolver $activeTenantResolver,
@@ -81,28 +80,29 @@ class AuthSessionController extends ApiController
         $defaultRoleId = (int) $defaultRoleModel->id;
 
         return $this->withIdempotency($request, null, function () use ($input, $defaultRoleId, $defaultTenantId, $request): JsonResponse {
-            $user = $this->userService->create(new CreateUserDTO(
+            $user = $this->userService->create(
                 name: $input->name,
                 email: $input->email,
                 password: $input->password,
                 status: '1',
                 roleId: $defaultRoleId,
-                tenantId: $defaultTenantId
-            ));
+                tenantId: $defaultTenantId,
+            );
 
             $tokens = $this->issueTokenPair($user, false, null, $request);
 
-            $this->auditLogService->record(
-                action: 'user.register',
-                auditable: $user,
-                actor: $user,
-                request: $request,
-                newValues: [
-                    'userName' => $user->name,
-                    'email' => $user->email,
-                ],
-                tenantId: $defaultTenantId
-            );
+            DB::afterCommit(static function () use ($user, $defaultTenantId) {
+                event(DomainAuditEvent::make(
+                    action: 'user.register',
+                    auditable: $user,
+                    actor: $user,
+                    newValues: [
+                        'userName' => $user->name,
+                        'email' => $user->email,
+                    ],
+                    tenantId: $defaultTenantId
+                ));
+            });
 
             return $this->success($tokens->toArray(), 'Register success');
         });
@@ -180,7 +180,7 @@ class AuthSessionController extends ApiController
 
         $tokens = $this->issueTokenPair($user, $input->rememberMe, null, $request);
 
-        event(UserLoggedInEvent::fromRequest($user, $request, $input->rememberMe));
+        event(UserLoggedInEvent::make($user, $input->rememberMe));
 
         return $this->success($tokens->toArray(), 'Login success');
     }
@@ -231,13 +231,13 @@ class AuthSessionController extends ApiController
 
         $accessToken = $sessionContext->requireToken();
         $user = $sessionContext->requireUser();
-        $input = $request->toDTO();
-        $validatedSessionId = $input->sessionId;
+        $sessionId = $request->sessionId();
+        $deviceAlias = $request->deviceAlias();
 
         $result = $this->updateSessionAliasAction->handle(
             $user,
-            $validatedSessionId,
-            $input->deviceAlias,
+            $sessionId,
+            $deviceAlias,
             $accessToken
         );
 
@@ -257,8 +257,7 @@ class AuthSessionController extends ApiController
 
         $accessToken = $sessionContext->requireToken();
         $user = $sessionContext->requireUser();
-        $input = $request->toDTO();
-        $validatedSessionId = $input->sessionId;
+        $validatedSessionId = $request->sessionId();
 
         $result = $this->revokeSessionAction->handle($user, $validatedSessionId, $accessToken);
 
@@ -267,7 +266,7 @@ class AuthSessionController extends ApiController
         }
 
         if ($result->revokedCurrentSession()) {
-            event(UserLoggedOutEvent::fromRequest($user, $request));
+            event(UserLoggedOutEvent::make($user));
         }
 
         return $this->success($result->payload(), $result->message());
@@ -282,11 +281,11 @@ class AuthSessionController extends ApiController
 
         $accessToken = $sessionContext->requireToken();
         $user = $sessionContext->requireUser();
-        $input = $request->toDTO();
+        $refreshToken = $request->refreshToken();
 
-        $this->logoutCurrentSessionAction->handle($user, $accessToken, $input->refreshToken);
+        $this->logoutCurrentSessionAction->handle($user, $accessToken, $refreshToken);
 
-        event(UserLoggedOutEvent::fromRequest($user, $request));
+        event(UserLoggedOutEvent::make($user));
 
         return $this->success([
             'userId' => (string) $user->id,

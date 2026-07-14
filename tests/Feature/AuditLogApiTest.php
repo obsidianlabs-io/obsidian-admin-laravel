@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Domains\Access\Models\User;
+use App\Domains\Shared\Events\DomainAuditEvent;
 use App\Domains\System\Models\AuditLog;
 use App\Domains\System\Models\AuditPolicy;
-use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Models\Tenant;
 use App\Support\ApiResultCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -323,15 +323,14 @@ class AuditLogApiTest extends TestCase
             ]
         );
 
-        app(AuditLogService::class)->record(
+        event(DomainAuditEvent::make(
             action: 'role.update',
             auditable: 'role',
             actor: $adminUser,
-            request: null,
             oldValues: ['name' => 'Old Role'],
             newValues: ['name' => 'New Role'],
             tenantId: (int) $adminUser->tenant_id
-        );
+        ));
 
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $adminUser->id,
@@ -350,11 +349,10 @@ class AuditLogApiTest extends TestCase
 
         $adminUser = User::query()->where('name', 'Admin')->firstOrFail();
 
-        app(AuditLogService::class)->record(
+        event(DomainAuditEvent::make(
             action: 'user.update',
             auditable: $adminUser,
             actor: $adminUser,
-            request: null,
             oldValues: [
                 'password' => 'old-password',
                 'token' => 'old-token',
@@ -366,7 +364,7 @@ class AuditLogApiTest extends TestCase
                 ],
             ],
             tenantId: (int) $adminUser->tenant_id
-        );
+        ));
 
         /** @var AuditLog $record */
         $record = AuditLog::query()->latest('id')->firstOrFail();
@@ -384,17 +382,16 @@ class AuditLogApiTest extends TestCase
 
         $adminUser = User::query()->where('name', 'Admin')->firstOrFail();
 
-        app(AuditLogService::class)->record(
+        event(DomainAuditEvent::make(
             action: 'user.update',
             auditable: $adminUser,
             actor: $adminUser,
-            request: null,
             oldValues: [],
             newValues: [
                 'note' => str_repeat('x', 2000),
             ],
             tenantId: (int) $adminUser->tenant_id
-        );
+        ));
 
         /** @var AuditLog $record */
         $record = AuditLog::query()->latest('id')->firstOrFail();

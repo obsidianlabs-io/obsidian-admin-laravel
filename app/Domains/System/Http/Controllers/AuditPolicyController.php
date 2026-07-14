@@ -7,8 +7,7 @@ namespace App\Domains\System\Http\Controllers;
 use App\Domains\Access\Models\User;
 use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Http\Controllers\ApiController;
-use App\Domains\System\Data\AuditPolicyPoliciesResponseData;
-use App\Domains\System\Data\AuditPolicyUpdateResponseData;
+use App\Domains\System\Data\AuditPolicyRecordData;
 use App\Domains\System\Events\AuditPolicyUpdatedEvent;
 use App\Domains\System\Events\SystemRealtimeUpdated;
 use App\Domains\System\Services\AuditPolicyService;
@@ -36,9 +35,9 @@ class AuditPolicyController extends ApiController
             return $this->error($authResult->code(), $authResult->message());
         }
 
-        return $this->success(
-            AuditPolicyPoliciesResponseData::fromRecords($this->auditPolicyService->listEffectivePolicies(null))->toArray()
-        );
+        return $this->success([
+            'records' => array_map(static fn (AuditPolicyRecordData $r): array => $r->toArray(), $this->auditPolicyService->listEffectivePolicies(null)),
+        ]);
     }
 
     public function history(ListAuditPolicyHistoryRequest $request): JsonResponse
@@ -80,7 +79,7 @@ class AuditPolicyController extends ApiController
             return $this->error(ApiResultCode::PARAM_ERROR, $exception->getMessage());
         }
 
-        event(AuditPolicyUpdatedEvent::fromRequest($user, $request, $changeReason, $result));
+        event(AuditPolicyUpdatedEvent::make($user, $changeReason, $result));
         event(new SystemRealtimeUpdated(
             topic: 'audit-policy',
             action: 'audit-policy.update',
@@ -93,10 +92,12 @@ class AuditPolicyController extends ApiController
         ));
 
         return $this->success(
-            AuditPolicyUpdateResponseData::fromResult(
-                $result,
-                $this->auditPolicyService->listEffectivePolicies(null)
-            )->toArray(),
+            [
+                'updated' => $result->updated,
+                'clearedTenantOverrides' => $result->clearedTenantOverrides,
+                'revisionId' => $result->revisionId,
+                'records' => array_map(static fn (AuditPolicyRecordData $r): array => $r->toArray(), $this->auditPolicyService->listEffectivePolicies(null)),
+            ],
             'Audit policy updated'
         );
     }

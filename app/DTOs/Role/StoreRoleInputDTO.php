@@ -17,21 +17,4 @@ final readonly class StoreRoleInputDTO
         public int $level,
         public array $permissionCodes,
     ) {}
-
-    public function forTenant(?int $tenantId): CreateRoleDTO
-    {
-        return $this->toCreateRoleDTO($tenantId);
-    }
-
-    public function toCreateRoleDTO(?int $tenantId): CreateRoleDTO
-    {
-        return new CreateRoleDTO(
-            code: $this->roleCode,
-            name: $this->roleName,
-            description: $this->description,
-            status: $this->status,
-            tenantId: $tenantId,
-            level: $this->level,
-        );
-    }
 }

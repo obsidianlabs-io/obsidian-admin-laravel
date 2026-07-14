@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Domains\Tenant\Http\Controllers;
 
 use App\Domains\Shared\Auth\TenantScopedContext;
+use App\Domains\Shared\Data\AuditContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
-use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Actions\ListOrganizationsQueryAction;
 use App\Domains\Tenant\Data\OrganizationResponseData;
 use App\Domains\Tenant\Data\OrganizationSnapshot;
@@ -16,6 +16,7 @@ use App\Domains\Tenant\Http\Resources\OrganizationListResource;
 use App\Domains\Tenant\Models\Organization;
 use App\Domains\Tenant\Services\OrganizationService;
 use App\Domains\Tenant\Services\TenantContextService;
+use App\DTOs\Organization\UpdateOrganizationDTO;
 use App\Http\Requests\Api\Organization\ListOrganizationsRequest;
 use App\Http\Requests\Api\Organization\StoreOrganizationRequest;
 use App\Http\Requests\Api\Organization\UpdateOrganizationRequest;
@@ -29,7 +30,6 @@ class OrganizationController extends ApiController
 
     public function __construct(
         private readonly OrganizationService $organizationService,
-        private readonly AuditLogService $auditLogService,
         private readonly TenantContextService $tenantContextService,
         private readonly ApiCacheService $apiCacheService,
     ) {}
@@ -132,19 +132,14 @@ class OrganizationController extends ApiController
             return $this->error(ApiResultCode::PARAM_ERROR, $uniqueError);
         }
 
-        return $this->withIdempotency($request, $user, function () use ($tenantId, $dto, $user, $request): JsonResponse {
-            $organization = $this->organizationService->create($tenantId, $dto);
-
-            $this->auditLogService->record(
-                action: 'organization.create',
-                auditable: $organization,
-                actor: $user,
-                request: $request,
-                newValues: [
-                    ...OrganizationSnapshot::fromModel($organization)->toArray(),
-                    'tenantId' => (int) $organization->tenant_id,
-                ],
-                tenantId: $tenantId,
+        return $this->withIdempotency($request, $user, function () use ($tenantId, $dto, $user): JsonResponse {
+            $organization = $this->organizationService->create(
+                $tenantId,
+                $dto,
+                new AuditContext(
+                    actor: $user,
+                    tenantId: $tenantId
+                )
             );
 
             return $this->success(OrganizationResponseData::fromModel($organization)->toArray(), 'Organization created');
@@ -181,16 +176,14 @@ class OrganizationController extends ApiController
 
         $oldValues = OrganizationSnapshot::fromModel($organization)->toArray();
 
-        $organization = $this->organizationService->update($organization, $dto);
-
-        $this->auditLogService->record(
-            action: 'organization.update',
-            auditable: $organization,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues,
-            newValues: OrganizationSnapshot::fromModel($organization)->toArray(),
-            tenantId: $tenantId,
+        $organization = $this->organizationService->update(
+            $organization,
+            $dto,
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues,
+                tenantId: $tenantId
+            )
         );
 
         return $this->success(OrganizationResponseData::fromModel($organization, $request)->toArray(), 'Organization updated');
@@ -216,17 +209,21 @@ class OrganizationController extends ApiController
         $oldValues = OrganizationSnapshot::fromModel($organization)->toArray();
 
         if ((string) $organization->status === '1') {
-            $organization->forceFill(['status' => '2'])->save();
-            $this->apiCacheService->bump('organizations');
-
-            $this->auditLogService->record(
-                action: 'organization.deactivate',
-                auditable: $organization,
-                actor: $user,
-                request: $request,
-                oldValues: $oldValues,
-                newValues: OrganizationSnapshot::fromModel($organization)->toArray(),
-                tenantId: $tenantId,
+            $this->organizationService->update(
+                $organization,
+                new UpdateOrganizationDTO(
+                    organizationCode: (string) $organization->code,
+                    organizationName: (string) $organization->name,
+                    description: (string) ($organization->description ?? ''),
+                    status: '2',
+                    sort: (int) ($organization->sort ?? 0)
+                ),
+                new AuditContext(
+                    actor: $user,
+                    oldValues: $oldValues,
+                    overrideAction: 'organization.deactivate',
+                    tenantId: $tenantId
+                )
             );
 
             return $this->deletionActionSuccess(
@@ -251,15 +248,13 @@ class OrganizationController extends ApiController
             );
         }
 
-        $this->organizationService->delete($organization);
-
-        $this->auditLogService->record(
-            action: 'organization.soft_delete',
-            auditable: $organization,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues,
-            tenantId: $tenantId,
+        $this->organizationService->delete(
+            $organization,
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues,
+                tenantId: $tenantId
+            )
         );
 
         return $this->deletionActionSuccess('organization', (int) $id, 'soft_deleted', 'Organization deleted');

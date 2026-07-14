@@ -5,26 +5,25 @@ declare(strict_types=1);
 namespace App\Domains\System\Http\Controllers;
 
 use App\Domains\Access\Models\User;
+use App\Domains\Shared\Events\DomainAuditEvent;
 use App\Domains\Shared\Http\Controllers\ApiController;
-use App\Domains\System\Actions\FeatureFlag\ListFeatureFlagsAction;
-use App\Domains\System\Actions\FeatureFlag\PurgeFeatureFlagAction;
-use App\Domains\System\Actions\FeatureFlag\ToggleFeatureFlagAction;
+use App\Domains\System\Actions\FeatureFlagAction;
 use App\Domains\System\Data\FeatureFlagOverrideResponseData;
 use App\Domains\System\Events\SystemRealtimeUpdated;
 use App\Http\Requests\Api\FeatureFlag\ListFeatureFlagsRequest;
 use App\Http\Requests\Api\FeatureFlag\PurgeFeatureFlagRequest;
 use App\Http\Requests\Api\FeatureFlag\ToggleFeatureFlagRequest;
+use App\Support\ApiResultCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Attributes\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 
 #[Middleware('tenant.context')]
 #[Middleware('api.auth')]
 class FeatureFlagController extends ApiController
 {
     public function __construct(
-        private readonly ListFeatureFlagsAction $listFeatureFlagsAction,
-        private readonly ToggleFeatureFlagAction $toggleFeatureFlagAction,
-        private readonly PurgeFeatureFlagAction $purgeFeatureFlagAction,
+        private readonly FeatureFlagAction $featureFlagAction,
     ) {}
 
     /**
@@ -32,7 +31,18 @@ class FeatureFlagController extends ApiController
      */
     public function index(ListFeatureFlagsRequest $request): JsonResponse
     {
-        return $this->success((($this->listFeatureFlagsAction)($request->toDTO()))->toArray());
+        $authUser = $request->attributes->get('auth_user');
+        if (! $authUser instanceof User || ! $this->isSuperAdmin($authUser)) {
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
+        }
+
+        $result = $this->featureFlagAction->list(
+            $request->current(),
+            $request->size(),
+            $request->keyword(),
+        );
+
+        return $this->success($result->toArray());
     }
 
     /**
@@ -40,26 +50,45 @@ class FeatureFlagController extends ApiController
      */
     public function toggle(ToggleFeatureFlagRequest $request): JsonResponse
     {
-        $dto = $request->toDTO();
-        if (! ($this->toggleFeatureFlagAction)($dto)) {
+        $authUser = $request->attributes->get('auth_user');
+        if (! $authUser instanceof User || ! $this->isSuperAdmin($authUser)) {
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
+        }
+
+        $key = $request->key();
+        $enabled = $request->enabled();
+        $actorUserId = (int) $authUser->id;
+
+        $success = DB::transaction(fn (): bool => $this->featureFlagAction->toggle($key, $enabled));
+
+        if (! $success) {
             return $this->error('4004', 'Feature flag not found.', [], 404);
         }
 
-        $authUser = $request->attributes->get('auth_user');
-        $actorUserId = $authUser instanceof User ? (int) $authUser->id : null;
+        DB::afterCommit(static function () use ($authUser, $key, $enabled, $actorUserId) {
+            event(DomainAuditEvent::make(
+                action: 'feature-flag.toggle',
+                auditable: 'feature-flag',
+                actor: $authUser,
+                newValues: [
+                    'key' => $key,
+                    'enabled' => $enabled,
+                ]
+            ));
 
-        event(new SystemRealtimeUpdated(
-            topic: 'feature-flag',
-            action: 'feature-flag.toggle',
-            context: [
-                'key' => $dto->key,
-                'enabled' => $dto->enabled,
-            ],
-            actorUserId: $actorUserId,
-        ));
+            event(new SystemRealtimeUpdated(
+                topic: 'feature-flag',
+                action: 'feature-flag.toggle',
+                context: [
+                    'key' => $key,
+                    'enabled' => $enabled,
+                ],
+                actorUserId: $actorUserId,
+            ));
+        });
 
         return $this->success(
-            FeatureFlagOverrideResponseData::forToggle($dto->key, $dto->enabled)->toArray(),
+            FeatureFlagOverrideResponseData::forToggle($key, $enabled)->toArray(),
             'Feature flag override updated.'
         );
     }
@@ -69,26 +98,43 @@ class FeatureFlagController extends ApiController
      */
     public function purge(PurgeFeatureFlagRequest $request): JsonResponse
     {
-        $dto = $request->toDTO();
-        if (! ($this->purgeFeatureFlagAction)($dto)) {
+        $authUser = $request->attributes->get('auth_user');
+        if (! $authUser instanceof User || ! $this->isSuperAdmin($authUser)) {
+            return $this->error(ApiResultCode::FORBIDDEN, 'Forbidden');
+        }
+
+        $key = $request->key();
+        $actorUserId = (int) $authUser->id;
+
+        $success = DB::transaction(fn (): bool => $this->featureFlagAction->purge($key));
+
+        if (! $success) {
             return $this->error('4004', 'Feature flag not found.', [], 404);
         }
 
-        $authUser = $request->attributes->get('auth_user');
-        $actorUserId = $authUser instanceof User ? (int) $authUser->id : null;
+        DB::afterCommit(static function () use ($authUser, $key, $actorUserId) {
+            event(DomainAuditEvent::make(
+                action: 'feature-flag.purge',
+                auditable: 'feature-flag',
+                actor: $authUser,
+                newValues: [
+                    'key' => $key,
+                ]
+            ));
 
-        event(new SystemRealtimeUpdated(
-            topic: 'feature-flag',
-            action: 'feature-flag.purge',
-            context: [
-                'key' => $dto->key,
-            ],
-            actorUserId: $actorUserId,
-        ));
+            event(new SystemRealtimeUpdated(
+                topic: 'feature-flag',
+                action: 'feature-flag.purge',
+                context: [
+                    'key' => $key,
+                ],
+                actorUserId: $actorUserId,
+            ));
+        });
 
         return $this->success(
-            FeatureFlagOverrideResponseData::forPurge($dto->key)->toArray(),
-            'Feature flag overrides purged.'
+            FeatureFlagOverrideResponseData::forPurge($key)->toArray(),
+            'Feature flag override purged.'
         );
     }
 }

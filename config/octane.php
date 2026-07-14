@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Listeners\Octane\FlushFeatureFlagOverrideCache;
 use App\Listeners\Octane\PrepareObsidianRequestState;
 use Laravel\Octane\Contracts\OperationTerminated;
 use Laravel\Octane\Events\RequestHandled;
@@ -85,6 +86,7 @@ return [
 
         RequestTerminated::class => [
             // FlushUploadedFiles::class,
+            FlushFeatureFlagOverrideCache::class,
         ],
 
         TaskReceived::class => [

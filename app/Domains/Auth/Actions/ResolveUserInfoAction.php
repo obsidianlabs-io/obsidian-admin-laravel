@@ -28,7 +28,7 @@ final class ResolveUserInfoAction
         $navigation = $this->menuMetadataService->resolveForUser(
             user: $user,
             tenantId: $tenantContext->tenantId(),
-            roleCodes: $roles->codes(),
+            roleCodes: $roles,
             permissionCodes: $permissionCodes,
         );
         $themeConfig = $this->themeConfigService->resolveEffectiveConfig(null, $profile->themeSchema);

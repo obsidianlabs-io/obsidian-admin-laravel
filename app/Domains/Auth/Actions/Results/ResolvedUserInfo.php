@@ -11,6 +11,7 @@ use App\Domains\Shared\Auth\TenantOptionData;
 final readonly class ResolvedUserInfo
 {
     /**
+     * @param  list<string>  $roles
      * @param  list<string>  $buttons
      * @param  list<TenantOptionData>  $tenants
      * @param  array<string, mixed>  $themeConfig
@@ -19,7 +20,7 @@ final readonly class ResolvedUserInfo
         public ResolvedUserProfile $profile,
         public array $themeConfig,
         public int $themeProfileVersion,
-        public ResolvedUserRoles $roles,
+        public array $roles,
         public array $buttons,
         public string $currentTenantId,
         public string $currentTenantName,
@@ -40,7 +41,7 @@ final readonly class ResolvedUserInfo
         return array_merge($this->profile->toArray(), [
             'themeConfig' => $this->themeConfig,
             'themeProfileVersion' => $this->themeProfileVersion,
-            'roles' => $this->roles->toArray(),
+            'roles' => $this->roles,
             'buttons' => $this->buttons,
             'currentTenantId' => $this->currentTenantId,
             'currentTenantName' => $this->currentTenantName,

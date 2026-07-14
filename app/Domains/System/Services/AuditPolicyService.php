@@ -12,7 +12,6 @@ use App\Domains\System\Data\AuditPolicyGlobalUpdateResultData;
 use App\Domains\System\Data\AuditPolicyHistoryPageData;
 use App\Domains\System\Data\AuditPolicyHistoryRecordData;
 use App\Domains\System\Data\AuditPolicyRecordData;
-use App\Domains\System\Data\AuditPolicyRecordsData;
 use App\Domains\System\Data\AuditPolicyUpdateResultData;
 use App\Domains\System\Models\AuditLog;
 use App\Domains\System\Models\AuditPolicy;
@@ -25,31 +24,20 @@ use InvalidArgumentException;
 
 class AuditPolicyService
 {
-    /**
-     * @var array<int, array<string, AuditPolicy>>
-     */
-    private array $scopePoliciesCache = [];
+    public function __construct(
+        private readonly AuditPolicyResolver $resolver,
+    ) {}
 
     /**
-     * @var array<string, array{
-     *   action: string,
-     *   category: 'mandatory'|'optional',
-     *   mandatory: bool,
-     *   description: string,
-     *   defaultEnabled: bool,
-     *   defaultSamplingRate: float,
-     *   defaultRetentionDays: int
-     * }>
+     * @return list<AuditPolicyRecordData>
      */
-    private ?array $eventCatalogCache = null;
-
-    public function listEffectivePolicies(?int $tenantId): AuditPolicyRecordsData
+    public function listEffectivePolicies(?int $tenantId): array
     {
         $records = [];
-        $catalog = $this->eventCatalog();
+        $catalog = $this->resolver->eventCatalog();
 
         foreach ($catalog as $action => $definition) {
-            $effective = $this->resolveEffectivePolicy($action, $tenantId);
+            $effective = $this->resolver->resolveEffectivePolicy($action, $tenantId);
             $records[] = new AuditPolicyRecordData(
                 action: $action,
                 category: $definition['category'],
@@ -77,7 +65,7 @@ class AuditPolicyService
             return strcmp($left->action, $right->action);
         });
 
-        return new AuditPolicyRecordsData($records);
+        return $records;
     }
 
     public function listRevisionHistory(int $current = 1, int $size = 10, ?string $timezone = null): AuditPolicyHistoryPageData
@@ -127,7 +115,7 @@ class AuditPolicyService
      */
     public function updatePolicies(?int $tenantId, array $records): AuditPolicyUpdateResultData
     {
-        $catalog = $this->eventCatalog();
+        $catalog = $this->resolver->eventCatalog();
         $scopeId = $tenantId ?? AuditPolicy::PLATFORM_SCOPE_ID;
 
         $existingPolicies = AuditPolicy::query()
@@ -149,11 +137,11 @@ class AuditPolicyService
             }
 
             $isMandatory = (bool) $definition['mandatory'];
-            $oldEffective = $this->resolveEffectivePolicy($action, $tenantId);
+            $oldEffective = $this->resolver->resolveEffectivePolicy($action, $tenantId);
             $oldValues = $oldEffective->toRuleArray();
             $enabled = $record->enabled;
-            $samplingRate = $this->normalizeSamplingRate($record->samplingRate ?? $definition['defaultSamplingRate']);
-            $retentionDays = $this->normalizeRetentionDays($record->retentionDays ?? $definition['defaultRetentionDays']);
+            $samplingRate = $this->resolver->normalizeSamplingRate($record->samplingRate ?? $definition['defaultSamplingRate']);
+            $retentionDays = $this->resolver->normalizeRetentionDays($record->retentionDays ?? $definition['defaultRetentionDays']);
 
             if ($isMandatory && ! $enabled) {
                 throw new InvalidArgumentException("Mandatory audit action cannot be disabled: {$action}");
@@ -181,8 +169,8 @@ class AuditPolicyService
             if (
                 $existing
                 && (bool) $existing->enabled === $enabled
-                && $this->normalizeSamplingRate($existing->sampling_rate) === $samplingRate
-                && $this->normalizeRetentionDays($existing->retention_days ?? $retentionDays) === $retentionDays
+                && $this->resolver->normalizeSamplingRate($existing->sampling_rate) === $samplingRate
+                && $this->resolver->normalizeRetentionDays($existing->retention_days ?? $retentionDays) === $retentionDays
                 && (bool) $existing->is_mandatory === $isMandatory
             ) {
                 continue;
@@ -204,8 +192,8 @@ class AuditPolicyService
 
             $newValues = new AuditPolicyEffectiveStateData(
                 enabled: (bool) $updated->enabled,
-                samplingRate: $this->normalizeSamplingRate($updated->sampling_rate),
-                retentionDays: $this->normalizeRetentionDays((int) ($updated->retention_days ?? $retentionDays)),
+                samplingRate: $this->resolver->normalizeSamplingRate($updated->sampling_rate),
+                retentionDays: $this->resolver->normalizeRetentionDays((int) ($updated->retention_days ?? $retentionDays)),
             );
 
             if ($oldValues !== $newValues->toRuleArray()) {
@@ -221,7 +209,7 @@ class AuditPolicyService
             }
         }
 
-        $this->flushCaches();
+        $this->resolver->flushCaches();
 
         return new AuditPolicyUpdateResultData(
             updated: count($changes),
@@ -230,8 +218,6 @@ class AuditPolicyService
     }
 
     /**
-     * Update global policies and clear tenant overrides for affected actions.
-     *
      * @param  list<UpdateAuditPolicyRecordInputDTO>  $records
      */
     public function updateGlobalPolicies(
@@ -253,7 +239,7 @@ class AuditPolicyService
                     ->delete();
             }
 
-            $this->flushCaches();
+            $this->resolver->flushCaches();
             $snapshot = $this->listEffectivePolicies(null);
 
             $revisionId = '';
@@ -271,7 +257,7 @@ class AuditPolicyService
                     'changed_count' => count($result->changes),
                     'changed_actions' => $changedActions,
                     'changes' => $result->changesToArray(),
-                    'policy_snapshot' => $snapshot->toArray(),
+                    'policy_snapshot' => array_map(static fn (AuditPolicyRecordData $r): array => $r->toArray(), $snapshot),
                 ]);
 
                 $revisionId = (string) $revision->id;
@@ -288,7 +274,7 @@ class AuditPolicyService
 
     public function shouldLog(string $action, ?int $tenantId): bool
     {
-        $effective = $this->resolveEffectivePolicy($action, $tenantId);
+        $effective = $this->resolver->resolveEffectivePolicy($action, $tenantId);
 
         if (! $effective->enabled) {
             return false;
@@ -310,13 +296,13 @@ class AuditPolicyService
 
     public function pruneExpiredLogs(bool $dryRun = false): AuditLogPruneResultData
     {
-        $catalog = $this->eventCatalog();
+        $catalog = $this->resolver->eventCatalog();
         $knownActions = array_keys($catalog);
         $now = now();
         $totalDeleted = 0;
 
         foreach ($catalog as $action => $definition) {
-            $retentionDays = $this->resolveEffectivePolicy($action, null)->retentionDays;
+            $retentionDays = $this->resolver->resolveEffectivePolicy($action, null)->retentionDays;
             $cutoff = $now->copy()->subDays($retentionDays);
 
             $deleted = $this->runPruneQuery(
@@ -328,7 +314,7 @@ class AuditPolicyService
             $totalDeleted += $deleted;
         }
 
-        $unknownCutoff = $now->copy()->subDays($this->optionalDefaultRetentionDays());
+        $unknownCutoff = $now->copy()->subDays($this->resolver->optionalDefaultRetentionDays());
         $unknownQuery = AuditLog::query()->beforeTimestamp($unknownCutoff);
         if ($knownActions !== []) {
             $unknownQuery->whereNotIn('action', $knownActions);
@@ -346,168 +332,6 @@ class AuditPolicyService
     }
 
     /**
-     * @return array{
-     *   action: string,
-     *   category: 'mandatory'|'optional',
-     *   mandatory: bool,
-     *   description: string,
-     *   defaultEnabled: bool,
-     *   defaultSamplingRate: float,
-     *   defaultRetentionDays: int
-     * }|null
-     */
-    private function eventDefinition(string $action): ?array
-    {
-        return $this->eventCatalog()[$action] ?? null;
-    }
-
-    /**
-     * @return array<string, array{
-     *   action: string,
-     *   category: 'mandatory'|'optional',
-     *   mandatory: bool,
-     *   description: string,
-     *   defaultEnabled: bool,
-     *   defaultSamplingRate: float,
-     *   defaultRetentionDays: int
-     * }>
-     */
-    private function eventCatalog(): array
-    {
-        if ($this->eventCatalogCache !== null) {
-            return $this->eventCatalogCache;
-        }
-
-        $catalog = [];
-        $rawEvents = config('audit.events', []);
-        if (! is_array($rawEvents)) {
-            $rawEvents = [];
-        }
-
-        foreach ($rawEvents as $action => $raw) {
-            $actionName = trim((string) $action);
-            if ($actionName === '' || ! is_array($raw)) {
-                continue;
-            }
-
-            $category = (string) ($raw['category'] ?? 'optional');
-            $category = $category === 'mandatory' ? 'mandatory' : 'optional';
-            $mandatory = $category === 'mandatory';
-
-            $defaultEnabled = $mandatory
-                ? true
-                : filter_var($raw['default_enabled'] ?? true, FILTER_VALIDATE_BOOLEAN);
-            $defaultSamplingRate = $mandatory
-                ? 1.0
-                : $this->normalizeSamplingRate($raw['default_sampling_rate'] ?? $this->optionalDefaultSamplingRate());
-            $defaultRetentionDays = $this->normalizeRetentionDays(
-                $raw['default_retention_days'] ?? ($mandatory ? $this->mandatoryDefaultRetentionDays() : $this->optionalDefaultRetentionDays())
-            );
-
-            $catalog[$actionName] = [
-                'action' => $actionName,
-                'category' => $category,
-                'mandatory' => $mandatory,
-                'description' => trim((string) ($raw['description'] ?? '')),
-                'defaultEnabled' => $defaultEnabled,
-                'defaultSamplingRate' => $defaultSamplingRate,
-                'defaultRetentionDays' => $defaultRetentionDays,
-            ];
-        }
-
-        $this->eventCatalogCache = $catalog;
-
-        return $this->eventCatalogCache;
-    }
-
-    private function resolveEffectivePolicy(string $action, ?int $tenantId): AuditPolicyEffectiveStateData
-    {
-        $definition = $this->eventDefinition($action);
-        if (! $definition) {
-            return new AuditPolicyEffectiveStateData(
-                enabled: true,
-                samplingRate: 1.0,
-                retentionDays: $this->optionalDefaultRetentionDays(),
-                source: 'default',
-            );
-        }
-
-        if ($definition['mandatory']) {
-            $retentionDays = $definition['defaultRetentionDays'];
-            $source = 'default';
-
-            $platformPolicy = $this->scopePolicies(null)[$action] ?? null;
-            $tenantPolicy = $tenantId !== null ? ($this->scopePolicies($tenantId)[$action] ?? null) : null;
-            $selectedPolicy = $tenantPolicy ?? $platformPolicy;
-
-            if ($selectedPolicy instanceof AuditPolicy) {
-                $retentionDays = $this->normalizeRetentionDays($selectedPolicy->retention_days ?? $retentionDays);
-                $source = $tenantPolicy ? 'tenant' : 'platform';
-            }
-
-            return new AuditPolicyEffectiveStateData(
-                enabled: true,
-                samplingRate: 1.0,
-                retentionDays: $retentionDays,
-                source: $source,
-            );
-        }
-
-        $enabled = $definition['defaultEnabled'];
-        $samplingRate = $definition['defaultSamplingRate'];
-        $retentionDays = $definition['defaultRetentionDays'];
-        $source = 'default';
-
-        $platformPolicy = $this->scopePolicies(null)[$action] ?? null;
-        if ($platformPolicy instanceof AuditPolicy) {
-            $enabled = (bool) $platformPolicy->enabled;
-            $samplingRate = $this->normalizeSamplingRate($platformPolicy->sampling_rate);
-            $retentionDays = $this->normalizeRetentionDays($platformPolicy->retention_days ?? $retentionDays);
-            $source = 'platform';
-        }
-
-        if ($tenantId !== null) {
-            $tenantPolicy = $this->scopePolicies($tenantId)[$action] ?? null;
-            if ($tenantPolicy instanceof AuditPolicy) {
-                $enabled = (bool) $tenantPolicy->enabled;
-                $samplingRate = $this->normalizeSamplingRate($tenantPolicy->sampling_rate);
-                $retentionDays = $this->normalizeRetentionDays($tenantPolicy->retention_days ?? $retentionDays);
-                $source = 'tenant';
-            }
-        }
-
-        return new AuditPolicyEffectiveStateData(
-            enabled: $enabled,
-            samplingRate: $samplingRate,
-            retentionDays: $retentionDays,
-            source: $source,
-        );
-    }
-
-    /**
-     * @return array<string, AuditPolicy>
-     */
-    private function scopePolicies(?int $tenantId): array
-    {
-        $scopeId = $tenantId ?? AuditPolicy::PLATFORM_SCOPE_ID;
-
-        if (! isset($this->scopePoliciesCache[$scopeId])) {
-            $this->scopePoliciesCache[$scopeId] = AuditPolicy::query()
-                ->where('tenant_scope_id', $scopeId)
-                ->get()
-                ->keyBy(static fn (AuditPolicy $policy): string => (string) $policy->action)
-                ->all();
-        }
-
-        return $this->scopePoliciesCache[$scopeId];
-    }
-
-    private function flushCaches(): void
-    {
-        $this->scopePoliciesCache = [];
-    }
-
-    /**
      * @param  Builder<AuditLog>  $query
      */
     private function runPruneQuery(Builder $query, bool $dryRun): int
@@ -517,46 +341,6 @@ class AuditPolicyService
         }
 
         return (int) $query->delete();
-    }
-
-    private function normalizeSamplingRate(mixed $rate): float
-    {
-        $value = (float) $rate;
-        if ($value < 0) {
-            $value = 0.0;
-        } elseif ($value > 1) {
-            $value = 1.0;
-        }
-
-        return round($value, 4);
-    }
-
-    private function normalizeRetentionDays(mixed $retentionDays): int
-    {
-        $days = (int) $retentionDays;
-
-        if ($days < 1) {
-            $days = 1;
-        } elseif ($days > 3650) {
-            $days = 3650;
-        }
-
-        return $days;
-    }
-
-    private function mandatoryDefaultRetentionDays(): int
-    {
-        return $this->normalizeRetentionDays(config('audit.retention.mandatory_days', 365));
-    }
-
-    private function optionalDefaultRetentionDays(): int
-    {
-        return $this->normalizeRetentionDays(config('audit.retention.optional_days', 90));
-    }
-
-    private function optionalDefaultSamplingRate(): float
-    {
-        return $this->normalizeSamplingRate(config('audit.sampling.default_optional_rate', 1.0));
     }
 
     /**

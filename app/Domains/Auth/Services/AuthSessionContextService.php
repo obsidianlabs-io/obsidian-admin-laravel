@@ -6,7 +6,6 @@ namespace App\Domains\Auth\Services;
 
 use App\Domains\Access\Models\User;
 use App\Domains\Auth\Services\Results\SessionRecord;
-use App\Domains\Auth\Services\Results\SessionRecordsResult;
 use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Support\ApiDateTime;
 use App\Support\ApiResultCode;
@@ -28,6 +27,7 @@ final class AuthSessionContextService
     }
 
     /**
+     * @param  list<SessionRecord>  $sessionRecords
      * @return list<array{
      *   sessionId: string,
      *   current: bool,
@@ -50,10 +50,8 @@ final class AuthSessionContextService
      *   ipAddress: string
      * }>
      */
-    public function mapSessionRecordsForResponse(SessionRecordsResult $sessionRecords, Request $request): array
+    public function mapSessionRecordsForResponse(array $sessionRecords, Request $request): array
     {
-        $records = $sessionRecords->records();
-
         return array_map(static function (SessionRecord $record) use ($request): array {
             return [
                 'sessionId' => $record->sessionId,
@@ -76,6 +74,6 @@ final class AuthSessionContextService
                 'deviceType' => (string) ($record->deviceType ?? ''),
                 'ipAddress' => (string) ($record->ipAddress ?? ''),
             ];
-        }, $records);
+        }, $sessionRecords);
     }
 }

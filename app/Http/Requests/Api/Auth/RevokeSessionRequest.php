@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Auth;
 
-use App\DTOs\Auth\RevokeSessionInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 
 class RevokeSessionRequest extends BaseApiRequest
@@ -26,8 +25,8 @@ class RevokeSessionRequest extends BaseApiRequest
         ];
     }
 
-    public function toDTO(): RevokeSessionInputDTO
+    public function sessionId(): string
     {
-        return RevokeSessionInputDTO::fromValidated($this->validated());
+        return (string) $this->validated('sessionId');
     }
 }

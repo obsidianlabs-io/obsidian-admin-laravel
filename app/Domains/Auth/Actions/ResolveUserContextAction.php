@@ -8,7 +8,6 @@ use App\Domains\Access\Models\Role;
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Models\UserPreference;
 use App\Domains\Auth\Actions\Results\ResolvedUserProfile;
-use App\Domains\Auth\Actions\Results\ResolvedUserRoles;
 use App\Domains\Shared\Services\ApiCacheService;
 use App\Domains\System\Models\Language;
 use App\Support\ApiDateTime;
@@ -23,14 +22,17 @@ final class ResolveUserContextAction
      */
     private ?array $activeLocaleCodes = null;
 
-    public function resolveRoles(User $user): ResolvedUserRoles
+    /**
+     * @return list<string>
+     */
+    public function resolveRoles(User $user): array
     {
         $user->loadMissing('role');
 
         $role = $user->role;
         $roleCode = $role instanceof Role ? (string) $role->code : 'R_USER';
 
-        return new ResolvedUserRoles([$roleCode]);
+        return [$roleCode];
     }
 
     public function resolveProfile(User $user): ResolvedUserProfile

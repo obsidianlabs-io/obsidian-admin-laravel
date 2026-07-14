@@ -10,7 +10,6 @@ use App\Domains\Access\Services\UserService;
 use App\Domains\Auth\Actions\Results\UpdateOwnProfileResult;
 use App\Domains\Auth\Actions\Results\UserProfileSnapshot;
 use App\DTOs\User\UpdateOwnProfileDTO;
-use App\DTOs\User\UpdateUserDTO;
 use App\Support\ApiDateTime;
 use Illuminate\Support\Facades\DB;
 
@@ -37,7 +36,8 @@ final class UpdateOwnProfileAction
         );
 
         DB::transaction(function () use ($user, $dto, $nextTimezone, $oldTimezone): void {
-            $this->userService->update($user, new UpdateUserDTO(
+            $this->userService->update(
+                user: $user,
                 name: $dto->userName,
                 email: $dto->email,
                 password: $dto->password,
@@ -46,7 +46,7 @@ final class UpdateOwnProfileAction
                 tenantId: $user->tenant_id ? (int) $user->tenant_id : null,
                 organizationId: $user->organization_id ? (int) $user->organization_id : null,
                 teamId: $user->team_id ? (int) $user->team_id : null,
-            ));
+            );
 
             if ($dto->timezone !== null && $nextTimezone !== $oldTimezone) {
                 UserPreference::query()->updateOrCreate(

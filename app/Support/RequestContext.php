@@ -26,6 +26,10 @@ final class RequestContext
 
     public const KEY_IS_SUPER_ADMIN = 'is_super_admin';
 
+    public const KEY_IP_ADDRESS = 'ip_address';
+
+    public const KEY_USER_AGENT = 'user_agent';
+
     /**
      * @param  array<string, mixed>  $items
      */
@@ -72,6 +76,20 @@ final class RequestContext
         $value = Context::get(self::KEY_USER_ID);
 
         return is_numeric($value) ? (int) $value : null;
+    }
+
+    public static function ipAddress(): ?string
+    {
+        $value = Context::get(self::KEY_IP_ADDRESS);
+
+        return is_scalar($value) ? trim((string) $value) : null;
+    }
+
+    public static function userAgent(): ?string
+    {
+        $value = Context::get(self::KEY_USER_AGENT);
+
+        return is_scalar($value) ? trim((string) $value) : null;
     }
 
     public static function flush(): void

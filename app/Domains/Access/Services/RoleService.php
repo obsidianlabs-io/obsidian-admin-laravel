@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domains\Access\Services;
 
+use App\Domains\Access\Data\RoleSnapshot;
 use App\Domains\Access\Models\Role;
+use App\Domains\Shared\Data\AuditContext;
+use App\Domains\Shared\Events\DomainAuditEvent;
 use App\Domains\Shared\Services\ApiCacheService;
-use App\DTOs\Role\CreateRoleDTO;
-use App\DTOs\Role\SyncRolePermissionsDTO;
-use App\DTOs\Role\UpdateRoleDTO;
+use App\DTOs\Role\StoreRoleInputDTO;
+use App\DTOs\Role\UpdateRoleInputDTO;
 use Illuminate\Support\Facades\DB;
 
 class RoleService
@@ -18,15 +20,15 @@ class RoleService
     /**
      * @param  list<int>  $permissionIds
      */
-    public function create(CreateRoleDTO $dto, array $permissionIds = []): Role
+    public function create(StoreRoleInputDTO $dto, ?int $tenantId, array $permissionIds = [], ?AuditContext $audit = null): Role
     {
-        $role = DB::transaction(function () use ($dto, $permissionIds): Role {
+        $role = DB::transaction(function () use ($dto, $tenantId, $permissionIds): Role {
             $role = Role::query()->create([
-                'code' => $dto->code,
-                'name' => $dto->name,
+                'code' => $dto->roleCode,
+                'name' => $dto->roleName,
                 'description' => $dto->description,
                 'status' => $dto->status,
-                'tenant_id' => $dto->tenantId,
+                'tenant_id' => $tenantId,
                 'level' => $dto->level,
             ]);
 
@@ -37,20 +39,33 @@ class RoleService
 
         $this->apiCacheService->bump('roles');
 
+        if ($audit !== null) {
+            DB::afterCommit(static function () use ($audit, $role, $permissionIds) {
+                $effectiveTenantId = $audit->tenantId ?? ($role->tenant_id !== null ? (int) $role->tenant_id : null);
+                event(DomainAuditEvent::make(
+                    action: $audit->overrideAction ?? 'role.create',
+                    auditable: $role,
+                    actor: $audit->actor,
+                    newValues: RoleSnapshot::forCreateAudit($role, $effectiveTenantId, count($permissionIds))->toArray(),
+                    tenantId: $effectiveTenantId,
+                ));
+            });
+        }
+
         return $role;
     }
 
     /**
      * @param  list<int>|null  $permissionIds
      */
-    public function update(Role $role, UpdateRoleDTO $dto, ?array $permissionIds = null): Role
+    public function update(Role $role, UpdateRoleInputDTO $dto, string $fallbackStatus, ?array $permissionIds = null, ?AuditContext $audit = null): Role
     {
-        DB::transaction(function () use ($role, $dto, $permissionIds): void {
+        DB::transaction(function () use ($role, $dto, $fallbackStatus, $permissionIds): void {
             $role->forceFill([
-                'code' => $dto->code,
-                'name' => $dto->name,
+                'code' => $dto->roleCode,
+                'name' => $dto->roleName,
                 'description' => $dto->description,
-                'status' => $dto->status,
+                'status' => $dto->status ?? $fallbackStatus,
                 'level' => $dto->level,
             ])->save();
 
@@ -60,24 +75,65 @@ class RoleService
         });
         $this->apiCacheService->bump('roles');
 
+        if ($audit !== null) {
+            DB::afterCommit(static function () use ($audit, $role) {
+                event(DomainAuditEvent::make(
+                    action: $audit->overrideAction ?? 'role.update',
+                    auditable: $role,
+                    actor: $audit->actor,
+                    oldValues: $audit->oldValues,
+                    newValues: RoleSnapshot::forUpdateAudit($role)->toArray(),
+                    tenantId: $audit->tenantId ?? ($role->tenant_id !== null ? (int) $role->tenant_id : null),
+                ));
+            });
+        }
+
         return $role;
     }
 
-    public function syncPermissions(Role $role, SyncRolePermissionsDTO $dto): void
+    /**
+     * @param  list<int>  $permissionIds
+     */
+    public function syncPermissions(Role $role, array $permissionIds, ?AuditContext $audit = null): void
     {
-        DB::transaction(function () use ($role, $dto): void {
-            $role->permissions()->sync($dto->permissionIds);
+        DB::transaction(function () use ($role, $permissionIds): void {
             $role->touch();
+            $role->permissions()->sync($permissionIds);
         });
         $this->apiCacheService->bump('roles');
+
+        if ($audit !== null) {
+            DB::afterCommit(static function () use ($audit, $role) {
+                event(DomainAuditEvent::make(
+                    action: $audit->overrideAction ?? 'role.sync_permissions',
+                    auditable: $role,
+                    actor: $audit->actor,
+                    oldValues: $audit->oldValues,
+                    newValues: $audit->newValues,
+                    tenantId: $audit->tenantId ?? ($role->tenant_id ? (int) $role->tenant_id : null),
+                ));
+            });
+        }
     }
 
-    public function delete(Role $role): void
+    public function delete(Role $role, ?AuditContext $audit = null): void
     {
         DB::transaction(function () use ($role): void {
             $role->permissions()->detach();
             $role->delete();
         });
         $this->apiCacheService->bump('roles');
+
+        if ($audit !== null) {
+            DB::afterCommit(static function () use ($audit, $role) {
+                event(DomainAuditEvent::make(
+                    action: $audit->overrideAction ?? 'role.soft_delete',
+                    auditable: $role,
+                    actor: $audit->actor,
+                    oldValues: $audit->oldValues,
+                    tenantId: $audit->tenantId ?? ($role->tenant_id !== null ? (int) $role->tenant_id : null)
+                ));
+            });
+        }
     }
 }

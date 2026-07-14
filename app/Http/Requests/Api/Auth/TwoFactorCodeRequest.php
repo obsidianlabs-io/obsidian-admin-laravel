@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Auth;
 
-use App\DTOs\Auth\TwoFactorCodeInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 
 class TwoFactorCodeRequest extends BaseApiRequest
@@ -19,12 +18,8 @@ class TwoFactorCodeRequest extends BaseApiRequest
         ];
     }
 
-    public function toDTO(): TwoFactorCodeInputDTO
+    public function otpCode(): string
     {
-        $validated = $this->validated();
-
-        return new TwoFactorCodeInputDTO(
-            otpCode: (string) $validated['otpCode']
-        );
+        return (string) $this->validated('otpCode');
     }
 }

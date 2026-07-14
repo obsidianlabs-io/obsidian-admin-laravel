@@ -11,10 +11,10 @@ use App\Domains\Access\Http\Resources\PermissionListResource;
 use App\Domains\Access\Models\Permission;
 use App\Domains\Access\Services\PermissionService;
 use App\Domains\Shared\Auth\ApiAuthResult;
+use App\Domains\Shared\Data\AuditContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Http\Controllers\Concerns\ResolvesPlatformConsoleContext;
 use App\Domains\Shared\Services\ApiCacheService;
-use App\Domains\System\Services\AuditLogService;
 use App\DTOs\Permission\UpdatePermissionDTO;
 use App\Http\Requests\Api\Permission\ListPermissionsRequest;
 use App\Http\Requests\Api\Permission\StorePermissionRequest;
@@ -29,7 +29,6 @@ class PermissionController extends ApiController
 
     public function __construct(
         private readonly PermissionService $permissionService,
-        private readonly AuditLogService $auditLogService,
         private readonly ApiCacheService $apiCacheService
     ) {}
 
@@ -115,16 +114,8 @@ class PermissionController extends ApiController
         $user = $authResult->requireUser();
         $dto = $request->toDTO();
 
-        return $this->withIdempotency($request, $user, function () use ($dto, $user, $request): JsonResponse {
-            $permission = $this->permissionService->create($dto);
-
-            $this->auditLogService->record(
-                action: 'permission.create',
-                auditable: $permission,
-                actor: $user,
-                request: $request,
-                newValues: PermissionSnapshot::fromModel($permission)->toArray()
-            );
+        return $this->withIdempotency($request, $user, function () use ($dto, $user): JsonResponse {
+            $permission = $this->permissionService->create($dto, new AuditContext(actor: $user));
 
             return $this->success(PermissionResponseData::fromModel($permission)->toArray(), 'Permission created');
         });
@@ -155,15 +146,13 @@ class PermissionController extends ApiController
             return $this->error(ApiResultCode::PARAM_ERROR, 'Permission code cannot be modified');
         }
 
-        $permission = $this->permissionService->update($permission, $dto);
-
-        $this->auditLogService->record(
-            action: 'permission.update',
-            auditable: $permission,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues,
-            newValues: PermissionSnapshot::fromModel($permission)->toArray()
+        $permission = $this->permissionService->update(
+            $permission,
+            $dto,
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues
+            )
         );
 
         return $this->success(PermissionResponseData::fromModel($permission, $request)->toArray(), 'Permission updated');
@@ -186,21 +175,20 @@ class PermissionController extends ApiController
         $oldValues = PermissionSnapshot::fromModel($permission)->toArray();
 
         if ((string) $permission->status === '1') {
-            $permission = $this->permissionService->update($permission, new UpdatePermissionDTO(
-                code: (string) $permission->code,
-                name: (string) $permission->name,
-                group: (string) ($permission->group ?? ''),
-                description: (string) ($permission->description ?? ''),
-                status: '2',
-            ));
-
-            $this->auditLogService->record(
-                action: 'permission.deactivate',
-                auditable: $permission,
-                actor: $user,
-                request: $request,
-                oldValues: $oldValues,
-                newValues: PermissionSnapshot::fromModel($permission)->toArray()
+            $permission = $this->permissionService->update(
+                $permission,
+                new UpdatePermissionDTO(
+                    code: (string) $permission->code,
+                    name: (string) $permission->name,
+                    group: (string) ($permission->group ?? ''),
+                    description: (string) ($permission->description ?? ''),
+                    status: '2',
+                ),
+                new AuditContext(
+                    actor: $user,
+                    oldValues: $oldValues,
+                    overrideAction: 'permission.deactivate'
+                )
             );
 
             return $this->deletionActionSuccess('permission', (int) $permission->id, 'deactivated', 'Permission deactivated');
@@ -216,13 +204,12 @@ class PermissionController extends ApiController
             );
         }
 
-        $this->permissionService->delete($permission);
-        $this->auditLogService->record(
-            action: 'permission.soft_delete',
-            auditable: $permission,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues
+        $this->permissionService->delete(
+            $permission,
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues
+            )
         );
 
         return $this->deletionActionSuccess('permission', (int) $id, 'soft_deleted', 'Permission deleted');

@@ -2,28 +2,27 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\System\Actions\FeatureFlag;
+namespace App\Domains\System\Actions;
 
 use App\Domains\System\Data\FeatureFlagListPageData;
 use App\Domains\System\Data\FeatureFlagRecordData;
 use App\Domains\System\Services\FeatureFlagService;
-use App\DTOs\FeatureFlag\ListFeatureFlagsDTO;
 
-readonly class ListFeatureFlagsAction
+readonly class FeatureFlagAction
 {
     public function __construct(
         private FeatureFlagService $featureFlagService,
     ) {}
 
-    public function __invoke(ListFeatureFlagsDTO $dto): FeatureFlagListPageData
+    public function list(int $current, int $size, string $keyword): FeatureFlagListPageData
     {
         $definitions = config('features.definitions', []);
         $flags = [];
 
         if (! is_array($definitions)) {
             return new FeatureFlagListPageData(
-                current: $dto->current,
-                size: $dto->size,
+                current: $current,
+                size: $size,
                 total: 0,
                 records: [],
             );
@@ -35,7 +34,7 @@ readonly class ListFeatureFlagsAction
                 continue;
             }
 
-            if ($dto->keyword !== '' && stripos($featureKey, $dto->keyword) === false) {
+            if ($keyword !== '' && stripos($featureKey, $keyword) === false) {
                 continue;
             }
 
@@ -65,14 +64,62 @@ readonly class ListFeatureFlagsAction
         }
 
         $total = count($flags);
-        $offset = ($dto->current - 1) * $dto->size;
-        $records = array_slice($flags, $offset, $dto->size);
+        $offset = ($current - 1) * $size;
+        $records = array_slice($flags, $offset, $size);
 
         return new FeatureFlagListPageData(
-            current: $dto->current,
-            size: $dto->size,
+            current: $current,
+            size: $size,
             total: $total,
             records: $records,
         );
+    }
+
+    public function toggle(string $key, bool $enabled): bool
+    {
+        if (! $this->featureFlagService->hasFeatureDefinition($key)) {
+            return false;
+        }
+
+        $this->featureFlagService->setStoredOverride(
+            $key,
+            $this->featureFlagService->globalScopeKey(),
+            $enabled
+        );
+
+        return true;
+    }
+
+    public function purge(string $key): bool
+    {
+        if (! $this->featureFlagService->hasFeatureDefinition($key)) {
+            return false;
+        }
+
+        $this->featureFlagService->purgeStoredOverrides($key);
+
+        return true;
+    }
+
+    public function setOverride(string $key, string $scope, bool $enabled): bool
+    {
+        if (! $this->featureFlagService->hasFeatureDefinition($key)) {
+            return false;
+        }
+
+        $this->featureFlagService->setStoredOverride($key, $scope, $enabled);
+
+        return true;
+    }
+
+    public function forgetOverride(string $key, string $scope): bool
+    {
+        if (! $this->featureFlagService->hasFeatureDefinition($key)) {
+            return false;
+        }
+
+        $this->featureFlagService->forgetStoredOverride($key, $scope);
+
+        return true;
     }
 }

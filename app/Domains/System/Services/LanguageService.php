@@ -4,50 +4,99 @@ declare(strict_types=1);
 
 namespace App\Domains\System\Services;
 
+use App\Domains\Shared\Data\AuditContext;
+use App\Domains\Shared\Events\DomainAuditEvent;
 use App\Domains\Shared\Services\ApiCacheService;
+use App\Domains\System\Data\LanguageTranslationSnapshot;
 use App\Domains\System\Models\Language;
 use App\Domains\System\Models\LanguageTranslation;
-use App\DTOs\Language\CreateLanguageTranslationDTO;
-use App\DTOs\Language\UpdateLanguageTranslationDTO;
+use App\DTOs\Language\StoreLanguageTranslationInputDTO;
+use App\DTOs\Language\UpdateLanguageTranslationInputDTO;
 use App\Support\LocaleDefaults;
+use Illuminate\Support\Facades\DB;
 
 class LanguageService
 {
     public function __construct(private readonly ApiCacheService $apiCacheService) {}
 
-    public function createTranslation(CreateLanguageTranslationDTO $dto): LanguageTranslation
+    public function createTranslation(StoreLanguageTranslationInputDTO $dto, int $languageId, ?AuditContext $audit = null): LanguageTranslation
     {
-        $translation = LanguageTranslation::query()->create([
-            'language_id' => $dto->languageId,
-            'translation_key' => $dto->translationKey,
-            'translation_value' => $dto->translationValue,
-            'description' => $dto->description,
-            'status' => $dto->status,
-        ]);
+        $translation = DB::transaction(function () use ($dto, $languageId): LanguageTranslation {
+            return LanguageTranslation::query()->create([
+                'language_id' => $languageId,
+                'translation_key' => $dto->translationKey,
+                'translation_value' => $dto->translationValue,
+                'description' => $dto->description,
+                'status' => $dto->status,
+            ]);
+        });
 
         $this->apiCacheService->bump('languages');
+
+        if ($audit !== null) {
+            DB::afterCommit(static function () use ($audit, $translation) {
+                $locale = (string) (Language::query()->whereKey($translation->language_id)->value('code') ?? '');
+                event(DomainAuditEvent::make(
+                    action: $audit->overrideAction ?? 'language.translation.create',
+                    auditable: $translation,
+                    actor: $audit->actor,
+                    newValues: LanguageTranslationSnapshot::forCreateAudit($translation, $locale)->toArray(),
+                ));
+            });
+        }
 
         return $translation;
     }
 
-    public function updateTranslation(LanguageTranslation $translation, UpdateLanguageTranslationDTO $dto): LanguageTranslation
+    public function updateTranslation(LanguageTranslation $translation, UpdateLanguageTranslationInputDTO $dto, int $languageId, string $fallbackStatus, ?AuditContext $audit = null): LanguageTranslation
     {
-        $translation->forceFill([
-            'language_id' => $dto->languageId,
-            'translation_key' => $dto->translationKey,
-            'translation_value' => $dto->translationValue,
-            'description' => $dto->description,
-            'status' => $dto->status,
-        ])->save();
+        $updated = DB::transaction(function () use ($translation, $dto, $languageId, $fallbackStatus): LanguageTranslation {
+            $translation->forceFill([
+                'language_id' => $languageId,
+                'translation_key' => $dto->translationKey,
+                'translation_value' => $dto->translationValue,
+                'description' => $dto->description,
+                'status' => $dto->status ?? $fallbackStatus,
+            ])->save();
+
+            return $translation;
+        });
+
         $this->apiCacheService->bump('languages');
 
-        return $translation;
+        if ($audit !== null) {
+            DB::afterCommit(static function () use ($audit, $updated) {
+                $locale = (string) (Language::query()->whereKey($updated->language_id)->value('code') ?? '');
+                event(DomainAuditEvent::make(
+                    action: $audit->overrideAction ?? 'language.translation.update',
+                    auditable: $updated,
+                    actor: $audit->actor,
+                    oldValues: $audit->oldValues,
+                    newValues: LanguageTranslationSnapshot::forContentAudit($updated, $locale)->toArray(),
+                ));
+            });
+        }
+
+        return $updated;
     }
 
-    public function deleteTranslation(LanguageTranslation $translation): void
+    public function deleteTranslation(LanguageTranslation $translation, ?AuditContext $audit = null): void
     {
-        $translation->delete();
+        DB::transaction(function () use ($translation): void {
+            $translation->delete();
+        });
         $this->apiCacheService->bump('languages');
+
+        if ($audit !== null) {
+            DB::afterCommit(static function () use ($audit, $translation) {
+                event(DomainAuditEvent::make(
+                    action: $audit->overrideAction ?? 'language.translation.delete',
+                    auditable: $translation,
+                    actor: $audit->actor,
+                    oldValues: $audit->oldValues,
+                ));
+            });
+        }
     }
 
     /**

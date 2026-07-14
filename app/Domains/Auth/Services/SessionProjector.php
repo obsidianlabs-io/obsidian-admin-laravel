@@ -7,7 +7,6 @@ namespace App\Domains\Auth\Services;
 use App\Domains\Access\Models\User;
 use App\Domains\Auth\Services\Results\RevokeSessionResult;
 use App\Domains\Auth\Services\Results\SessionRecord;
-use App\Domains\Auth\Services\Results\SessionRecordsResult;
 use App\Domains\Auth\Services\Results\UpdateSessionAliasResult;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -24,7 +23,10 @@ final class SessionProjector
         return $this->abilityCodec->resolveSessionId($token);
     }
 
-    public function listSessions(User $user, ?PersonalAccessToken $currentAccessToken = null): SessionRecordsResult
+    /**
+     * @return list<SessionRecord>
+     */
+    public function listSessions(User $user, ?PersonalAccessToken $currentAccessToken = null): array
     {
         $tokens = $this->managedTokensQuery($user)
             ->where(function ($query): void {
@@ -69,7 +71,7 @@ final class SessionProjector
             return $b->sortTimestamp() <=> $a->sortTimestamp();
         });
 
-        return new SessionRecordsResult($records);
+        return $records;
     }
 
     public function updateSessionAlias(

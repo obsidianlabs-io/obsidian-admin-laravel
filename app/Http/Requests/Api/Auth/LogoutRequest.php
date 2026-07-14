@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Auth;
 
-use App\DTOs\Auth\LogoutInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 use App\Support\ApiResultCode;
 
@@ -22,8 +21,11 @@ class LogoutRequest extends BaseApiRequest
         ];
     }
 
-    public function toDTO(): LogoutInputDTO
+    public function refreshToken(): ?string
     {
-        return LogoutInputDTO::fromValidated($this->validated());
+        $validated = $this->validated();
+        $refreshToken = trim((string) ($validated['refreshToken'] ?? ''));
+
+        return $refreshToken !== '' ? $refreshToken : null;
     }
 }

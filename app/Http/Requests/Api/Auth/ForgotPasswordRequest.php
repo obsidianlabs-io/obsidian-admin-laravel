@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Auth;
 
-use App\DTOs\Auth\ForgotPasswordInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 
 class ForgotPasswordRequest extends BaseApiRequest
@@ -19,12 +18,8 @@ class ForgotPasswordRequest extends BaseApiRequest
         ];
     }
 
-    public function toDTO(): ForgotPasswordInputDTO
+    public function email(): string
     {
-        $validated = $this->validated();
-
-        return new ForgotPasswordInputDTO(
-            email: trim((string) $validated['email'])
-        );
+        return trim((string) $this->validated('email'));
     }
 }

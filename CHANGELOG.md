@@ -11,14 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.2] - 2026-06-22
 
+### ✨ Added
+- Extracted `ThemeConfigNormalizer` (444 lines) from `ThemeConfigService` to centralize config validation, defaults, limits, and normalization logic.
+- Extracted `AuditPolicyResolver` (237 lines) from `AuditPolicyService` to centralize event catalog, policy resolution, scope caching, and normalization.
+- Added `FeatureFlagAction` as a single consolidated action replacing five thin feature-flag actions (toggle, purge, list, set-override, forget-override).
+- Added a composite database index on `user_id` + `created_at` for both `audit_logs` and `api_access_logs` tables to accelerate user-scoped log queries.
+- Added an Octane listener `FlushFeatureFlagOverrideCache` to clear request-scoped feature-flag override cache on request end.
+- Added `PermissionApiTest` (7 tests) and `RoleApiTest` (8 tests) for direct route-level authorization coverage.
+- Added `ThemeConfigNormalizerTest` (20 tests, 70 assertions), `AuditPolicyResolverTest` (14 tests, 342 assertions), and `FeatureFlagServiceTest` (13 tests, 342 assertions) for unit-level coverage of extracted services.
+
 ### 🔧 Changed
 - Split the shared API controller responsibilities into focused controller concerns for JSON responses, authentication helpers, idempotency, optimistic locks, pagination, deletion responses, and trace reporting.
 - Reduced repeated role controller context and authorization setup through shared helper methods while preserving the existing role API contract.
 - Added release guidance that future schema changes should use independent timestamped migrations instead of folding changes back into the initial application schema migration.
+- Registered `FeatureFlagService` as a singleton in `AppServiceProvider` to ensure request-scoped override cache is shared across the same request lifecycle.
+- Refactored `ThemeConfigService` (712 → 277 lines) and `AuditPolicyService` (582 → 364 lines) to delegate extracted logic to their respective normalizer/resolver classes.
+- Inlined `ResolvedUserRoles` as `list<string>`, `SessionRecordsResult` as `list<SessionRecord>`, and `UserProfileSnapshot` as an associative array, removing unnecessary Result wrapper classes.
+- Merged `RevokeSessionActionResult` and `UpdateSessionAliasActionResult` into their respective Service Result classes.
+- Deleted 28 thin DTO and Result wrapper files across Auth, FeatureFlag, Language, Role, User, and AuditPolicy domains, replacing them with direct Controller-to-Request getter calls or inline types (net −1,300 lines of pass-through code).
+- Updated `RoleSeeder` to align with current permission model.
 
 ### 🐞 Fixed
 - Added an `admins` password broker alias so environments using `AUTH_PASSWORD_BROKER=admins` can execute forgot-password flows and release contract tests successfully.
 - Kept the role store input DTO compatible with existing HTTP aliases while aligning it with the role creation DTO shape.
+- Fixed `FeatureFlagService` override cache not sharing across the request lifecycle by binding the service as a singleton.
+- Fixed `UpdateSessionAliasResult.toArray()` missing `sessionId` in its output payload.
 
 ## [1.3.1] - 2026-05-16
 

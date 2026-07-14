@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Domains\Tenant\Http\Controllers;
 
 use App\Domains\Shared\Auth\TenantScopedContext;
+use App\Domains\Shared\Data\AuditContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
-use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Actions\ListTeamsQueryAction;
 use App\Domains\Tenant\Data\TeamResponseData;
 use App\Domains\Tenant\Data\TeamSnapshot;
@@ -17,6 +17,7 @@ use App\Domains\Tenant\Models\Organization;
 use App\Domains\Tenant\Models\Team;
 use App\Domains\Tenant\Services\TeamService;
 use App\Domains\Tenant\Services\TenantContextService;
+use App\DTOs\Team\UpdateTeamDTO;
 use App\Http\Requests\Api\Team\ListTeamsRequest;
 use App\Http\Requests\Api\Team\StoreTeamRequest;
 use App\Http\Requests\Api\Team\UpdateTeamRequest;
@@ -30,7 +31,6 @@ class TeamController extends ApiController
 
     public function __construct(
         private readonly TeamService $teamService,
-        private readonly AuditLogService $auditLogService,
         private readonly TenantContextService $tenantContextService,
         private readonly ApiCacheService $apiCacheService,
     ) {}
@@ -154,16 +154,14 @@ class TeamController extends ApiController
             return $this->error(ApiResultCode::PARAM_ERROR, $uniqueError);
         }
 
-        return $this->withIdempotency($request, $user, function () use ($tenantId, $dto, $user, $request): JsonResponse {
-            $team = $this->teamService->create($tenantId, $dto);
-
-            $this->auditLogService->record(
-                action: 'team.create',
-                auditable: $team,
-                actor: $user,
-                request: $request,
-                newValues: TeamSnapshot::fromModel($team)->toArray(),
-                tenantId: $tenantId,
+        return $this->withIdempotency($request, $user, function () use ($tenantId, $dto, $user): JsonResponse {
+            $team = $this->teamService->create(
+                $tenantId,
+                $dto,
+                new AuditContext(
+                    actor: $user,
+                    tenantId: $tenantId
+                )
             );
 
             return $this->success(TeamResponseData::fromModel($team)->toArray(), 'Team created');
@@ -209,16 +207,14 @@ class TeamController extends ApiController
 
         $oldValues = TeamSnapshot::fromModel($team)->toArray();
 
-        $team = $this->teamService->update($team, $dto);
-
-        $this->auditLogService->record(
-            action: 'team.update',
-            auditable: $team,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues,
-            newValues: TeamSnapshot::fromModel($team)->toArray(),
-            tenantId: $tenantId,
+        $team = $this->teamService->update(
+            $team,
+            $dto,
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues,
+                tenantId: $tenantId
+            )
         );
 
         return $this->success(TeamResponseData::fromModel($team, $request)->toArray(), 'Team updated');
@@ -244,17 +240,22 @@ class TeamController extends ApiController
         $oldValues = TeamSnapshot::fromModel($team)->toArray();
 
         if ((string) $team->status === '1') {
-            $team->forceFill(['status' => '2'])->save();
-            $this->apiCacheService->bump('teams');
-
-            $this->auditLogService->record(
-                action: 'team.deactivate',
-                auditable: $team,
-                actor: $user,
-                request: $request,
-                oldValues: $oldValues,
-                newValues: TeamSnapshot::fromModel($team)->toArray(),
-                tenantId: $tenantId,
+            $this->teamService->update(
+                $team,
+                new UpdateTeamDTO(
+                    organizationId: (int) $team->organization_id,
+                    teamCode: (string) $team->code,
+                    teamName: (string) $team->name,
+                    description: (string) ($team->description ?? ''),
+                    status: '2',
+                    sort: (int) ($team->sort ?? 0)
+                ),
+                new AuditContext(
+                    actor: $user,
+                    oldValues: $oldValues,
+                    overrideAction: 'team.deactivate',
+                    tenantId: $tenantId
+                )
             );
 
             return $this->deletionActionSuccess('team', (int) $team->id, 'deactivated', 'Team deactivated');
@@ -270,15 +271,13 @@ class TeamController extends ApiController
             );
         }
 
-        $this->teamService->delete($team);
-
-        $this->auditLogService->record(
-            action: 'team.soft_delete',
-            auditable: $team,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues,
-            tenantId: $tenantId,
+        $this->teamService->delete(
+            $team,
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues,
+                tenantId: $tenantId
+            )
         );
 
         return $this->deletionActionSuccess('team', (int) $id, 'soft_deleted', 'Team deleted');

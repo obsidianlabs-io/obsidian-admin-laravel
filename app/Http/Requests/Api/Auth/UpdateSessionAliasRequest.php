@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Auth;
 
-use App\DTOs\Auth\UpdateSessionAliasInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 
 class UpdateSessionAliasRequest extends BaseApiRequest
@@ -27,8 +26,18 @@ class UpdateSessionAliasRequest extends BaseApiRequest
         ];
     }
 
-    public function toDTO(): UpdateSessionAliasInputDTO
+    public function sessionId(): string
     {
-        return UpdateSessionAliasInputDTO::fromValidated($this->validated());
+        return (string) $this->validated('sessionId');
+    }
+
+    public function deviceAlias(): ?string
+    {
+        $validated = $this->validated();
+        $alias = array_key_exists('deviceAlias', $validated)
+            ? trim((string) $validated['deviceAlias'])
+            : '';
+
+        return $alias !== '' ? $alias : null;
     }
 }

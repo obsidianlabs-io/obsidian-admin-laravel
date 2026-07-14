@@ -4,13 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Domains\System\Actions\FeatureFlag\ForgetFeatureFlagOverrideAction;
-use App\Domains\System\Actions\FeatureFlag\PurgeFeatureFlagAction;
-use App\Domains\System\Actions\FeatureFlag\SetFeatureFlagOverrideAction;
+use App\Domains\System\Actions\FeatureFlagAction;
 use App\Domains\System\Services\FeatureFlagService;
-use App\DTOs\FeatureFlag\ForgetFeatureFlagOverrideDTO;
-use App\DTOs\FeatureFlag\PurgeFeatureFlagDTO;
-use App\DTOs\FeatureFlag\SetFeatureFlagOverrideDTO;
 use Illuminate\Console\Command;
 use Laravel\Pennant\Feature;
 
@@ -33,9 +28,7 @@ class FeatureRolloutCommand extends Command
 
     public function __construct(
         private readonly FeatureFlagService $featureFlagService,
-        private readonly SetFeatureFlagOverrideAction $setFeatureFlagOverrideAction,
-        private readonly ForgetFeatureFlagOverrideAction $forgetFeatureFlagOverrideAction,
-        private readonly PurgeFeatureFlagAction $purgeFeatureFlagAction,
+        private readonly FeatureFlagAction $featureFlagAction,
     ) {
         parent::__construct();
     }
@@ -93,11 +86,11 @@ class FeatureRolloutCommand extends Command
         }
 
         if ($state === 'on') {
-            ($this->setFeatureFlagOverrideAction)(new SetFeatureFlagOverrideDTO(
-                key: $feature,
-                scope: $this->featureFlagService->globalScopeKey(),
-                enabled: true,
-            ));
+            $this->featureFlagAction->setOverride(
+                $feature,
+                $this->featureFlagService->globalScopeKey(),
+                true,
+            );
             Feature::flushCache();
             $this->info(sprintf('[global] enabled: %s', $feature));
 
@@ -105,11 +98,11 @@ class FeatureRolloutCommand extends Command
         }
 
         if ($state === 'off') {
-            ($this->setFeatureFlagOverrideAction)(new SetFeatureFlagOverrideDTO(
-                key: $feature,
-                scope: $this->featureFlagService->globalScopeKey(),
-                enabled: false,
-            ));
+            $this->featureFlagAction->setOverride(
+                $feature,
+                $this->featureFlagService->globalScopeKey(),
+                false,
+            );
             Feature::flushCache();
             $this->info(sprintf('[global] disabled: %s', $feature));
 
@@ -117,9 +110,7 @@ class FeatureRolloutCommand extends Command
         }
 
         if ($state === 'reset') {
-            ($this->purgeFeatureFlagAction)(new PurgeFeatureFlagDTO(
-                key: $feature,
-            ));
+            $this->featureFlagAction->purge($feature);
             Feature::flushCache();
             $this->info(sprintf('[global] reset: %s', $feature));
 
@@ -141,11 +132,7 @@ class FeatureRolloutCommand extends Command
         }
 
         if ($state === 'on') {
-            ($this->setFeatureFlagOverrideAction)(new SetFeatureFlagOverrideDTO(
-                key: $feature,
-                scope: $scope,
-                enabled: true,
-            ));
+            $this->featureFlagAction->setOverride($feature, $scope, true);
             Feature::flushCache();
             $this->info(sprintf('[scope=%s] enabled: %s', $scope, $feature));
 
@@ -153,11 +140,7 @@ class FeatureRolloutCommand extends Command
         }
 
         if ($state === 'off') {
-            ($this->setFeatureFlagOverrideAction)(new SetFeatureFlagOverrideDTO(
-                key: $feature,
-                scope: $scope,
-                enabled: false,
-            ));
+            $this->featureFlagAction->setOverride($feature, $scope, false);
             Feature::flushCache();
             $this->info(sprintf('[scope=%s] disabled: %s', $scope, $feature));
 
@@ -165,10 +148,7 @@ class FeatureRolloutCommand extends Command
         }
 
         if ($state === 'reset') {
-            ($this->forgetFeatureFlagOverrideAction)(new ForgetFeatureFlagOverrideDTO(
-                key: $feature,
-                scope: $scope,
-            ));
+            $this->featureFlagAction->forgetOverride($feature, $scope);
             Feature::flushCache();
             $this->info(sprintf('[scope=%s] reset: %s', $scope, $feature));
 

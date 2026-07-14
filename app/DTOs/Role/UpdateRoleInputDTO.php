@@ -18,15 +18,4 @@ final readonly class UpdateRoleInputDTO
         public bool $hasPermissionCodes,
         public array $permissionCodes
     ) {}
-
-    public function toUpdateRoleDTO(string $fallbackStatus): UpdateRoleDTO
-    {
-        return new UpdateRoleDTO(
-            code: $this->roleCode,
-            name: $this->roleName,
-            description: $this->description,
-            status: $this->status ?? $fallbackStatus,
-            level: $this->level,
-        );
-    }
 }

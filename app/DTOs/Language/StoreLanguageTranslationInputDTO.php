@@ -13,15 +13,4 @@ final readonly class StoreLanguageTranslationInputDTO
         public string $description,
         public string $status
     ) {}
-
-    public function toCreateLanguageTranslationDTO(int $languageId): CreateLanguageTranslationDTO
-    {
-        return new CreateLanguageTranslationDTO(
-            languageId: $languageId,
-            translationKey: $this->translationKey,
-            translationValue: $this->translationValue,
-            description: $this->description,
-            status: $this->status,
-        );
-    }
 }

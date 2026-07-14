@@ -76,6 +76,8 @@ class RoleSeeder extends VersionedSeeder
             'language.manage',
             'audit.policy.view',
             'audit.policy.manage',
+            'system.feature_flags.view',
+            'system.feature_flags.manage',
         ];
 
         $permissionIdsBySet = [

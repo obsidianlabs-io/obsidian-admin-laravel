@@ -15,12 +15,11 @@ use App\Domains\Access\Models\Role;
 use App\Domains\Access\Services\RoleScopeGuardService;
 use App\Domains\Access\Services\RoleService;
 use App\Domains\Shared\Auth\AssignablePermissionIdsResult;
+use App\Domains\Shared\Data\AuditContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Services\ApiCacheService;
-use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Services\TenantContextService;
-use App\DTOs\Role\SyncRolePermissionsDTO;
-use App\DTOs\Role\UpdateRoleDTO;
+use App\DTOs\Role\UpdateRoleInputDTO;
 use App\Http\Requests\Api\Role\ListRolesRequest;
 use App\Http\Requests\Api\Role\StoreRoleRequest;
 use App\Http\Requests\Api\Role\SyncRolePermissionsRequest;
@@ -37,7 +36,6 @@ class RoleController extends ApiController
     public function __construct(
         private readonly RoleService $roleService,
         private readonly RoleScopeGuardService $roleScopeGuardService,
-        private readonly AuditLogService $auditLogService,
         private readonly TenantContextService $tenantContextService,
         private readonly ApiCacheService $apiCacheService
     ) {}
@@ -234,16 +232,15 @@ class RoleController extends ApiController
         }
         $permissionIds = $permissionResolution->permissionIds();
 
-        return $this->withIdempotency($request, $user, function () use ($input, $targetTenantId, $permissionIds, $user, $request): JsonResponse {
-            $role = $this->roleService->create($input->forTenant($targetTenantId), $permissionIds);
-
-            $this->auditLogService->record(
-                action: 'role.create',
-                auditable: $role,
-                actor: $user,
-                request: $request,
-                newValues: RoleSnapshot::forCreateAudit($role, $targetTenantId, count($permissionIds))->toArray(),
-                tenantId: $targetTenantId
+        return $this->withIdempotency($request, $user, function () use ($input, $targetTenantId, $permissionIds, $user): JsonResponse {
+            $role = $this->roleService->create(
+                $input,
+                $targetTenantId,
+                $permissionIds,
+                new AuditContext(
+                    actor: $user,
+                    tenantId: $targetTenantId
+                )
             );
 
             return $this->success(RoleResponseData::fromModel($role)->toArray(), 'Role created');
@@ -308,18 +305,13 @@ class RoleController extends ApiController
 
         $this->roleService->update(
             $role,
-            $input->toUpdateRoleDTO((string) $role->status),
-            $permissionIds
-        );
-
-        $this->auditLogService->record(
-            action: 'role.update',
-            auditable: $role,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues,
-            newValues: RoleSnapshot::forUpdateAudit($role)->toArray(),
-            tenantId: $targetTenantId
+            $input,
+            (string) $role->status,
+            $permissionIds,
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues
+            )
         );
 
         return $this->success(RoleResponseData::fromModel($role, $request)->toArray(), 'Role updated');
@@ -348,22 +340,24 @@ class RoleController extends ApiController
         $oldValues = RoleSnapshot::forStatusAudit($role)->toArray();
 
         if ((string) $role->status === '1') {
-            $this->roleService->update($role, new UpdateRoleDTO(
-                code: (string) $role->code,
-                name: (string) $role->name,
-                description: (string) ($role->description ?? ''),
-                status: '2',
-                level: (int) ($role->level ?? self::DEFAULT_ROLE_LEVEL),
-            ));
-
-            $this->auditLogService->record(
-                action: 'role.deactivate',
-                auditable: $role,
-                actor: $user,
-                request: $request,
-                oldValues: $oldValues,
-                newValues: RoleSnapshot::forStatusAudit($role)->toArray(),
-                tenantId: $role->tenant_id ? (int) $role->tenant_id : null
+            $this->roleService->update(
+                $role,
+                new UpdateRoleInputDTO(
+                    roleCode: (string) $role->code,
+                    roleName: (string) $role->name,
+                    description: (string) ($role->description ?? ''),
+                    status: '2',
+                    level: (int) ($role->level ?? self::DEFAULT_ROLE_LEVEL),
+                    hasPermissionCodes: false,
+                    permissionCodes: []
+                ),
+                (string) $role->status,
+                null,
+                new AuditContext(
+                    actor: $user,
+                    oldValues: $oldValues,
+                    overrideAction: 'role.deactivate'
+                )
             );
 
             return $this->deletionActionSuccess('role', (int) $role->id, 'deactivated', 'Role deactivated');
@@ -379,14 +373,12 @@ class RoleController extends ApiController
             );
         }
 
-        $this->roleService->delete($role);
-        $this->auditLogService->record(
-            action: 'role.soft_delete',
-            auditable: $role,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues,
-            tenantId: $role->tenant_id ? (int) $role->tenant_id : null
+        $this->roleService->delete(
+            $role,
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues
+            )
         );
 
         return $this->deletionActionSuccess('role', (int) $id, 'soft_deleted', 'Role deleted');
@@ -424,16 +416,15 @@ class RoleController extends ApiController
         }
         $permissionIds = $permissionResolution->permissionIds();
 
-        $this->roleService->syncPermissions($role, new SyncRolePermissionsDTO($permissionIds));
-        $this->auditLogService->record(
-            action: 'role.sync_permissions',
-            auditable: $role,
-            actor: $user,
-            request: $request,
-            newValues: [
-                'permissionCount' => count($permissionIds),
-            ],
-            tenantId: $role->tenant_id ? (int) $role->tenant_id : null
+        $this->roleService->syncPermissions(
+            $role,
+            $permissionIds,
+            new AuditContext(
+                actor: $user,
+                newValues: [
+                    'permissionCount' => count($permissionIds),
+                ]
+            )
         );
 
         return $this->success([], 'Role permissions updated');

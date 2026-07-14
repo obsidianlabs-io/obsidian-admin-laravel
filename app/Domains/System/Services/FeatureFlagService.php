@@ -17,6 +17,17 @@ class FeatureFlagService
 
     private bool $definitionsRegistered = false;
 
+    /**
+     * Request-scoped in-memory cache for feature override lookups.
+     *
+     * Key format: "{featureKey}|{scope}". Value is the decoded bool or null.
+     * Prevents redundant DB queries when isFeatureEnabled() is called
+     * multiple times within a single request lifecycle.
+     *
+     * @var array<string, bool|null>
+     */
+    private array $overrideCache = [];
+
     public function registerDefinitions(): void
     {
         if ($this->definitionsRegistered) {
@@ -102,6 +113,7 @@ class FeatureFlagService
                 'updated_at' => $now,
             ],
         ], ['name', 'scope'], ['value', 'updated_at']);
+        $this->overrideCache = [];
         $this->apiCacheService->bump('features');
     }
 
@@ -116,6 +128,7 @@ class FeatureFlagService
             ->where('name', $featureKey)
             ->where('scope', $scope)
             ->delete();
+        $this->overrideCache = [];
         $this->apiCacheService->bump('features');
     }
 
@@ -127,7 +140,20 @@ class FeatureFlagService
         }
 
         DB::table($table)->where('name', $featureKey)->delete();
+        $this->overrideCache = [];
         $this->apiCacheService->bump('features');
+    }
+
+    /**
+     * Clear the in-memory override cache.
+     *
+     * Should be called at request boundaries (e.g. Octane RequestTerminated)
+     * to prevent stale data leaking across requests when the service instance
+     * persists between requests.
+     */
+    public function clearOverrideCache(): void
+    {
+        $this->overrideCache = [];
     }
 
     public function getStoredOverride(string $featureKey, string $scope): ?bool
@@ -245,8 +271,15 @@ class FeatureFlagService
 
     private function readStoredOverride(string $featureKey, string $scope): ?bool
     {
+        $cacheKey = $featureKey.'|'.$scope;
+        if (array_key_exists($cacheKey, $this->overrideCache)) {
+            return $this->overrideCache[$cacheKey];
+        }
+
         $table = $this->featureTable();
         if ($table === null) {
+            $this->overrideCache[$cacheKey] = null;
+
             return null;
         }
 
@@ -256,12 +289,16 @@ class FeatureFlagService
             ->value('value');
 
         if (! is_string($value) || $value === '') {
+            $this->overrideCache[$cacheKey] = null;
+
             return null;
         }
 
         $decoded = json_decode($value, true);
+        $result = is_bool($decoded) ? $decoded : null;
+        $this->overrideCache[$cacheKey] = $result;
 
-        return is_bool($decoded) ? $decoded : null;
+        return $result;
     }
 
     private function featureTable(): ?string

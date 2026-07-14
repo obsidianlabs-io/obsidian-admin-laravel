@@ -6,11 +6,11 @@ namespace App\Domains\System\Http\Controllers;
 
 use App\Domains\Access\Models\User;
 use App\Domains\Access\Models\UserPreference;
+use App\Domains\Shared\Data\AuditContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\System\Data\ThemeActorScopeData;
 use App\Domains\System\Data\ThemeConfigResponseData;
 use App\Domains\System\Models\ThemeProfile;
-use App\Domains\System\Services\AuditLogService;
 use App\Domains\System\Services\ThemeConfigService;
 use App\Http\Requests\Api\Theme\UpdateThemeConfigRequest;
 use App\Support\ApiResultCode;
@@ -20,8 +20,7 @@ use Illuminate\Http\Request;
 class ThemeConfigController extends ApiController
 {
     public function __construct(
-        private readonly ThemeConfigService $themeConfigService,
-        private readonly AuditLogService $auditLogService
+        private readonly ThemeConfigService $themeConfigService
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -92,28 +91,12 @@ class ThemeConfigController extends ApiController
             return $this->error(ApiResultCode::PARAM_ERROR, 'No theme fields to update');
         }
 
-        $before = $this->themeConfigService->describeScopeConfig(
-            $scope->scopeType,
-            $scope->scopeId,
-            $scope->scopeName
-        );
-
         $updated = $this->themeConfigService->updateScopeConfig(
             $scope->scopeType,
             $scope->scopeId,
             $scope->scopeName,
             $input,
-            (int) $user->id
-        );
-
-        $this->auditLogService->record(
-            action: 'theme.config.update',
-            auditable: 'theme-profile',
-            actor: $user,
-            request: $request,
-            oldValues: $before->toAuditArray(),
-            newValues: $updated->toAuditArray(),
-            tenantId: $updated->scopeType === 'tenant' ? $updated->scopeId : null
+            new AuditContext(actor: $user)
         );
 
         $effective = $this->themeConfigService->resolveEffectiveConfig(
@@ -145,27 +128,11 @@ class ThemeConfigController extends ApiController
         }
 
         $scope = $this->resolveScope($user);
-        $before = $this->themeConfigService->describeScopeConfig(
-            $scope->scopeType,
-            $scope->scopeId,
-            $scope->scopeName
-        );
-
         $updated = $this->themeConfigService->resetScopeConfig(
             $scope->scopeType,
             $scope->scopeId,
             $scope->scopeName,
-            (int) $user->id
-        );
-
-        $this->auditLogService->record(
-            action: 'theme.config.reset',
-            auditable: 'theme-profile',
-            actor: $user,
-            request: $request,
-            oldValues: $before->toAuditArray(),
-            newValues: $updated->toAuditArray(),
-            tenantId: $updated->scopeType === 'tenant' ? $updated->scopeId : null
+            new AuditContext(actor: $user)
         );
 
         $effective = $this->themeConfigService->resolveEffectiveConfig(

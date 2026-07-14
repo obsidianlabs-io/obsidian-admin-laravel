@@ -11,14 +11,31 @@
 
 ## [1.3.2] - 2026-06-22
 
+### ✨ 新增
+- 从 `ThemeConfigService` 中提取 `ThemeConfigNormalizer`（444 行），集中管理配置校验、默认值、限制与规范化逻辑。
+- 从 `AuditPolicyService` 中提取 `AuditPolicyResolver`（237 行），集中管理事件目录、策略解析、scope 缓存与规范化。
+- 新增 `FeatureFlagAction` 合并五个过薄的功能开关 Action（toggle、purge、list、set-override、forget-override）。
+- 为 `audit_logs` 与 `api_access_logs` 表添加 `user_id` + `created_at` 复合索引，加速用户维度的日志查询。
+- 新增 Octane 监听器 `FlushFeatureFlagOverrideCache`，在请求结束时清理请求级功能开关覆盖缓存。
+- 新增 `PermissionApiTest`（7 个测试）与 `RoleApiTest`（8 个测试），覆盖路由级权限校验。
+- 新增 `ThemeConfigNormalizerTest`（20 个测试，70 断言）、`AuditPolicyResolverTest`（14 个测试，342 断言）、`FeatureFlagServiceTest`（13 个测试，342 断言），覆盖拆分后的 Service 单元逻辑。
+
 ### 🔧 调整
 - 将共享 API controller 的职责拆分为更聚焦的 controller concerns，覆盖 JSON 响应、认证辅助、幂等性、乐观锁、分页、删除响应与 trace 上报。
 - 通过共享 helper 收敛 RoleController 中重复的上下文解析与授权准备逻辑，同时保持既有角色 API 契约不变。
 - 补充发布期迁移规范：未来 schema 变更应使用独立 timestamp migration，不再回写到初始 application schema migration。
+- 在 `AppServiceProvider` 中将 `FeatureFlagService` 注册为 singleton，确保请求级覆盖缓存在同一请求生命周期内共享。
+- 重构 `ThemeConfigService`（712 → 277 行）与 `AuditPolicyService`（582 → 364 行），将提取的逻辑委托给各自的 normalizer/resolver 类。
+- 将 `ResolvedUserRoles` 内联为 `list<string>`、`SessionRecordsResult` 内联为 `list<SessionRecord>`、`UserProfileSnapshot` 内联为关联数组，移除不必要的 Result 包装类。
+- 将 `RevokeSessionActionResult` 与 `UpdateSessionAliasActionResult` 合并到各自的 Service Result 类中。
+- 删除 Auth、FeatureFlag、Language、Role、User、AuditPolicy 域共 28 个过薄 DTO 与 Result 包装文件，改为 Controller 直接调用 Request getter 或使用内联类型（净减约 1,300 行透传代码）。
+- 更新 `RoleSeeder` 以对齐当前权限模型。
 
 ### 🐞 修复
 - 新增 `admins` password broker alias，使使用 `AUTH_PASSWORD_BROKER=admins` 的环境可以正常执行 forgot-password 流程与 release contract 测试。
 - 保持 role store input DTO 对既有 HTTP 字段别名的兼容，同时对齐角色创建 DTO 的字段形态。
+- 修复 `FeatureFlagService` 覆盖缓存在请求生命周期内不共享的问题，通过将服务注册为 singleton 解决。
+- 修复 `UpdateSessionAliasResult.toArray()` 输出中缺少 `sessionId` 的问题。
 
 ## [1.3.1] - 2026-05-16
 

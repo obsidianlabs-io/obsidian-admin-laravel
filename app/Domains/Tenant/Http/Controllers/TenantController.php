@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Domains\Tenant\Http\Controllers;
 
 use App\Domains\Shared\Auth\ApiAuthResult;
+use App\Domains\Shared\Data\AuditContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
 use App\Domains\Shared\Http\Controllers\Concerns\ResolvesPlatformConsoleContext;
 use App\Domains\Shared\Services\ApiCacheService;
-use App\Domains\System\Services\AuditLogService;
 use App\Domains\Tenant\Actions\CreateTenantAction;
 use App\Domains\Tenant\Actions\DeleteTenantAction;
 use App\Domains\Tenant\Actions\GetAllActiveTenantsAction;
@@ -18,6 +18,7 @@ use App\Domains\Tenant\Data\TenantResponseData;
 use App\Domains\Tenant\Data\TenantSnapshot;
 use App\Domains\Tenant\Http\Resources\TenantListResource;
 use App\Domains\Tenant\Models\Tenant;
+use App\DTOs\Tenant\UpdateTenantDTO;
 use App\Http\Requests\Api\Tenant\ListTenantsRequest;
 use App\Http\Requests\Api\Tenant\StoreTenantRequest;
 use App\Http\Requests\Api\Tenant\UpdateTenantRequest;
@@ -34,7 +35,6 @@ class TenantController extends ApiController
         private readonly UpdateTenantAction $updateTenantAction,
         private readonly DeleteTenantAction $deleteTenantAction,
         private readonly GetAllActiveTenantsAction $getAllActiveTenantsAction,
-        private readonly AuditLogService $auditLogService,
         private readonly ApiCacheService $apiCacheService
     ) {}
 
@@ -105,15 +105,10 @@ class TenantController extends ApiController
 
         $dto = $request->toDTO();
 
-        return $this->withIdempotency($request, $user, function () use ($dto, $user, $request): JsonResponse {
-            $tenant = ($this->createTenantAction)($dto);
-
-            $this->auditLogService->record(
-                action: 'tenant.create',
-                auditable: $tenant,
-                actor: $user,
-                request: $request,
-                newValues: TenantSnapshot::fromModel($tenant)->toArray()
+        return $this->withIdempotency($request, $user, function () use ($dto, $user): JsonResponse {
+            $tenant = ($this->createTenantAction)(
+                $dto,
+                new AuditContext(actor: $user)
             );
 
             return $this->success(TenantResponseData::fromModel($tenant)->toArray(), 'Tenant created');
@@ -140,16 +135,13 @@ class TenantController extends ApiController
 
         $user = $authResult->requireUser();
 
-        $oldValues = TenantSnapshot::fromModel($tenant)->toArray();
-        $tenant = ($this->updateTenantAction)($tenant, $request->toDTO());
-
-        $this->auditLogService->record(
-            action: 'tenant.update',
-            auditable: $tenant,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues,
-            newValues: TenantSnapshot::fromModel($tenant)->toArray()
+        $tenant = ($this->updateTenantAction)(
+            $tenant,
+            $request->toDTO(),
+            new AuditContext(
+                actor: $user,
+                oldValues: TenantSnapshot::fromModel($tenant)->toArray()
+            )
         );
 
         return $this->success(TenantResponseData::fromModel($tenant, $request)->toArray(), 'Tenant updated');
@@ -173,16 +165,18 @@ class TenantController extends ApiController
         $oldValues = TenantSnapshot::fromModel($tenant)->toArray();
 
         if ((string) $tenant->status === '1') {
-            $tenant->forceFill(['status' => '2'])->save();
-            $this->apiCacheService->bump('tenants');
-
-            $this->auditLogService->record(
-                action: 'tenant.deactivate',
-                auditable: $tenant,
-                actor: $user,
-                request: $request,
-                oldValues: $oldValues,
-                newValues: TenantSnapshot::fromModel($tenant)->toArray()
+            ($this->updateTenantAction)(
+                $tenant,
+                new UpdateTenantDTO(
+                    tenantCode: (string) $tenant->code,
+                    tenantName: (string) $tenant->name,
+                    status: '2'
+                ),
+                new AuditContext(
+                    actor: $user,
+                    oldValues: $oldValues,
+                    overrideAction: 'tenant.deactivate'
+                )
             );
 
             return $this->deletionActionSuccess('tenant', (int) $tenant->id, 'deactivated', 'Tenant deactivated');
@@ -206,13 +200,12 @@ class TenantController extends ApiController
             );
         }
 
-        ($this->deleteTenantAction)($tenant);
-        $this->auditLogService->record(
-            action: 'tenant.soft_delete',
-            auditable: $tenant,
-            actor: $user,
-            request: $request,
-            oldValues: $oldValues
+        ($this->deleteTenantAction)(
+            $tenant,
+            new AuditContext(
+                actor: $user,
+                oldValues: $oldValues
+            )
         );
 
         return $this->deletionActionSuccess('tenant', (int) $id, 'soft_deleted', 'Tenant deleted');

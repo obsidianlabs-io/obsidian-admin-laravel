@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Auth\Http\Controllers;
 
 use App\Domains\Access\Models\User;
+use App\Domains\Shared\Events\DomainAuditEvent;
 use App\Http\Requests\Api\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Api\Auth\ResetPasswordRequest;
 use App\Http\Requests\Api\Auth\TwoFactorCodeRequest;
@@ -14,16 +15,17 @@ use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 
 class AuthSecurityController extends AbstractUserController
 {
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $input = $request->toDTO();
+        $email = $request->email();
         $responseData = [];
 
-        $user = User::query()->where('email', $input->email)->first();
+        $user = User::query()->where('email', $email)->first();
         if ($user) {
             $token = Password::broker()->createToken($user);
             // Only expose reset token in non-production environments AND when explicitly enabled via config.
@@ -69,20 +71,26 @@ class AuthSecurityController extends AbstractUserController
             return $this->success([], 'Email already verified');
         }
 
-        $user->forceFill(['email_verified_at' => now()])->save();
+        DB::transaction(function () use ($user) {
+            $user->forceFill(['email_verified_at' => now()])->save();
+        });
+
         $verifiedAt = $user->getAttribute('email_verified_at');
-        $this->auditLogService->record(
-            action: 'user.verify_email',
-            auditable: $user,
-            actor: $user,
-            request: $request,
-            newValues: [
-                'email_verified_at' => ApiDateTime::format(
-                    $verifiedAt instanceof CarbonInterface ? $verifiedAt : null,
-                    $this->resolveTimezone($user)
-                ),
-            ]
-        );
+        $timezone = $this->resolveTimezone($user);
+
+        DB::afterCommit(static function () use ($user, $verifiedAt, $timezone) {
+            event(DomainAuditEvent::make(
+                action: 'user.verify_email',
+                auditable: $user,
+                actor: $user,
+                newValues: [
+                    'email_verified_at' => ApiDateTime::format(
+                        $verifiedAt instanceof CarbonInterface ? $verifiedAt : null,
+                        $timezone
+                    ),
+                ]
+            ));
+        });
 
         return $this->success([], 'Email verified');
     }
@@ -119,9 +127,9 @@ class AuthSecurityController extends AbstractUserController
         }
 
         $user = $authResult->requireUser();
-        $input = $request->toDTO();
+        $otpCode = $request->otpCode();
 
-        if (! $this->verifyUserTotpCode($user, $input->otpCode)) {
+        if (! $this->verifyUserTotpCode($user, $otpCode)) {
             return $this->error(ApiResultCode::PARAM_ERROR, 'Two-factor code is invalid');
         }
 
@@ -144,9 +152,9 @@ class AuthSecurityController extends AbstractUserController
         }
 
         $user = $authResult->requireUser();
-        $input = $request->toDTO();
+        $otpCode = $request->otpCode();
 
-        if (! $this->verifyUserTotpCode($user, $input->otpCode)) {
+        if (! $this->verifyUserTotpCode($user, $otpCode)) {
             return $this->error(ApiResultCode::PARAM_ERROR, 'Two-factor code is invalid');
         }
 
@@ -173,13 +181,17 @@ class AuthSecurityController extends AbstractUserController
             $payload['two_factor_secret'] = null;
         }
 
-        $user->forceFill($payload)->save();
-        $this->auditLogService->record(
-            action: $action,
-            auditable: $user,
-            actor: $user,
-            request: $request,
-            newValues: ['two_factor_enabled' => $enabled]
-        );
+        DB::transaction(function () use ($user, $payload) {
+            $user->forceFill($payload)->save();
+        });
+
+        DB::afterCommit(static function () use ($user, $action, $enabled) {
+            event(DomainAuditEvent::make(
+                action: $action,
+                auditable: $user,
+                actor: $user,
+                newValues: ['two_factor_enabled' => $enabled]
+            ));
+        });
     }
 }

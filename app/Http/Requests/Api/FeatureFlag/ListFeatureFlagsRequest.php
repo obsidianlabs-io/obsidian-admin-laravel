@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\FeatureFlag;
 
-use App\DTOs\FeatureFlag\ListFeatureFlagsDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 
 class ListFeatureFlagsRequest extends BaseApiRequest
@@ -21,14 +20,24 @@ class ListFeatureFlagsRequest extends BaseApiRequest
         ];
     }
 
-    public function toDTO(): ListFeatureFlagsDTO
+    public function current(): int
     {
         $validated = $this->validated();
 
-        return new ListFeatureFlagsDTO(
-            current: max(1, (int) ($validated['current'] ?? 1)),
-            size: max(1, (int) ($validated['size'] ?? 10)),
-            keyword: trim((string) ($validated['keyword'] ?? '')),
-        );
+        return max(1, (int) ($validated['current'] ?? 1));
+    }
+
+    public function size(): int
+    {
+        $validated = $this->validated();
+
+        return max(1, (int) ($validated['size'] ?? 10));
+    }
+
+    public function keyword(): string
+    {
+        $validated = $this->validated();
+
+        return trim((string) ($validated['keyword'] ?? ''));
     }
 }

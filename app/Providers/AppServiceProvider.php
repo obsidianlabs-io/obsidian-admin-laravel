@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Domains\System\Listeners\RecordAsyncAuditEvent;
 use App\Domains\System\Services\FeatureFlagService;
 use App\Domains\Tenant\Actions\ResolveActiveTenantIdByCodeAction;
 use App\Domains\Tenant\Contracts\ActiveTenantResolver;
@@ -31,6 +30,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(FeatureFlagService::class);
+
         $this->app->bind(ActiveTenantResolver::class, ResolveActiveTenantIdByCodeAction::class);
     }
 
@@ -72,7 +73,6 @@ class AppServiceProvider extends ServiceProvider
 
         $queue->route([
             WriteAuditLogJob::class => [$connection !== '' ? $connection : null, $queueName !== '' ? $queueName : null],
-            RecordAsyncAuditEvent::class => [$connection !== '' ? $connection : null, $queueName !== '' ? $queueName : null],
         ]);
     }
 

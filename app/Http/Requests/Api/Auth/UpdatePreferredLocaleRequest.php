@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\Auth;
 
-use App\DTOs\Auth\UpdatePreferredLocaleInputDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 use Illuminate\Validation\Rule;
 
@@ -41,12 +40,8 @@ class UpdatePreferredLocaleRequest extends BaseApiRequest
         ];
     }
 
-    public function toDTO(): UpdatePreferredLocaleInputDTO
+    public function locale(): string
     {
-        $validated = $this->validated();
-
-        return new UpdatePreferredLocaleInputDTO(
-            locale: trim((string) $validated['locale'])
-        );
+        return trim((string) $this->validated('locale'));
     }
 }

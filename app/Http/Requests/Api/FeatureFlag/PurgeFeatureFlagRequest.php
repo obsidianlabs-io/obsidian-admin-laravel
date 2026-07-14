@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\FeatureFlag;
 
-use App\DTOs\FeatureFlag\PurgeFeatureFlagDTO;
 use App\Http\Requests\Api\BaseApiRequest;
 
 class PurgeFeatureFlagRequest extends BaseApiRequest
@@ -19,12 +18,10 @@ class PurgeFeatureFlagRequest extends BaseApiRequest
         ];
     }
 
-    public function toDTO(): PurgeFeatureFlagDTO
+    public function key(): string
     {
         $validated = $this->validated();
 
-        return new PurgeFeatureFlagDTO(
-            key: trim((string) $validated['key']),
-        );
+        return trim((string) $validated['key']);
     }
 }

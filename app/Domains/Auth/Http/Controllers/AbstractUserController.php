@@ -9,7 +9,6 @@ use App\Domains\Access\Services\UserService;
 use App\Domains\Auth\Actions\ResolveUserContextAction;
 use App\Domains\Auth\Actions\ResolveUserInfoAction;
 use App\Domains\Auth\Actions\Results\ResolvedUserProfile;
-use App\Domains\Auth\Actions\Results\ResolvedUserRoles;
 use App\Domains\Auth\Http\Controllers\Concerns\ResolvesRoleScope;
 use App\Domains\Auth\Http\Controllers\Concerns\VerifiesTotpCode;
 use App\Domains\Auth\Services\MenuMetadataService;
@@ -18,7 +17,6 @@ use App\Domains\Shared\Auth\ApiAuthResult;
 use App\Domains\Shared\Auth\ManagementContext;
 use App\Domains\Shared\Auth\TenantContext;
 use App\Domains\Shared\Http\Controllers\ApiController;
-use App\Domains\System\Services\AuditLogService;
 use App\Domains\System\Services\ThemeConfigService;
 use App\Domains\Tenant\Services\TenantContextService;
 use App\Support\ApiResultCode;
@@ -34,13 +32,15 @@ abstract class AbstractUserController extends ApiController
         protected readonly TenantContextService $tenantContextService,
         protected readonly MenuMetadataService $menuMetadataService,
         protected readonly ThemeConfigService $themeConfigService,
-        protected readonly AuditLogService $auditLogService,
         protected readonly TotpService $totpService,
         protected readonly ResolveUserContextAction $resolveUserContext,
         protected readonly ResolveUserInfoAction $resolveUserInfo,
     ) {}
 
-    protected function resolveRoles(User $user): ResolvedUserRoles
+    /**
+     * @return list<string>
+     */
+    protected function resolveRoles(User $user): array
     {
         return $this->resolveUserContext->resolveRoles($user);
     }

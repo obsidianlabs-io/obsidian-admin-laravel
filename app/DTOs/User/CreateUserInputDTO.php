@@ -16,17 +16,4 @@ final readonly class CreateUserInputDTO
         public string $password
     ) {}
 
-    public function toCreateUserDTO(int $roleId, ?int $tenantId, ?int $organizationId, ?int $teamId): CreateUserDTO
-    {
-        return new CreateUserDTO(
-            name: $this->userName,
-            email: $this->email,
-            password: $this->password,
-            status: $this->status,
-            roleId: $roleId,
-            tenantId: $tenantId,
-            organizationId: $organizationId,
-            teamId: $teamId,
-        );
-    }
 }

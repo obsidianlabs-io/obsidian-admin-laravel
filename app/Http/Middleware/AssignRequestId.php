@@ -38,6 +38,8 @@ class AssignRequestId
             RequestContext::KEY_TRACE_PARENT => $traceContext['traceParent'],
             RequestContext::KEY_PARENT_SPAN_ID => $traceContext['parentSpanId'],
             RequestContext::KEY_SPAN_ID => $traceContext['spanId'],
+            RequestContext::KEY_IP_ADDRESS => $request->ip(),
+            RequestContext::KEY_USER_AGENT => $request->userAgent(),
         ]);
         Log::withContext([
             'request_id' => $requestId,
