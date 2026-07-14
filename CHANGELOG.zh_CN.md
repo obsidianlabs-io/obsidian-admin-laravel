@@ -9,7 +9,7 @@
 
 ## [Unreleased]
 
-## [1.3.2] - 2026-06-22
+## [1.3.2] - 2026-07-15
 
 ### ✨ 新增
 - 从 `ThemeConfigService` 中提取 `ThemeConfigNormalizer`（444 行），集中管理配置校验、默认值、限制与规范化逻辑。
