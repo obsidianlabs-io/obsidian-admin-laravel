@@ -15,24 +15,84 @@
 >
 > 稳定版 release tag 也会自动发布不可变的 GHCR 镜像：`ghcr.io/obsidianlabs-io/obsidian-admin-laravel:<tag>`；稳定非预发布 tag 同时会更新 `latest`。
 
-## 核心定位
+## 发布镜像
 
-- **企业后台 API 基线**：适合作为管理后台、运营后台、内控平台、SaaS 控制台的后端起点。
-- **严格边界而不是传统胖 MVC**：通过 `DTO / Action / Service / Result Data` 降低无结构数组与隐式耦合。
-- **多租户优先**：内建租户上下文、租户安全边界、作用域切换与跨租户防泄漏约束。
-- **适合长期演进**：内置 OpenAPI、审计、幂等、健康检查、CI 质量门禁与架构测试。
-- **高并发友好**：项目已正式接入 `Laravel Octane`，并针对长驻 worker 的状态隔离做了额外处理。
+直接从 GHCR 拉取发布镜像：
+
+```bash
+docker pull ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.3.2
+```
+
+快速运行示例：
+
+```bash
+docker run --rm -p 8080:8000 \
+  -e APP_ENV=production \
+  -e APP_DEBUG=false \
+  -e APP_KEY=base64:Q2qE5A3yM4tQvL3X0yr7M5m4r2m40fX9zCw1Q2m3N4o= \
+  -e CACHE_STORE=array \
+  -e SESSION_DRIVER=array \
+  -e QUEUE_CONNECTION=sync \
+  -e AUDIT_QUEUE_CONNECTION=sync \
+  -e LOG_CHANNEL=stderr \
+  -e LOG_STACK=stderr \
+  ghcr.io/obsidianlabs-io/obsidian-admin-laravel:v1.3.2
+```
+
+如需队列、数据库、Redis 和 nginx 部署，请参考 [`docs/production-runtime.md`](./docs/production-runtime.md) 中的运行时指南。
+
+GHCR 发布镜像在 CI 中经过冷启动和 Laravel 引导验证。如需路由级 HTTP 健康探针，请使用 [`docs/production-runtime.md`](./docs/production-runtime.md) 中文档化的 compose 运行时路径。
+
+仓库现在运行两条互补的镜像扫描流水线：
+
+- `Backend Supply Chain` 在 PR、`main` 和每日定时任务中构建当前运行时镜像，并上传 `backend-runtime-image-scan`
+- 稳定 release tag 会扫描刚发布的 GHCR 镜像，并上传 `backend-release-image-scan`
+
+### Tag 策略
+
+稳定版后端发布会生成以下 GHCR 标签：
+
+- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.3.2`
+- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.3`
+- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1`
+- `ghcr.io/obsidianlabs-io/obsidian-admin-laravel:latest`（仅用于稳定非预发布 tag）
+
+生产环境请使用完整版本号 tag。`latest` 仅用于评估或内部冒烟测试。
+
+### Compose 使用示例
+
+如果你想直接使用已发布的镜像而不是本地构建，可以使用如下 compose override：
+
+```yaml
+services:
+  app:
+    image: ghcr.io/obsidianlabs-io/obsidian-admin-laravel:1.3.2
+    pull_policy: always
+```
+
+然后正常启动栈：
+
+```bash
+docker compose -f docker-compose.production.yml -f docker-compose.image.yml up -d
+```
 
 ## 快速开始（先看这里）
+
+Octane / RoadRunner 运行时可通过 `docker-compose.octane.yml` 使用，适合需要类生产环境长驻 worker 栈的场景。
 
 如果你只是想先把 API 跑起来，先选下面一种方式即可：
 
 ## 关键文档
 
+- 文档地址：[https://obsidianlabs-io.github.io/obsidian-admin-laravel/](https://obsidianlabs-io.github.io/obsidian-admin-laravel/)
 - 版本兼容矩阵：[`docs/compatibility-matrix.md`](./docs/compatibility-matrix.md)
+- 支持策略：[`docs/support-policy.md`](./docs/support-policy.md)
+- 全栈评估：[`docs/full-stack-evaluation.md`](./docs/full-stack-evaluation.md)
 - Octane / RoadRunner 运行说明：[`docs/octane.md`](./docs/octane.md)
 - 生产运行栈：[`docs/production-runtime.md`](./docs/production-runtime.md)
 - 发布签发清单：[`docs/release-final-checklist.md`](./docs/release-final-checklist.md)
+
+> 文档站点通过 GitHub Pages 发布。如果仓库还未启用 Pages，或第一次 Pages 工作流尚未完成，这个地址会先返回 `404`。
 
 ### 方式 A：Docker 开发环境（推荐，最省环境配置）
 
